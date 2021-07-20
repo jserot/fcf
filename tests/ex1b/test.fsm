@@ -1,0 +1,8 @@
+let fact(n) =
+  let compute (acc,k) = 
+  | k<=n -> compute (acc*k,k+1)
+  | k>n -> return acc in
+  compute (1,1)
+;
+
+fact(3);

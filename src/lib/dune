@@ -1,0 +1,4 @@
+(library
+  (name fcf)
+  (public_name fcf)
+  (flags (:standard -annot) (:standard -w -9-27-32-34-50)))

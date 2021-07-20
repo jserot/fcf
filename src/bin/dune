@@ -1,0 +1,12 @@
+(ocamllex
+  (modules lexer))
+
+(menhir
+  (modules parser))
+
+(executable 
+  (name fcfc)
+  (public_name fcfc)
+  (flags (:standard -annot) (:standard -w -9-27-32-34-35-50))
+  (modes byte)
+  (libraries fcf))

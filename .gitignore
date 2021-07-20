@@ -1,0 +1,14 @@
+.DS_Store
+*~
+*.bc
+*.exe
+*.cmi
+*.cmo
+_build/
+CHANGES.html
+README.html
+HOWTO
+TODO
+tests/*/*.dot
+tests/*/*.vhd
+*.merlin
