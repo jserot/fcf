@@ -36,12 +36,23 @@
 %{
 open Fcf
 open Syntax
+open Location
 
 (* let mk_typed_expr e ty = let open Expr in { e_desc = e; e_typ = ty }
  * let mk_int_expr e = mk_typed_expr e (Types.type_int ())
  * let mk_bool_expr e = mk_typed_expr e Types.TyBool
  * let mk_expr e = mk_typed_expr e (Types.TyVar (Types.new_type_var ())) *)
-let mk_expr e =  e
+
+let mk_location (p1,p2) =
+  let open Lexing in
+  Loc (!input_name, p1.pos_cnum, p2.pos_cnum)
+
+let mk_fsm_inst l desc = { fi_desc = desc; fi_loc = mk_location l }
+let mk_fsm_decl l desc = { fd_desc = desc; fd_loc = mk_location l }
+let mk_state_decl l desc = { sd_desc = desc; sd_loc = mk_location l }
+let mk_transition l desc = { t_desc = desc; t_loc = mk_location l }
+let mk_continuation l desc = { ct_desc = desc; ct_loc = mk_location l }
+let mk_expr l desc = { e_desc = desc; e_loc = mk_location l }
 %}
 
 %%
@@ -51,14 +62,14 @@ let mk_expr e =  e
  *   | x=X { x } *)
 
 program:
-  | fs=nonempty_list(fsm) es=list(fsm_expr) EOF { { p_fsms=fs; p_exprs=es } }
+  | fs=nonempty_list(fsm_decl) es=list(fsm_inst) EOF { { p_fsms=fs; p_insts=es } }
         
-fsm:
+fsm_decl:
   | LET name=LID ps=params EQUAL ss=states IN s=state_expr SEMICOLON
-      { name, { f_name=name; f_params=ps; f_desc=Let(ss,s) } }
+      { name, mk_fsm_decl $sloc { f_name=name; f_params=ps; f_desc=ss,s }  }
 
-fsm_expr:
-  | f=LID es=args SEMICOLON { f, es }
+fsm_inst:
+  | f=LID es=args SEMICOLON { mk_fsm_inst $sloc (f,es) }
 
 params:
   | (* Nothing *) { [] }
@@ -68,17 +79,18 @@ states:
   | LET ss=separated_nonempty_list(AND, state) { ss }
 
 state:
-  | name=LID ps=params EQUAL ts=nonempty_list(transition) { name, {s_params=ps; s_trans=ts} } 
+  | name=LID ps=params EQUAL ts=nonempty_list(transition)
+     { mk_state_decl $sloc (name, {sd_params=ps; sd_trans=ts}) } 
 
 transition:
-  | BAR e=guard ARROW c=continuation { (e,c) }
+  | BAR e=guard ARROW c=continuation { mk_transition $sloc (e,c) }
 
 guard:
   | e=expr { e }
         
 continuation:
-  | RETURN e=expr { Return e }
-  | e=state_expr { Next e }
+  | RETURN e=expr { mk_continuation $sloc (Return e) }
+  | e=state_expr { mk_continuation $sloc (Next e) }
 
 state_expr:
   | s=LID es=args { s, es }
@@ -94,34 +106,34 @@ expr:
   | e = simple_expr
       { e }
   | e1 = expr PLUS e2 = expr
-      { mk_expr (Expr.EPrim ("+", [e1; e2])) }
+      { mk_expr $sloc (EPrim ("+", [e1; e2])) }
   | e1 = expr MINUS e2 = expr
-      { mk_expr (Expr.EPrim ("-", [e1; e2])) }
+      { mk_expr $sloc (EPrim ("-", [e1; e2])) }
   | e1 = expr TIMES e2 = expr
-      { mk_expr (Expr.EPrim ("*", [e1; e2])) }
+      { mk_expr $sloc (EPrim ("*", [e1; e2])) }
   | e1 = expr DIV e2 = expr
-      { mk_expr (Expr.EPrim ("/", [e1; e2])) }
+      { mk_expr $sloc (EPrim ("/", [e1; e2])) }
   | e1 = expr EQUAL e2 = expr
-      { mk_expr (Expr.EPrim ("=", [e1; e2])) }
+      { mk_expr $sloc (EPrim ("=", [e1; e2])) }
   | e1 = expr NOTEQUAL e2 = expr
-      { mk_expr (Expr.EPrim ("!=", [e1; e2])) }
+      { mk_expr $sloc (EPrim ("!=", [e1; e2])) }
   | e1 = expr GT e2 = expr
-      { mk_expr (Expr.EPrim (">", [e1; e2])) }
+      { mk_expr $sloc (EPrim (">", [e1; e2])) }
   | e1 = expr LT e2 = expr
-      { mk_expr (Expr.EPrim ("<", [e1; e2])) }
+      { mk_expr $sloc (EPrim ("<", [e1; e2])) }
   | e1 = expr GTE e2 = expr
-      { mk_expr (Expr.EPrim (">=", [e1; e2])) }
+      { mk_expr $sloc (EPrim (">=", [e1; e2])) }
   | e1 = expr LTE e2 = expr
-      { mk_expr (Expr.EPrim ("<=", [e1; e2])) }
+      { mk_expr $sloc (EPrim ("<=", [e1; e2])) }
 
 simple_expr:
   | v = LID
-      { mk_expr (Expr.EVar v) }
+      { mk_expr $sloc (EVar v) }
   | c = INT
-      { mk_expr (Expr.EInt c) }
+      { mk_expr $sloc (EInt c) }
   (* | c = BOOL
-   *     { mk_expr (Expr.EBool c) } *)
+   *     { mk_expr $sloc (EBool c) } *)
   | MINUS c=INT
-      { mk_expr (Expr.EInt (-c)) }
+      { mk_expr $sloc (EInt (-c)) }
   | LPAREN e = expr RPAREN
       { e }

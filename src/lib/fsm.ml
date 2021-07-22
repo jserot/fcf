@@ -10,8 +10,10 @@ type t = {
 
 open Syntax
 
+let state_env state_decls = List.map (fun sd -> sd.sd_desc) state_decls
+
 let states_of f = match f.f_desc with
-  | Let (state_defns, _ ) -> List.map fst state_defns
+  | state_decls, _ -> List.map fst (state_env state_decls)
 
 let inps_of f = List.map Typing.no_type f.f_params
 
@@ -20,37 +22,38 @@ let outps_of f = [ Typing.no_type "res" ]
 module VarSet = Set.Make (struct type t = string let compare = compare end)
 
 let vars_of f = match f.f_desc with
-  | Let (state_defns, _) -> 
+  | state_decls, _ -> 
      List.fold_left
-       (fun acc (_,sd) -> VarSet.union acc (VarSet.of_list sd.s_params))
+       (fun acc { sd_desc=_,sd } -> VarSet.union acc (VarSet.of_list sd.sd_params))
        VarSet.empty
-       state_defns 
+       state_decls 
      |> VarSet.elements
      |> List.map Typing.no_type
   
 let state_assignations senv s exprs = 
   let sd = List.assoc s senv in
-  List.map2 (fun v e -> Action.Assign (v, e)) sd.s_params exprs
+  List.map2 (fun v e -> Action.Assign (v, e)) sd.sd_params exprs
 
 let strans_of f = match f.f_desc with
-  | Let (state_defns, (s,es)) -> 
+  | state_decls, (s,es) -> 
      "idle",
-     Expr.EPrim ("=", [EVar "start"; EInt 1]), 
-     state_assignations state_defns s es @ [Action.Assign ("rdy", Expr.EInt 0)],
+     mk_expr (EPrim ("=", [mk_expr (EVar "start"); mk_expr (EInt 1)])), 
+     state_assignations (state_env state_decls) s es @ [Action.Assign ("rdy", mk_expr (EInt 0))],
      s
 
-let mk_trans senv src (g, k) = match k with
-  | Return e -> 
-     src, g, [Action.Assign ("res", e); Action.Assign ("rdy", Expr.EInt 1)], "idle"
-  | Next (dst, es) ->
+let mk_trans senv src { t_desc=g,k } = match k with
+  | { ct_desc = Return e } -> 
+     src, g, [Action.Assign ("res", e); Action.Assign ("rdy", mk_expr (EInt 1))], "idle"
+  | { ct_desc = Next (dst, es) } ->
      src, g,  state_assignations senv dst es, dst
      
 let rtrans_of f = match f.f_desc with
-  | Let (state_defns, _) -> 
+  | state_decls, _ -> 
+     let senv = state_env state_decls in
      List.fold_left
-       (fun acc (s, sd) -> acc @ List.map (mk_trans state_defns s) sd.s_trans)
+       (fun acc (s, sd) -> acc @ List.map (mk_trans senv s) sd.sd_trans)
        []
-       state_defns
+       senv
 
 let from_ast f = {
   m_name = f.f_name;

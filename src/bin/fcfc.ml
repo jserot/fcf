@@ -1,7 +1,8 @@
 open Fcf
-(* open Printf *)
+open Syntax
+open Printf
 
-let usage = "usage: ffsmc [options...] files"
+let usage = "usage: fcfc [options...] files"
 
 let source_file = ref "<no source_file>"
 
@@ -32,27 +33,39 @@ let compile name =
   match !mode with
   | Run ->
      let results = Eval.eval_program p in
-     List.iter (fun r -> Printf.printf "-: ? = %s\n" (Value.to_string r)) results
+     List.iter (fun r -> printf "-: ? = %s\n" (Value.to_string r)) results
   | Dot ->
      List.iter
-       (fun (n,f) -> f |> Fsm.from_ast |> Dot.write (n ^ ".dot"))
+       (fun (n,f) -> f.fd_desc |> Fsm.from_ast |> Dot.write (n ^ ".dot"))
        p.p_fsms
   | Show ->
      List.iter
-       (fun (n,f) -> f |> Fsm.from_ast |> Dot.view |> ignore)
+       (fun (n,f) -> f.fd_desc |> Fsm.from_ast |> Dot.view |> ignore)
        p.p_fsms
   | Vhdl ->
      List.iter
-       (fun (n,f) -> f |> Fsm.from_ast |> Vhdl.write ~dir:"." ~prefix:n)
+       (fun (n,f) -> f.fd_desc |> Fsm.from_ast |> Vhdl.write ~dir:"." ~prefix:n)
        p.p_fsms
   | Nothing -> ()
 
+
 let main () =
-(* try *)
+try
   Sys.catch_break true;
   Arg.parse options anonymous usage;
   compile ()
-(* with
- * | e -> Error.handle e *)
+with
+  | Parser.Error -> Error.syntax_error (); exit 1
+  | Lexer.Illegal_character (pos,c) -> Error.illegal_char pos c; exit 2
+  | Eval.Unbound_value (l, v) -> Error.unbound_value v l; exit 3
+  | End_of_file -> exit 0
+  | Misc.Error -> exit 1
+  | Sys.Break -> flush stderr; exit 5
+  | Sys_error msg ->
+     eprintf "Input/output error: %s.\n" msg;
+     flush stderr; exit 6
+  | e ->
+     eprintf "Internal error: %s.\n" (Printexc.to_string e);
+     flush stderr; exit 7
 
 let _ = Printexc.print main ()

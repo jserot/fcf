@@ -1,5 +1,4 @@
-open Ffsm
-open Expr
+open Fcf
 open Syntax
    
 let fact = {

@@ -1,4 +1,5 @@
 open Fcf
+open Syntax
 open Printf
 
 type model = {
@@ -103,10 +104,10 @@ let string_of_op = function
 let string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
-    match e with
-    | Expr.EInt n -> string_of_int n
-    | Expr.EVar v -> v
-    | Expr.EPrim (op, [e1; e2]) ->
+    match e.e_desc with
+    | EInt n -> string_of_int n
+    | EVar v -> v
+    | EPrim (op, [e1; e2]) ->
         let s1 = string_of (level+1) e1 
         and s2 = string_of (level+1) e2 in 
         paren level (s1 ^ op ^ s2)

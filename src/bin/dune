@@ -1,8 +1,8 @@
-(ocamllex
-  (modules lexer))
+(ocamllex lexer)
 
 (menhir
-  (modules parser))
+  (modules parser)
+  (flags (--explain)))
 
 (executable 
   (name fcfc)

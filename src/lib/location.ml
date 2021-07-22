@@ -1,6 +1,18 @@
+(**********************************************************************)
+(*                                                                    *)
+(*              This file is part of the HOCL package                 *)
+(*                                                                    *)
+(*  Copyright (c) 2019-present, Jocelyn SEROT (jocelyn.serot@uca.fr). *)
+(*                     All rights reserved.                           *)
+(*                                                                    *)
+(*  This source code is licensed under the license found in the       *)
+(*  LICENSE file in the root directory of this source tree.           *)
+(*                                                                    *)
+(**********************************************************************)
+
 (* Printing a location in the source program *)
 
-(* Largely inspired from the file location.ml found in the Caml Light 0.75 distribution  *)
+(* Taken almost verbatim from the file location.ml found in the Caml Light 0.75 distribution  *)
 
 open Lexing
 open Parsing
@@ -35,7 +47,7 @@ let output_lines oc char1 char2 charline1 line1 line2 =
 
 let output_loc oc input seek line_flag (Loc(f,pos1, pos2)) =
   let pr_chars n c =
-    for i = 1 to n do output_char oc c done in
+    for _ = 1 to n do output_char oc c done in
   let skip_line () =
     try
       while input() != '\n' do () done
@@ -105,26 +117,26 @@ let output_loc oc input seek line_flag (Loc(f,pos1, pos2)) =
     seek pos1;
     copy_line();
     if !line2 - !line1 <= 8 then
-      for i = !line1 + 1 to !line2 - 1 do
+      for _ = !line1 + 1 to !line2 - 1 do
         output_string oc error_prompt;
         copy_line()
       done
     else
       begin
-        for i = !line1 + 1 to !line1 + 3 do
+        for _ = !line1 + 1 to !line1 + 3 do
           output_string oc error_prompt;
           copy_line()
         done;
         output_string oc error_prompt; output_string oc "..........\n";
-        for i = !line1 + 4 to !line2 - 4 do skip_line() done;
-        for i = !line2 - 3 to !line2 - 1 do
+        for _ = !line1 + 4 to !line2 - 4 do skip_line() done;
+        for _ = !line2 - 3 to !line2 - 1 do
           output_string oc error_prompt;
           copy_line()
         done
       end;
     begin try
       output_string oc error_prompt;
-      for i = !line2_pos to pos2 - 1 do
+      for _ = !line2_pos to pos2 - 1 do
         output_char oc (input())
       done;
       pr_line 0 100 '.'
@@ -137,7 +149,9 @@ let output_location oc ((Loc (filename,c1,c2)) as loc) =
   if String.length !input_name > 0 then begin
     let fname, chan = 
       if filename <> !input_name then (* This may happen when [output_location] is called after the parsing step.. *)
-        filename, open_in filename                                                                                      
+        filename,
+        (try open_in filename                                                                                      
+         with Sys_error _ -> Misc.fatal_error ("Cannot open file " ^ filename ^ " for displaying error location."))
       else
         filename,
         !input_chan in
@@ -147,24 +161,21 @@ let output_location oc ((Loc (filename,c1,c2)) as loc) =
       oc (fun () -> input_char chan) (seek_in chan) true
       loc;
     seek_in !input_chan p
-  end else begin
-    Printf.fprintf oc "Toplevel input:\n";
-    let curr_pos = ref 0 in
-    let input () =
-      let c =
-        if !curr_pos >= 2048 then
-          raise End_of_file
-        else if !curr_pos >= 0 then
-          Bytes.get !input_lexbuf.lex_buffer !curr_pos
-        else
-          '.'
-      in
-        incr curr_pos; c
-    and seek pos =
-      curr_pos := pos - !input_lexbuf.lex_abs_pos
-    in
-      output_loc oc input seek false loc
-  end
+    end else begin (* Toplevel input *)
+          let curr_pos = ref 0 in
+          let input () =
+            let c =
+              if !curr_pos >= 2048 then
+                raise End_of_file
+              else if !curr_pos >= 0 then
+                Bytes.get !input_lexbuf.lex_buffer !curr_pos
+              else
+                '.'
+            in
+            incr curr_pos; c
+          and seek pos = curr_pos := pos - !input_lexbuf.lex_abs_pos in
+          output_loc oc input seek false loc
+        end
 
 let output_input_name oc =
   Printf.fprintf oc "File \"%s\", line 1:\n" !input_name

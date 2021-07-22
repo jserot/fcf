@@ -1,12 +1,10 @@
 .PHONY: doc
 
-all: build doc
+all: build 
 
 build:
-	dune build src/lib/rfsm.cma
-	dune build src/lib/rfsm.cmxa
-	dune build src/bin/rfsmc.bc
-	dune build src/bin/rfsmc.exe
+	dune build src/lib/fcf.cma
+	dune build src/bin/fcfc.bc
 
 install:
 	dune build @install
@@ -34,7 +32,7 @@ html: README.md
 	pandoc -t html -o CHANGES.html CHANGES.md
 
 toplevel:
-	dune exec ./src/bin/rfsmtop.exe
+	dune exec ./src/bin/fcfc.exe
 
 tests:
 	(cd examples; ./do_tests dot)
@@ -42,7 +40,6 @@ tests:
 
 clean:
 	dune clean
-	(cd examples; make clean)
 	\rm -f README.html CHANGES.html
 
 clobber: clean

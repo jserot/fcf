@@ -1,3 +1,7 @@
+exception Error
+
+let fatal_error msg = failwith msg
+
 let string_of_list f sep l =
   let rec h = function [] -> "" | [x] -> f x | x::xs -> f x ^ sep ^ h xs in
   h l
