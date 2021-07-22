@@ -1,7 +1,7 @@
 FCFC=../../_build/default/src/bin/fcfc.bc
 
 run: 
-	$(FCFC) -run test.fsm
+	$(FCFC) -run -trace test.fsm
 
 dot: 
 	$(FCFC) -dot test.fsm

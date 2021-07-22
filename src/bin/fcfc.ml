@@ -14,6 +14,7 @@ let mode = ref Nothing
 
 let options = [
   "-run", Arg.Unit (fun _ -> mode := Run), "run program";
+  "-trace", Arg.Unit (fun _ -> Eval.trace := true), "trace execution when running program";
   "-dot", Arg.Unit (fun _ -> mode := Dot), "generate dot representation";
   "-show", Arg.Unit (fun _ -> mode := Show), "generate and view dot representation";
   "-vhdl", Arg.Unit (fun _ -> mode := Vhdl), "generate VHDL code";
