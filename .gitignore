@@ -9,6 +9,6 @@ CHANGES.html
 README.html
 HOWTO
 TODO
-tests/*/*.dot
-tests/*/*.vhd
+examples/*/*.dot
+examples/*/*.vhd
 *.merlin

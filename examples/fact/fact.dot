@@ -1,0 +1,24 @@
+digraph fact {
+layout = dot;
+rankdir = UD;
+size = "8.5,11";
+label = ""
+ center = 1;
+ nodesep = "0.350000"
+ ranksep = "0.400000"
+ fontsize = 14;
+mindist="1.0"
+_ini [shape=point; label=""; style = invis]
+idle [label = "idle", shape = circle, style = solid]
+compute [label = "compute", shape = circle, style = solid]
+_ini->idle
+idle->compute [label="=(start,1)
+__________
+acc:=1\nk:=1\nrdy:=0"]
+compute->compute [label="<=(k,n)
+_____________
+acc:=*(acc,k)\nk:=+(u,1)"]
+compute->idle [label=">(k,n)
+________
+res:=acc\nrdy:=1"]
+}
