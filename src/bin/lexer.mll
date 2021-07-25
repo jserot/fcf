@@ -8,6 +8,8 @@ let keyword_table = [
   "in", IN;
   "and", AND;
   "return", RETURN;
+  "true", TRUE;
+  "false", FALSE;
 ]
 }
 
@@ -33,6 +35,7 @@ rule main = parse
   | "->" { ARROW }
   | "|" { BAR }
   (* | ":" { COLON } *)
+  (* | "'" { QUOTE } *)
   | "=" { EQUAL }
   | "!="    { NOTEQUAL }
   | '>'    { GT }

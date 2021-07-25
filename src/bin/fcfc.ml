@@ -9,11 +9,12 @@ let source_file = ref "<no source_file>"
 let anonymous fname = source_file := fname
 
 type mode = Nothing | Run | Dot | Show | Vhdl
-
 let mode = ref Nothing
+let dump_typed = ref false
 
 let options = [
   "-run", Arg.Unit (fun _ -> mode := Run), "run program";
+  "-dump_typed", Arg.Unit (fun _ -> dump_typed := true), "dump typed FSM";
   "-trace", Arg.Unit (fun _ -> Eval.trace := true), "trace execution when running program";
   "-dot", Arg.Unit (fun _ -> mode := Dot), "generate dot representation";
   "-show", Arg.Unit (fun _ -> mode := Show), "generate and view dot representation";
@@ -31,6 +32,8 @@ let parse fname =
 
 let compile name =
   let p = parse !source_file in
+  let tp = Typing.type_program Builtins.typing_env p in
+  if !dump_typed then Typing.dump_typed_program tp;
   match !mode with
   | Run ->
      let results = Eval.eval_program p in
@@ -58,7 +61,10 @@ try
 with
   | Parser.Error -> Error.syntax_error (); exit 1
   | Lexer.Illegal_character (pos,c) -> Error.illegal_char pos c; exit 2
-  | Eval.Unbound_value (l, v) -> Error.unbound_value v l; exit 3
+  | Typing.Wrong_guard_type(ty,loc) -> Error.wrong_guard_type ty loc
+  | Typing.Unbound_value(loc,id) -> Error.unbound_value id loc
+  | Typing.Wrong_type(site,loc,ty1,ty2) -> Error.wrong_type site loc ty1 ty2
+  | Typing.Circular_type(site,loc,ty1,ty2) -> Error.circular_type site loc ty1 ty2
   | End_of_file -> exit 0
   | Misc.Error -> exit 1
   | Sys.Break -> flush stderr; exit 5

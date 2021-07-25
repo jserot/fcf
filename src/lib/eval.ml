@@ -1,46 +1,52 @@
 open Syntax
-open Location
 
 let trace = ref false
 
-exception Unbound_value of location * string 
+exception BlockedInState of string 
 
 let lookup env loc id =
   try List.assoc id env
-  with Not_found -> raise (Unbound_value (loc,id))
+  with Not_found -> raise (Typing.Unbound_value (loc,id)) (* should not happen after TC *)
    
 let rec eval_expr env e =
   match e.e_desc with
 | EVar v -> lookup env e.e_loc v
 | EInt c -> Value.Int c
-| EPrim (p, es) ->
-   let f = lookup Builtins.primitives e.e_loc p in
-   let args = List.map (eval_expr env) es in
+| EBool c -> Value.Bool c
+| ETuple _ -> Misc.fatal_error "Eval.eval_expr: tuple" (* should not happen *)
+| EBinop (op, e1, e2) ->
+   let _, f = lookup Builtins.primitives e.e_loc op in
+   let args = List.map (eval_expr env) [e1; e2] in
    f args
 
-let rec eval_state env state_decls (name,args) =
+let rec eval_state env state_defns (name,args) =
   if !trace then 
     Printf.printf "Eval %s(%s) in env=[%s]\n"
       name
       (Misc.string_of_list string_of_expr "," args)
       (Env.to_string env);
-  let s =
-    try List.assoc name (List.map (fun sd -> sd.sd_desc) state_decls)
-    with Not_found -> failwith ("unbound state " ^ name) in
-  let bindings = List.combine s.sd_params (List.map (eval_expr env) args) in
+  let lookup_state s = 
+    let rec lookup defns = match defns with
+      | [] -> Misc.fatal_error "Eval.eval_state" (* should not happen thx to TC *)
+      | {sd_desc=name,params,trans}::rest -> if s=name then params, trans else lookup rest in
+    lookup state_defns in
+  let params, transitions = lookup_state name in
+  let bindings = List.map2 (fun id arg -> id, eval_expr env arg) params args in
   let env' = List.fold_left Env.update env bindings in
   let fireable { t_desc= guard, _ } = eval_expr env' guard = Value.Bool true in
-  match List.find_opt fireable s.sd_trans with
+  match List.find_opt fireable transitions with
   | Some { t_desc= _, { ct_desc=Return e } } -> eval_expr env' e
-  | Some { t_desc= _, { ct_desc=Next (s',exprs') } } -> eval_state env' state_decls (s', exprs')
-  | None -> failwith ("blocked in state " ^ name)
+  | Some { t_desc= _, { ct_desc=Next { ap_desc = s',exprs' } } } -> eval_state env' state_defns (s', exprs')
+  | None -> raise (BlockedInState name)
 
-let eval_fsm_inst fsms { fi_desc=name, args } =
-  let f = try List.assoc name fsms with Not_found -> failwith ("Unbound fsm: " ^ name) in
-  let env = List.combine f.f_params (List.map (eval_expr []) args) in
+let eval_fsm_inst fsms { ap_desc=name,args } =
+  let f =
+    try List.assoc name fsms
+    with Not_found -> Misc.fatal_error "Eval.eval_fsm_inst" (* should not happen thx to TC *) in
+  let env = List.map2 (fun id arg -> id, eval_expr [] arg) f.f_params args in
   match f.f_desc with
-  | state_decls, (name, args) ->
-     eval_state env state_decls (name, args)
+  | state_defns, { ap_desc=name, args } ->
+     eval_state env state_defns (name, args)
 
 let fsm_env = List.map (function n, fd -> n, fd.fd_desc)
             

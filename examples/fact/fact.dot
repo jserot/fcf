@@ -12,13 +12,13 @@ _ini [shape=point; label=""; style = invis]
 idle [label = "idle", shape = circle, style = solid]
 compute [label = "compute", shape = circle, style = solid]
 _ini->idle
-idle->compute [label="=(start,1)
-__________
+idle->compute [label="start=1
+_______
 acc:=1\nk:=1\nrdy:=0"]
-compute->compute [label="<=(k,n)
-_____________
-acc:=*(acc,k)\nk:=+(u,1)"]
-compute->idle [label=">(k,n)
+compute->compute [label="k<=n
+__________
+acc:=acc*k\nk:=k+1"]
+compute->idle [label="k>n
 ________
 res:=acc\nrdy:=1"]
 }

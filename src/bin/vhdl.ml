@@ -5,9 +5,9 @@ open Printf
 type model = {
   v_name: string;
   v_states: string list;
-  v_inps: (string * Types.t) list;
-  v_outps: (string * Types.t) list;
-  v_vars: (string * Types.t) list;  
+  v_inps: (string * Types.typ) list;
+  v_outps: (string * Types.typ) list;
+  v_vars: (string * Types.typ) list;  
   v_init: State.t * Action.t list;
   v_trans: (State.t * Transition.t list) list; (* Transitions, here indexed by source state *)
   }
@@ -107,7 +107,7 @@ let string_of_expr e =
     match e.e_desc with
     | EInt n -> string_of_int n
     | EVar v -> v
-    | EPrim (op, [e1; e2]) ->
+    | EBinop (op, e1, e2) ->
         let s1 = string_of (level+1) e1 
         and s2 = string_of (level+1) e2 in 
         paren level (s1 ^ op ^ s2)

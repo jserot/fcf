@@ -4,10 +4,10 @@ run:
 	$(FCFC) -run -trace test.fsm
 
 dot: 
-	$(FCFC) -dot test.fsm
+	$(FCFC) -dot -dump_typed test.fsm
 
 show: 
-	$(FCFC) -show test.fsm
+	$(FCFC) -show -dump_typed test.fsm
 
 vhdl: 
 	$(FCFC) -vhdl test.fsm

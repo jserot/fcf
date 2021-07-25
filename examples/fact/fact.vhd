@@ -15,8 +15,8 @@ end entity;
 architecture RTL of fact is
   type t_state is ( Idle, Compute );
   signal state: t_state;
-  signal acc: integer;
   signal k: integer;
+  signal acc: integer;
 begin
   process(rst, clk)
   begin

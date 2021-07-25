@@ -3,17 +3,39 @@
 type state_name = string           
 type fsm_name = string           
 
+type type_expr =
+  { te_desc: type_expr_desc;
+    te_loc: Location.location;
+    mutable te_typ: Types.typ }
+
+and type_expr_desc =
+  | Typeconstr of string * type_expr list 
+  | Typevar of string
+
 type expr = {
   e_desc: e_desc;
   e_loc: Location.location;
+  mutable e_typ: Types.typ;
   }
 
 and e_desc = 
 | EVar of string
 | EInt of int
-| EPrim of string * expr list
+| EBool of bool
+| ETuple of expr list
+| EBinop of string * expr * expr
 
-let mk_expr e = { e_desc = e; e_loc = Location.no_location }
+let mk_expr e = { e_desc = e; e_loc = Location.no_location; e_typ = Types.no_type }
+
+(* type 'a located = {
+ *   desc: 'a;
+ *   loc: Location.location;
+ *   } *)
+
+type appl = {
+  ap_desc: string * expr list;  (* fsm(args) or state(args) *)
+  ap_loc: Location.location;
+  }
 
 type fsm_decl = {
   fd_desc: fsm_desc;
@@ -23,19 +45,15 @@ type fsm_decl = {
 and fsm_desc = {
     f_name: string;
     f_params: string list;
-    f_desc: state_decl list * state_expr;  (* LET [state_defns] IN state(args) *)
+    f_desc: state_defn list * appl;  (* LET [state_defns] IN state(args) *)
+    mutable f_typ: Types.typ_scheme;
   }
 
-and state_expr = state_name * expr list
-
-and state_decl = {
-  sd_desc: state_name * state_descr;
+and state_defn = {
+  sd_desc: state_name * string list * transition list; (* s(args) = | t1 ... | tn *)
   sd_loc: Location.location;
-  }
-
-and state_descr = {
-  sd_params: string list;
-  sd_trans: transition list
+  mutable sd_typ: Types.typ;
+  mutable sd_params: (string * Types.typ) list;
   }
 
 and transition = {
@@ -46,20 +64,16 @@ and transition = {
 and continuation = {
   ct_desc: cont_desc;
   ct_loc: Location.location;
+  ct_typ: Types.typ;
   }
 
 and cont_desc =
-| Next of state_expr
+| Next of appl
 | Return of expr
-
-type fsm_inst = {
-  fi_desc: fsm_name * expr list;
-  fi_loc: Location.location;
-  }
 
 type program = {
     p_fsms: (fsm_name * fsm_decl) list;
-    p_insts: fsm_inst list;
+    p_insts: appl list;
   }
 
 (* Printing *)
@@ -69,5 +83,7 @@ let rec string_of_expr e = string_of_edesc e.e_desc
 and string_of_edesc e = match e with
   | EVar v -> v
   | EInt c -> string_of_int c
-  | EPrim (p, es) -> p ^ "(" ^ Misc.string_of_list string_of_expr "," es ^ ")"
+  | EBool c -> string_of_bool c
+  | ETuple es -> "(" ^ Misc.string_of_list string_of_expr "," es ^ ")"
+  | EBinop (op, e1, e2) -> string_of_expr e1 ^ op ^ string_of_expr e2 (*TODO : add parens *)
 

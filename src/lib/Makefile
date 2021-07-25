@@ -1,4 +1,4 @@
-all: byte native
+all: byte # native
 
 byte:
 	dune build fcf.cma
