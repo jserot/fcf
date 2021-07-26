@@ -47,6 +47,8 @@ type config = {
   mutable use_numeric_std: bool;
   mutable default_int_size: int;
   mutable act_sem: act_semantics;
+  mutable support_library: string;
+  mutable support_package: string;
   }
 
 and act_semantics =  (** Interpretation of actions associated to transitions *)
@@ -60,6 +62,8 @@ let cfg = {
   use_numeric_std = false;
   default_int_size = 8;
   act_sem = Synchronous;  (* Default *)
+  support_library = "fcf";
+  support_package = "fcf";
   }
 
 type vhdl_type = 
@@ -238,8 +242,8 @@ let dump_model fname m =
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;\n";
   if cfg.use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
-  (* fprintf oc "library %s;\n" cfg.support_library;
-   * fprintf oc "use %s.%s.all;\n" cfg.support_library cfg.support_package; *)
+  fprintf oc "library %s;\n" cfg.support_library;
+  fprintf oc "use %s.%s.all;\n" cfg.support_library cfg.support_package;
   fprintf oc "\n";
   dump_module_intf "entity" oc m;
   fprintf oc "\n";

@@ -14,7 +14,7 @@ vhdl:
 	$(FCFC) -vhdl -vhdl_numeric_std -vhdl_default_int_size 16 test.fsm
 
 vhdl.check:
-	$(GHDL) -a -fno-color-diagnostics fact.vhd
+	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics fact.vhd
 
 
 clean: 
