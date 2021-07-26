@@ -38,13 +38,13 @@ let strans_of f = match f.f_desc with
   | state_defns, { ap_desc = s,es } -> 
      let senv = state_env state_defns in
      "idle",
-     mk_expr (EBinop ("=", mk_expr (EVar "start"), mk_expr (EInt 1))), 
-     state_assignations senv  s es @ [Action.Assign ("rdy", mk_expr (EInt 0))],
+     mk_bool_expr (EBinop ("=", mk_bool_expr @@ EVar "start", mk_bool_expr @@ EBool true)), 
+     state_assignations senv  s es @ [Action.Assign ("rdy", mk_bool_expr @@ EBool false)],
      s
 
 let mk_trans senv src { t_desc=g,k } = match k with
   | { ct_desc = Return e } -> 
-     src, g, [Action.Assign ("res", e); Action.Assign ("rdy", mk_expr (EInt 1))], "idle"
+     src, g, [Action.Assign ("res", e); Action.Assign ("rdy", mk_bool_expr @@ EBool true)], "idle"
   | { ct_desc = Next { ap_desc = dst, es} } ->
      src, g, state_assignations senv dst es, dst
      

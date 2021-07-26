@@ -28,7 +28,8 @@ and e_desc =
 | ETuple of expr list
 | EBinop of string * expr * expr
 
-let mk_expr e = { e_desc = e; e_loc = Location.no_location; e_typ = Types.no_type }
+let mk_expr ty e = { e_desc = e; e_loc = Location.no_location; e_typ = ty }
+let mk_bool_expr e = { e_desc = e; e_loc = Location.no_location; e_typ = TyBool }
 
 (* type 'a located = {
  *   desc: 'a;
