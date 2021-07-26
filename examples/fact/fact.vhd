@@ -9,7 +9,7 @@ entity fact is
         start: in std_logic;
         n: in unsigned(7 downto 0);
         rdy: out std_logic;
-        res: out integer;
+        res: out unsigned(7 downto 0);
         clk: in std_logic;
         rst: in std_logic
 );
@@ -33,14 +33,14 @@ begin
           k <= k+to_unsigned(1,8);
         elsif  ( k>n ) then
           res <= acc;
-          rdy <= 1;
+          rdy <= '1';
           state <= Idle;
         end if;
       when Idle =>
-        if ( start=1 ) then
+        if ( start='1' ) then
           acc <= to_unsigned(1,8);
           k <= to_unsigned(1,8);
-          rdy <= 0;
+          rdy <= '0';
           state <= Compute;
         end if;
     end case;

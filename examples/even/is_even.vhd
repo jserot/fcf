@@ -1,12 +1,14 @@
 library ieee;
 use ieee.std_logic_1164.all;
+library fcf;
+use fcf.fcf.all;
 
 entity is_even is
   port(
-        start: in integer;
+        start: in std_logic;
         n: in integer;
-        rdy: out integer;
-        res: out integer;
+        rdy: out std_logic;
+        res: out std_logic;
         clk: in std_logic;
         rst: in std_logic
 );
@@ -28,14 +30,14 @@ begin
           m <= m-1;
           state <= Odd;
         elsif  ( m<=0 ) then
-          res <= 1;
-          rdy <= 1;
+          res <= '1';
+          rdy <= '1';
           state <= Idle;
         end if;
       when Idle =>
-        if ( start=1 ) then
+        if ( start='1' ) then
           m <= n;
-          rdy <= 0;
+          rdy <= '0';
           state <= Even;
         end if;
       when Odd =>
@@ -43,8 +45,8 @@ begin
           m <= m-1;
           state <= Even;
         elsif  ( m<=0 ) then
-          res <= 0;
-          rdy <= 1;
+          res <= '0';
+          rdy <= '1';
           state <= Idle;
         end if;
     end case;

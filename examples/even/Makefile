@@ -1,4 +1,5 @@
 FCFC=../../_build/default/src/bin/fcfc.bc
+GHDL=ghdl
 
 run: 
 	$(FCFC) -run -trace test.fsm
@@ -11,6 +12,9 @@ show:
 
 vhdl: 
 	$(FCFC) -vhdl test.fsm
+
+vhdl.check:
+	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics is_even.vhd
 
 clean: 
 	\rm -f *~

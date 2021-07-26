@@ -56,19 +56,21 @@ let rtrans_of f = match f.f_desc with
        []
        senv
 
-let from_ast f = {
-  m_name = f.f_name;
-  m_states = "idle" :: states_of f;
-  m_inps =   ("start", Types.TyBool)
-           :: List.map2
-                (fun (p,_) ty -> p, ty)
-                f.f_params
-                (fst @@ Types.fn_types @@ Types.type_instance f.f_typ);
-  m_outps = ("rdy", Types.TyBool) ::  [ "res", Types.type_int () ];
-  m_vars = vars_of f;
-  m_trans = strans_of f :: rtrans_of f;
-  m_itrans = "idle", []
-}
+let from_ast f =
+  let ty_args, ty_res = Types.fn_types @@ Types.type_instance f.f_typ in
+  { m_name = f.f_name;
+    m_states = "idle" :: states_of f;
+    m_inps =   ("start", Types.TyBool)
+               :: List.map2 (fun (p,_) ty -> p, ty) f.f_params ty_args;
+    m_outps = ("rdy", Types.TyBool)
+              :: (match ty_res with 
+                  | [] -> []
+                  | [t] -> ["res", t]
+                  | ts -> List.mapi (fun i t -> "res" ^ string_of_int (i+1), t) ts);
+    m_vars = vars_of f;
+    m_trans = strans_of f :: rtrans_of f;
+    m_itrans = "idle", []
+  }
   
 let string_of_typed_io (id, ty) = id ^ ":" ^ Types.string_of_type ty
 
