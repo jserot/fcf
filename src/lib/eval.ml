@@ -31,7 +31,7 @@ let rec eval_state env state_defns (name,args) =
       | {sd_desc=name,params,trans}::rest -> if s=name then params, trans else lookup rest in
     lookup state_defns in
   let params, transitions = lookup_state name in
-  let bindings = List.map2 (fun id arg -> id, eval_expr env arg) params args in
+  let bindings = List.map2 (fun (id,_) arg -> id, eval_expr env arg) params args in
   let env' = List.fold_left Env.update env bindings in
   let fireable { t_desc= guard, _ } = eval_expr env' guard = Value.Bool true in
   match List.find_opt fireable transitions with
@@ -43,7 +43,7 @@ let eval_fsm_inst fsms { ap_desc=name,args } =
   let f =
     try List.assoc name fsms
     with Not_found -> Misc.fatal_error "Eval.eval_fsm_inst" (* should not happen thx to TC *) in
-  let env = List.map2 (fun id arg -> id, eval_expr [] arg) f.f_params args in
+  let env = List.map2 (fun (id,_) arg -> id, eval_expr [] arg) f.f_params args in
   match f.f_desc with
   | state_defns, { ap_desc=name, args } ->
      eval_state env state_defns (name, args)

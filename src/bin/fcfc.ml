@@ -11,14 +11,18 @@ let anonymous fname = source_file := fname
 type mode = Nothing | Run | Dot | Show | Vhdl
 let mode = ref Nothing
 let dump_typed = ref false
+let dump_tenv = ref false
 
 let options = [
   "-run", Arg.Unit (fun _ -> mode := Run), "run program";
   "-dump_typed", Arg.Unit (fun _ -> dump_typed := true), "dump typed FSM";
+  "-dump_tenv", Arg.Unit (fun _ -> dump_tenv := true), "dump builtin typing environment";
   "-trace", Arg.Unit (fun _ -> Eval.trace := true), "trace execution when running program";
   "-dot", Arg.Unit (fun _ -> mode := Dot), "generate dot representation";
   "-show", Arg.Unit (fun _ -> mode := Show), "generate and view dot representation";
   "-vhdl", Arg.Unit (fun _ -> mode := Vhdl), "generate VHDL code";
+  "-vhdl_numeric_std", Arg.Unit (fun _ -> Vhdl.cfg.use_numeric_std <- true), "translate integers as numeric_std [un]signed (default: false)";
+  "-vhdl_default_int_size", Arg.Int (fun s -> Vhdl.cfg.default_int_size <- s), "default int/signed/unsigned size when not specified";
 ]
 
 let parse fname = 
@@ -31,6 +35,7 @@ let parse fname =
   Parser.program Lexer.main !Location.input_lexbuf 
 
 let compile name =
+  if !dump_tenv then Typing.dump_typing_environment (snd Builtins.typing_env);
   let p = parse !source_file in
   let tp = Typing.type_program Builtins.typing_env p in
   if !dump_typed then Typing.dump_typed_program tp;
@@ -61,7 +66,7 @@ try
 with
   | Parser.Error -> Error.syntax_error (); exit 1
   | Lexer.Illegal_character (pos,c) -> Error.illegal_char pos c; exit 2
-  | Typing.Wrong_guard_type(ty,loc) -> Error.wrong_guard_type ty loc
+  (* | Typing.Wrong_guard_type(ty,loc) -> Error.wrong_guard_type ty loc *)
   | Typing.Unbound_value(loc,id) -> Error.unbound_value id loc
   | Typing.Wrong_type(site,loc,ty1,ty2) -> Error.wrong_type site loc ty1 ty2
   | Typing.Circular_type(site,loc,ty1,ty2) -> Error.circular_type site loc ty1 ty2

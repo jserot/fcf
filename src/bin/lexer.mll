@@ -10,6 +10,10 @@ let keyword_table = [
   "return", RETURN;
   "true", TRUE;
   "false", FALSE;
+  "int", TYINT;
+  "signed", TYSIGNED;
+  "unsigned", TYUNSIGNED;
+  "bool", TYBOOL;
 ]
 }
 
@@ -26,15 +30,13 @@ rule main = parse
    *     { UID (Lexing.lexeme lexbuf) } *)
   | ['0'-'9']+
       { INT (int_of_string(Lexing.lexeme lexbuf)) }
-  (* | "'0'" { BOOL false }
-   * | "'1'" { BOOL true } *)
   | ";" { SEMICOLON }
   | "(" { LPAREN }
   | ")" { RPAREN }
   | "," { COMMA }
   | "->" { ARROW }
   | "|" { BAR }
-  (* | ":" { COLON } *)
+  | ":" { COLON }
   (* | "'" { QUOTE } *)
   | "=" { EQUAL }
   | "!="    { NOTEQUAL }

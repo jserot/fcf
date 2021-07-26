@@ -1,9 +1,9 @@
 type t = {
   m_name: string;
   m_states: State.t list;
-  m_inps: (string * Types.typ) list;
-  m_outps: (string * Types.typ) list;
-  m_vars: (string * Types.typ) list;
+  m_inps: (string * Types.t) list;
+  m_outps: (string * Types.t) list;
+  m_vars: (string * Types.t) list;
   m_trans: Transition.t list;
   m_itrans: State.t * Action.t list;
   }
@@ -32,7 +32,7 @@ let vars_of f = match f.f_desc with
 
 let state_assignations senv s exprs = 
   let params,transitions = List.assoc s senv in
-  List.map2 (fun p e -> Action.Assign (p, e)) params exprs
+  List.map2 (fun (p,_) e -> Action.Assign (p, e)) params exprs
 
 let strans_of f = match f.f_desc with
   | state_defns, { ap_desc = s,es } -> 
@@ -59,17 +59,18 @@ let rtrans_of f = match f.f_desc with
 let from_ast f = {
   m_name = f.f_name;
   m_states = "idle" :: states_of f;
-  m_inps =   ("start", Types.type_int)
-           :: List.combine
+  m_inps =   ("start", Types.TyBool)
+           :: List.map2
+                (fun (p,_) ty -> p, ty)
                 f.f_params
                 (fst @@ Types.fn_types @@ Types.type_instance f.f_typ);
-  m_outps = ("rdy", Types.type_int) ::  [ "res", Types.type_int ];
+  m_outps = ("rdy", Types.TyBool) ::  [ "res", Types.type_int () ];
   m_vars = vars_of f;
   m_trans = strans_of f :: rtrans_of f;
   m_itrans = "idle", []
 }
   
-let string_of_typed_io (id, ty) = id ^ ":" ^ Pr_type.string_of_type ty
+let string_of_typed_io (id, ty) = id ^ ":" ^ Types.string_of_type ty
 
 let dump f = 
   let open Printf in 

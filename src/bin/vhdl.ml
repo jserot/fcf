@@ -5,9 +5,9 @@ open Printf
 type model = {
   v_name: string;
   v_states: string list;
-  v_inps: (string * Types.typ) list;
-  v_outps: (string * Types.typ) list;
-  v_vars: (string * Types.typ) list;  
+  v_inps: (string * Types.t) list;
+  v_outps: (string * Types.t) list;
+  v_vars: (string * Types.t) list;  
   v_init: State.t * Action.t list;
   v_trans: (State.t * Transition.t list) list; (* Transitions, here indexed by source state *)
   }
@@ -45,6 +45,7 @@ type config = {
   mutable reset_sig: string;
   mutable clk_sig: string;
   mutable use_numeric_std: bool;
+  mutable default_int_size: int;
   mutable act_sem: act_semantics;
   }
 
@@ -57,6 +58,7 @@ let cfg = {
   reset_sig = "rst";
   clk_sig = "clk";
   use_numeric_std = false;
+  default_int_size = 8;
   act_sem = Synchronous;  (* Default *)
   }
 
@@ -65,21 +67,23 @@ type vhdl_type =
   | Signed of int
   | Integer of int_range option
   | Std_logic
+  | NoType  (* for debug only *)
 
 and int_range = int * int (* lo, hi *)             
 
 let vhdl_type_of t =
-  Integer None
-  (* let open Types in *)
-  (* match real_type t, cfg.use_numeric_std with 
-   * | TyBool, _ -> Std_logic
-   * | TyInt (Const Unsigned, Const sz, _), true -> Unsigned sz
-   * | TyInt (Const Unsigned, Const sz, _), false -> Integer (Some (0, Misc.pow2 sz - 1))
-   * | TyInt (_, Const sz, _), true -> Signed sz
-   * | TyInt (_, Const sz, _), false -> Integer (Some (-Misc.pow2 (sz-1), Misc.pow2 (sz-1) - 1))
-   * | TyInt (_, _, Const {lo=lo;hi=hi}), _ -> Integer (Some (lo,hi))
-   * | TyInt (_, _, _), _ -> Integer None
-   * | _ -> failwith ("VHDL backend: illegal type: " ^ Types.to_string t) *)
+  let open Types in
+  match real_type t, cfg.use_numeric_std with 
+  | TyBool, _ -> Std_logic
+  | TyInt (Const Unsigned, Const sz), true -> Unsigned sz
+  | TyInt (Const Unsigned, _), true -> Unsigned cfg.default_int_size
+  | TyInt (Const Signed, Const sz), true -> Signed sz
+  | TyInt (Const Signed, _), true -> Signed cfg.default_int_size
+  | TyInt (_, Const sz), true -> Signed sz
+  | TyInt (_, Const sz), false -> Integer (Some (-Misc.pow2 (sz-1), Misc.pow2 (sz-1) - 1))
+  | TyInt (_, _), _ -> Integer None
+  | TyProduct [], _ -> NoType                   
+  | t, _ -> failwith ("VHDL backend: illegal type: " ^ Types.string_of_type t)
 
 type type_mark = TM_Full | TM_Abbr | TM_None [@@warning "-37"]
                                    
@@ -93,6 +97,7 @@ let string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with
   | Integer (Some (lo,hi)), TM_Full -> Printf.sprintf "integer range %d to %d" lo hi
   | Integer _, _ -> "integer"
   | Std_logic, _ -> "std_logic"
+  | NoType, _ -> "<unknown>"
 
 let string_of_type ?(type_marks=TM_Full) t =
   string_of_vhdl_type ~type_marks:type_marks (vhdl_type_of t)
@@ -104,28 +109,29 @@ let string_of_op = function
 let string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
-    match e.e_desc with
-    | EInt n -> string_of_int n
-    | EVar v -> v
-    | EBinop (op, e1, e2) ->
-        let s1 = string_of (level+1) e1 
-        and s2 = string_of (level+1) e2 in 
-        paren level (s1 ^ op ^ s2)
-    | _ -> failwith "Vhdl.string_of_expr"
-    (* match e.Expr.e_desc, vhdl_type_of (e.Expr.e_typ)  with
-     * | Expr.EInt n, Unsigned s -> Printf.sprintf "to_unsigned(%d,%d)" n s
-     * | Expr.EInt n, Signed s -> Printf.sprintf "to_signed(%d,%d)" n s
-     * | Expr.EInt n, _ -> string_of_int n
-     * | Expr.EBool b, _ -> if b then "'1'" else "'0'"
-     * | Expr.EVar n, _ ->  n
-     * | Expr.EBinop (op,e1,e2), ty -> 
-     *    let s1 = string_of (level+1) e1 
-     *    and s2 = string_of (level+1) e2 in 
-     *    begin match op, ty with
-     *    | "*", Signed _
-     *    | "*", Unsigned _ -> "mul(" ^ s1 ^ "," ^ s2 ^ ")"
-     *    | _, _ -> paren level (s1 ^ string_of_op op ^ s2)
-     *    end *)
+    (* match e.e_desc with
+     * | EInt n -> string_of_int n
+     * | EVar v -> v
+     * | EBinop (op, e1, e2) ->
+     *     let s1 = string_of (level+1) e1 
+     *     and s2 = string_of (level+1) e2 in 
+     *     paren level (s1 ^ op ^ s2)
+     * | _ -> failwith "Vhdl.string_of_expr" *)
+    match e.e_desc, vhdl_type_of (e.e_typ)  with
+    | EInt n, Unsigned s -> Printf.sprintf "to_unsigned(%d,%d)" n s
+    | EInt n, Signed s -> Printf.sprintf "to_signed(%d,%d)" n s
+    | EInt n, _ -> string_of_int n
+    | EBool b, _ -> if b then "'1'" else "'0'"
+    | EVar n, _ ->  n
+    | EBinop (op,e1,e2), ty -> 
+       let s1 = string_of (level+1) e1 
+       and s2 = string_of (level+1) e2 in 
+       begin match op, ty with
+       | "*", Signed _
+       | "*", Unsigned _ -> "mul(" ^ s1 ^ "," ^ s2 ^ ")"
+       | _, _ -> paren level (s1 ^ string_of_op op ^ s2)
+       end
+    | _ -> Misc.fatal_error "Vhdl.string_of_expr"
   in
   string_of 0 e
 
@@ -186,7 +192,7 @@ let dump_module_arch oc m =
   fprintf oc "  signal %s: t_state;\n" cfg.state_var;
   if cfg.act_sem = Synchronous then 
     List.iter
-      (fun (id,ty) -> fprintf oc "  signal %s: %s;\n" id (string_of_type ~type_marks:TM_Abbr ty))
+      (fun (id,ty) -> fprintf oc "  signal %s: %s;\n" id (string_of_type ~type_marks:TM_Full ty))
       m.v_vars;
   fprintf oc "begin\n";
   fprintf oc "  process(%s, %s)\n" cfg.reset_sig cfg.clk_sig;

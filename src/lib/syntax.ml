@@ -6,16 +6,19 @@ type fsm_name = string
 type type_expr =
   { te_desc: type_expr_desc;
     te_loc: Location.location;
-    mutable te_typ: Types.typ }
+    mutable te_typ: Types.t }
 
 and type_expr_desc =
-  | Typeconstr of string * type_expr list 
-  | Typevar of string
+  | TeInt of int_sign option * int_size option
+  | TeBool 
+
+and int_sign = TeSigned | TeUnsigned 
+and int_size = int
 
 type expr = {
   e_desc: e_desc;
   e_loc: Location.location;
-  mutable e_typ: Types.typ;
+  mutable e_typ: Types.t;
   }
 
 and e_desc = 
@@ -37,6 +40,8 @@ type appl = {
   ap_loc: Location.location;
   }
 
+type param = string * type_expr option
+
 type fsm_decl = {
   fd_desc: fsm_desc;
   fd_loc: Location.location;
@@ -44,16 +49,16 @@ type fsm_decl = {
     
 and fsm_desc = {
     f_name: string;
-    f_params: string list;
+    f_params: param list;
     f_desc: state_defn list * appl;  (* LET [state_defns] IN state(args) *)
     mutable f_typ: Types.typ_scheme;
   }
 
 and state_defn = {
-  sd_desc: state_name * string list * transition list; (* s(args) = | t1 ... | tn *)
+  sd_desc: state_name * param list * transition list; (* s(args) = | t1 ... | tn *)
   sd_loc: Location.location;
-  mutable sd_typ: Types.typ;
-  mutable sd_params: (string * Types.typ) list;
+  mutable sd_typ: Types.t;
+  mutable sd_params: (string * Types.t) list;
   }
 
 and transition = {
@@ -64,7 +69,7 @@ and transition = {
 and continuation = {
   ct_desc: cont_desc;
   ct_loc: Location.location;
-  ct_typ: Types.typ;
+  ct_typ: Types.t;
   }
 
 and cont_desc =

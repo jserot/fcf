@@ -2,7 +2,6 @@ open Fcf
 open Location
 open Printf
 (* open Misc *)
-open Pr_type
 
 let no_loc = no_location
 
@@ -24,21 +23,21 @@ let unbound_value name loc =
 
 let wrong_guard_type typ loc =
   eprintf "%aThis guard expression has type %s; it should have type bool.\n" 
-    output_location loc (string_of_type typ);
+    output_location loc (Types.string_of_type typ);
   flush stderr
 
 let wrong_type site ty1 ty2 loc =
   eprintf "%aAn error occured when typing this %s : types '%s' and '%s' cannot be unified.\n"
     output_location loc
     site
-    (string_of_type ty1)
-    (string_of_type ty2);
+    (Types.string_of_type ty1)
+    (Types.string_of_type ty2);
   flush stderr
 
 let circular_type site ty1 ty2 loc =
   eprintf "%aAn error occured when typing this %s : a cycle was detected between types %s and %s.\n"
     output_location loc
     site
-    (string_of_type ty1)
-    (string_of_type ty2);
+    (Types.string_of_type ty1)
+    (Types.string_of_type ty2);
   flush stderr

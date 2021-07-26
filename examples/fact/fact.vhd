@@ -1,11 +1,12 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 entity fact is
   port(
-        start: in integer;
-        n: in integer;
-        rdy: out integer;
+        start: in std_logic;
+        n: in unsigned(7 downto 0);
+        rdy: out std_logic;
         res: out integer;
         clk: in std_logic;
         rst: in std_logic
@@ -15,8 +16,8 @@ end entity;
 architecture RTL of fact is
   type t_state is ( Idle, Compute );
   signal state: t_state;
-  signal k: integer;
-  signal acc: integer;
+  signal k: unsigned(7 downto 0);
+  signal acc: unsigned(7 downto 0);
 begin
   process(rst, clk)
   begin
@@ -26,8 +27,8 @@ begin
       case state is
       when Compute =>
         if ( k<=n ) then
-          acc <= acc*k;
-          k <= k+1;
+          acc <= mul(acc,k);
+          k <= k+to_unsigned(1,8);
         elsif  ( k>n ) then
           res <= acc;
           rdy <= 1;
@@ -35,8 +36,8 @@ begin
         end if;
       when Idle =>
         if ( start=1 ) then
-          acc <= 1;
-          k <= 1;
+          acc <= to_unsigned(1,8);
+          k <= to_unsigned(1,8);
           rdy <= 0;
           state <= Compute;
         end if;

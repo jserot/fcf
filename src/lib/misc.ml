@@ -19,3 +19,4 @@ let rec list_iter3 f l1 l2 l3 =
 (* let check_dir path = 
  *   if not (Sys.is_directory path) then raise (Sys_error ("file " ^ " is not a directory")) *)
 
+let rec pow2 k = if k = 0 then 1 else 2 * pow2 (k-1)

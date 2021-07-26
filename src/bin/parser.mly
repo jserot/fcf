@@ -1,4 +1,3 @@
-(* %token TYPE *)
 %token LET
 %token IN
 %token AND
@@ -11,7 +10,7 @@
 %token BAR
 %token COMMA
 %token ARROW
-(* %token COLON *)
+%token COLON
 (* %token QUOTE *)
 %token EQUAL
 %token NOTEQUAL
@@ -22,6 +21,10 @@
 %token LTE
 %token GTE
 %token PLUS MINUS TIMES DIV
+%token TYINT
+%token TYSIGNED
+%token TYUNSIGNED
+%token TYBOOL
 %token EOF
 
 (* Precedences and associativities for expressions *)
@@ -60,10 +63,6 @@ let mk_expr l desc = { e_desc = desc; e_loc = mk_location l; e_typ = Types.no_ty
 
 %%
 
-(* %public optional(X):
- *     /* Nothing */ { [] }
- *   | x=X { x } *)
-
 program:
   | fs=nonempty_list(fsm_decl) es=list(fsm_inst) EOF { { p_fsms=fs; p_insts=es } }
         
@@ -76,10 +75,14 @@ fsm_inst:
 
 params:
   | (* Nothing *) { [] }
-  | LPAREN ps=separated_list(COMMA, LID) RPAREN { ps }
+  | LPAREN ps=separated_list(COMMA, param) RPAREN { ps }
 
-(* typed_id:
- *   | id=LID COLON t=type_expr { id, t } *)
+param:
+  | id=LID t=optional_type_expr { id, t }
+
+optional_type_expr:
+  | (* Nothing *) { None }
+  | COLON t=type_expr { Some t }
 
 states:
   | LET ss=separated_nonempty_list(AND, state) { ss }
@@ -155,11 +158,13 @@ simple_expr:
 
 (* TYPE EXPRESSIONS *)
 
-(* simple_type_expr:
- *       | c=LID { mk_type_expr $sloc (Typeconstr (c,[])) }
- *       | QUOTE v=LID { mk_type_expr $sloc (Typevar v) }
- * 
- * type_expr:
- *       | t=simple_type_expr { t }
- *       (\* | t=simple_type_expr c=IDENT { mk_type_expr $sloc (Typeconstr (c,[t])) } *\) *)
-                       
+type_expr:
+  | TYINT sz=int_size {  mk_type_expr $sloc (TeInt (None,sz)) }
+  | TYSIGNED sz=int_size {  mk_type_expr $sloc (TeInt (Some TeSigned,sz)) }
+  | TYUNSIGNED sz=int_size {  mk_type_expr $sloc (TeInt (Some TeUnsigned,sz)) }
+  | TYBOOL {  mk_type_expr $sloc TeBool }
+
+int_size:
+  | (* Nothing *) { None }
+  | LT sz=INT GT { Some sz }
+
