@@ -1,7 +1,6 @@
 open Fcf
 open Location
 open Printf
-(* open Misc *)
 
 let no_loc = no_location
 

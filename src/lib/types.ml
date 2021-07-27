@@ -71,8 +71,6 @@ let rec type_repr = function
       ty
   | ty -> ty
 
-(* TODO: find a way to share type_xxx and attr_xxx fns .. *)
-        
 let rec attr_repr = function
   | Var ({value = Known r1; _} as var) ->
       let r = attr_repr r1 in
@@ -289,8 +287,6 @@ let string_of_size sz = match real_attr sz with
 
 let rec string_of_type t = match real_type t with
   | TyBool -> "bool"
-  (* | TyInt (Const Signed, _, _) -> "signed"
-   * | TyInt (Const Unsigned, _, _) -> "unsigned" *)
   | TyInt (sg, sz) -> string_of_sign sg ^ string_of_size sz
   | TyArrow (t1, t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
   | TyProduct ts -> Misc.string_of_list string_of_type "*" ts

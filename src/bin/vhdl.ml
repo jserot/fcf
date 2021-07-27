@@ -113,14 +113,6 @@ let string_of_op = function
 let string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
-    (* match e.e_desc with
-     * | EInt n -> string_of_int n
-     * | EVar v -> v
-     * | EBinop (op, e1, e2) ->
-     *     let s1 = string_of (level+1) e1 
-     *     and s2 = string_of (level+1) e2 in 
-     *     paren level (s1 ^ op ^ s2)
-     * | _ -> failwith "Vhdl.string_of_expr" *)
     match e.e_desc, vhdl_type_of (e.e_typ)  with
     | EInt n, Unsigned s -> Printf.sprintf "to_unsigned(%d,%d)" n s
     | EInt n, Signed s -> Printf.sprintf "to_signed(%d,%d)" n s
@@ -139,13 +131,6 @@ let string_of_expr e =
   in
   string_of 0 e
 
-(* and string_of_int_expr e = match e.Expr.e_desc, vhdl_type_of (e.Expr.e_typ) with
- *     Expr.EInt n, _ -> string_of_int n
- *   | _, Integer _ -> string_of_expr e
- *   | _, _ -> "to_integer(" ^ string_of_expr e ^ ")"
- * 
- * and string_of_range id hi lo = id ^ "(" ^ string_of_int_expr hi ^ " downto " ^ string_of_int_expr lo ^ ")" *)
-
 let string_of_action m a =
   let asn id = " <= " in
   match a with
@@ -158,12 +143,6 @@ let string_of_guards gs =
 let dump_action oc tab m a = fprintf oc "%s%s;\n" tab (string_of_action m a)
 
 let dump_transition oc tab src m (is_first,_) (_,guard,acts,dst) =
-  (* match guards with
-   *   [] -> 
-   *      List.iter (dump_action oc tab m) acts;
-   *      fprintf oc "%s%s <= %s;\n" tab cfg.state_var dst;
-   *      (false,false)
-   * | _ -> *)
        fprintf oc "%s%s ( %s ) then\n" tab (if is_first then "if" else "elsif ") (string_of_guards [guard]);
        List.iter (dump_action oc (tab ^ "  ") m) acts;
        if dst <> src then fprintf oc "%s  %s <= %s;\n" tab cfg.state_var dst;
@@ -182,12 +161,6 @@ let dump_state oc m (src,tss) =
 let dump_state_case oc m (src, tss) =
   fprintf oc "      when %s =>\n" src;
   dump_state oc m (src,tss)
-
-(* let dump_state_outputs oc (s,oval) = 
- *   fprintf oc "    when %s =>\n" s;
- *   List.iter
- *     (fun (o,e) -> fprintf oc "      %s <= %s;\n" o (string_of_expr e))
- *     oval *)
 
 let dump_module_arch oc m =
   let modname = m.v_name in
@@ -219,12 +192,6 @@ let dump_module_arch oc m =
   end;
   fprintf oc "    end if;\n";
   fprintf oc "  end process;\n";
-  (* fprintf oc "  process(%s)\n" cfg.state_var;
-   * fprintf oc "  begin\n";
-   * fprintf oc "    case %s is\n" cfg.state_var;
-   * List.iter (dump_state_outputs oc) m.v_states;
-   * fprintf oc "    end case;\n";
-   * fprintf oc "  end process;\n"; *)
   fprintf oc "end architecture;\n"
 
 let dump_module_intf kind oc m = 

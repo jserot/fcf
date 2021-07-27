@@ -43,11 +43,6 @@ open Fcf
 open Syntax
 open Location
 
-(* let mk_typed_expr e ty = let open Expr in { e_desc = e; e_typ = ty }
- * let mk_int_expr e = mk_typed_expr e (Types.type_int ())
- * let mk_bool_expr e = mk_typed_expr e Types.TyBool
- * let mk_expr e = mk_typed_expr e (Types.TyVar (Types.new_type_var ())) *)
-
 let mk_location (p1,p2) =
   let open Lexing in
   Loc (!input_name, p1.pos_cnum, p2.pos_cnum)

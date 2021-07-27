@@ -22,8 +22,6 @@ let output oc ?(options=default_options) m =
     let ini_id = "_ini" in
     let dump_istate () = 
       Printf.fprintf oc "%s [shape=point; label=\"\"; style = invis]\n" ini_id in
-    (* let string_of_output_valuation vs =
-     *   Misc.string_of_list (fun (n,v) -> "\\n" ^ n ^ "=" ^ Expr.to_string v) "" vs in *)
     let dump_state id =
       Printf.fprintf oc "%s [label = \"%s\", shape = %s, style = %s]\n"
         id
@@ -33,10 +31,7 @@ let output oc ?(options=default_options) m =
     let string_of_guard g =
       let s = string_of_expr g in 
       let l = String.length s in
-      (* let ss = List.map Guard.to_string guards in
-       * let l = List.fold_left (fun m s -> max m (String.length s)) 0 ss in
-       * let s = Misc.string_of_list ~f:Fun.id ~sep:"\\n" ss in *)
-       s, l in
+      s, l in
     let string_of_actions actions = 
       let ss = List.map Action.to_string actions in
       let l = List.fold_left (fun m s -> max m (String.length s)) 0 ss in

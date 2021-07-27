@@ -2,22 +2,21 @@ FCFC=../../_build/default/src/bin/fcfc.bc
 GHDL=ghdl
 
 run: 
-	$(FCFC) -run -trace test.fsm
+	$(FCFC) -run -trace main.fsm
 
 dot: 
-	$(FCFC) -dot -dump_typed test.fsm
+	$(FCFC) -dot -dump_typed main.fsm
 
 show: 
-	$(FCFC) -show -dump_typed test.fsm
+	$(FCFC) -show -dump_typed main.fsm
 
 vhdl: 
-	$(FCFC) -vhdl test.fsm
+	$(FCFC) -vhdl main.fsm
 
 vhdl.check:
 	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics is_even.vhd
 
 clean: 
 	\rm -f *~
-	\rm -f *.dot
-	\rm -f *.vhdl
+	\rm -f *.o *.dot *.vhd *.cf
 

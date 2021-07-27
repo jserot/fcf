@@ -1,12 +1,12 @@
 open Syntax
 open Types
 
-type tenv = {  (* TE *)
+type tenv = {  
   te_cons: (string * int) list; (* constructor name, arity *)
   te_vars: (string * Types.t) list; (* type variables *)
   }
 
-type venv = (string * typ_scheme) list (* VE *)
+type venv = (string * typ_scheme) list
 
 let no_loc = Location.no_location
            

@@ -31,11 +31,6 @@ and e_desc =
 let mk_expr ty e = { e_desc = e; e_loc = Location.no_location; e_typ = ty }
 let mk_bool_expr e = { e_desc = e; e_loc = Location.no_location; e_typ = TyBool }
 
-(* type 'a located = {
- *   desc: 'a;
- *   loc: Location.location;
- *   } *)
-
 type appl = {
   ap_desc: string * expr list;  (* fsm(args) or state(args) *)
   ap_loc: Location.location;
