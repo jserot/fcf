@@ -13,3 +13,13 @@ let rec list_iter3 f l1 l2 l3 =
   | (_, _, _) -> invalid_arg "Misc.list_iter3"
 
 let rec pow2 k = if k = 0 then 1 else 2 * pow2 (k-1)
+
+let bits_of_int sz n = 
+  let b = Bytes.create sz in 
+  let rec h n i =
+    if i>=0 then begin
+      Bytes.set b i (if n mod 2 = 1 then '1' else '0');
+      h (n/2) (i-1)
+      end in
+  h n (sz-1);
+  Bytes.to_string b

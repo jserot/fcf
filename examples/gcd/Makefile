@@ -11,10 +11,11 @@ show:
 	$(FCFC) -show -dump_typed main.fsm
 
 vhdl: 
-	$(FCFC) -vhdl -vhdl_numeric_std main.fsm
+	$(FCFC) -vhdl -vhdl_cc -vhdl_numeric_std main.fsm
 
 vhdl.check:
 	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics gcd.vhd
+	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics gcd_cc.vhd
 
 
 clean: 

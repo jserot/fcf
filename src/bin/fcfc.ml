@@ -25,6 +25,7 @@ let options = [
   "-vhdl", Arg.Unit (fun _ -> mode := Vhdl), "generate VHDL code";
   "-vhdl_numeric_std", Arg.Unit (fun _ -> Vhdl.cfg.use_numeric_std <- true), "translate integers as numeric_std [un]signed (default: false)";
   "-vhdl_default_int_size", Arg.Int (fun s -> Vhdl.cfg.default_int_size <- s), "default int/signed/unsigned size when not specified";
+  "-vhdl_cc", Arg.Unit (fun _ -> Vhdl.cfg.dump_cc_intf <- true), "generate custom component wrapper (default: false)";
 ]
 
 let parse fname = 
@@ -34,6 +35,12 @@ let parse fname =
   let lexbuf = Lexing.from_channel !Location.input_chan in
   Location.input_lexbuf := lexbuf;
   Parser.program Lexer.main !Location.input_lexbuf 
+
+let dump_vhdl (n,f) =
+  let m = f.fd_desc |> Fsm.from_ast in
+  Vhdl.write ~dir:"." ~prefix:n m;
+  if Vhdl.cfg.dump_cc_intf then 
+  O2b.write ~dir:"." ~prefix:(n^"_cc") m
 
 let compile name =
   if !dump_tenv then Typing.dump_typing_environment (snd Builtins.typing_env);
@@ -54,9 +61,7 @@ let compile name =
        (fun (n,f) -> f.fd_desc |> Fsm.from_ast |> Dot.view |> ignore)
        p.p_fsms
   | Vhdl ->
-     List.iter
-       (fun (n,f) -> f.fd_desc |> Fsm.from_ast |> Vhdl.write ~dir:"." ~prefix:n)
-       p.p_fsms
+     List.iter dump_vhdl p.p_fsms
   | Nothing -> ()
 
 

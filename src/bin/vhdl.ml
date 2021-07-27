@@ -2,6 +2,34 @@ open Fcf
 open Syntax
 open Printf
 
+type config = {
+  mutable state_var: string;
+  mutable reset_sig: string;
+  mutable clk_sig: string;
+  mutable use_numeric_std: bool;
+  mutable default_int_size: int;
+  mutable act_sem: act_semantics;
+  mutable dump_cc_intf: bool;
+  mutable support_library: string;
+  mutable support_package: string;
+  }
+
+and act_semantics =  (** Interpretation of actions associated to transitions *)
+  | Sequential        (** sequential (ex: [x:=x+1,y:=x] with [x=1] gives [x=2,y=2]) *)
+  | Synchronous       (** synchronous (ex: [x:=x+1,y=x] with [x=1] gives [x=2,y=1]) *)
+
+let cfg = {
+  state_var = "state";
+  reset_sig = "rst";
+  clk_sig = "clk";
+  use_numeric_std = false;
+  default_int_size = 8;
+  act_sem = Synchronous;  (* Default *)
+  dump_cc_intf = false;
+  support_library = "fcf";
+  support_package = "fcf";
+  }
+
 type model = {
   v_name: string;
   v_states: string list;
@@ -39,32 +67,6 @@ let build_model f =
     }
 
 exception Error of string * string  (* where, msg *)
-
-type config = {
-  mutable state_var: string;
-  mutable reset_sig: string;
-  mutable clk_sig: string;
-  mutable use_numeric_std: bool;
-  mutable default_int_size: int;
-  mutable act_sem: act_semantics;
-  mutable support_library: string;
-  mutable support_package: string;
-  }
-
-and act_semantics =  (** Interpretation of actions associated to transitions *)
-  | Sequential        (** sequential (ex: [x:=x+1,y:=x] with [x=1] gives [x=2,y=2]) *)
-  | Synchronous       (** synchronous (ex: [x:=x+1,y=x] with [x=1] gives [x=2,y=1]) *)
-
-let cfg = {
-  state_var = "state";
-  reset_sig = "rst";
-  clk_sig = "clk";
-  use_numeric_std = false;
-  default_int_size = 8;
-  act_sem = Synchronous;  (* Default *)
-  support_library = "fcf";
-  support_package = "fcf";
-  }
 
 type vhdl_type = 
   | Unsigned of int
