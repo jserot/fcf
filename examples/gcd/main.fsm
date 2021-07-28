@@ -6,6 +6,6 @@ let gcd (a:unsigned<16>, b:unsigned<16>) =
   compute (a,b)
 ;
 
-gcd(36,24);
+gcd(6,24);
 gcd(13,17);
 gcd(8,4);
