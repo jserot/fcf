@@ -10,3 +10,9 @@
   (flags (:standard -annot) (:standard -w -9-27-32-34-35-50))
   (modes byte)
   (libraries fcf))
+
+(rule
+  (targets grammar.html)
+  (deps parser.mly)
+  (mode promote)
+  (action (run obelisk html -i -o %{targets} %{deps})))
