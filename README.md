@@ -32,7 +32,7 @@ let gcd (a, b) =
 In FCF, FSMs are viewed as _functions_ . Here the function `gcd` describing the corresponding FSM
 has type `int * int -> int` (this type is automatically inferred). Each state is also viewed as a
 function. Here the state `compute` is described by the (local) function `compute`, which also has
-type `int * int -> int`. The three transitions originating from the corresponding state are
+type `int * int -> int`. The transitions originating from the corresponding state are
 described by three _guarded clauses_, of the form
 
 ```
@@ -74,7 +74,7 @@ The `fcfc` compiler provided in this package can
 
 * produce graphical representations of FSMs described in FCF in the `.dot` format
 
-* perform simulations of these FSMs; for example, is simulating the program
+* perform simulations of these FSMs; for example, running
 
 ```
 fcfc -run -trace fact.fsm
