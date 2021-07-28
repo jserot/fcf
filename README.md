@@ -13,9 +13,9 @@ This FSM is initially in state `idle`. When input `start` goes to `true`, it goe
 `rdy` to `false`. It remains in state `compute` while `m != n` (either substracting `n` from `m` or
 `m` from `n`). It goes back to state `idle` when `m=n`, copying the final value of `m` -- which is
 equal to `GCD(a,b)` -- into the output `res` and resetting `rdy` to `true`. All
-that all transitions are implicitely triggered by a clock signal. 
+transitions are implicitely triggered by a clock signal. 
 
-![](https://github.com/jserot/fcf/blob/master/docs/figs/gcd.png "")
+![](https://github.com/jserot/fcf/blob/master/doc/figs/gcd.png "")
 
 Here's a description of this FSM in FCF
 
@@ -46,7 +46,7 @@ where
   value.
 
 Note that the transitions from and to the `idle` state, and the handling of the `start` and `rdy`
-  signals are implicit in FCF.
+  signals are made implicit in FCF.
 
 Here's another example, in which the FSM has two computing states:
 
@@ -65,7 +65,7 @@ let is_even(n) =
 The `is_even` FSM returns `true` if its integer argument is even, `false` otherwise.
 The corresponding diagram is
 
-![](https://github.com/jserot/fcf/blob/master/docs/figs/even.png "")
+![](https://github.com/jserot/fcf/blob/master/doc/figs/even.png "")
 
 Using
 -----
@@ -109,7 +109,7 @@ Eval compute(acc*k,k+1) in env=[n=5,acc=24,k=5]
 * generate VHDL code for simulation and synthesis; for example, here's the code generated for the
   `gcd` FSM from the FCF formulation given above.
   
-  ```
+```
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -161,7 +161,7 @@ begin
     end if;
   end process;
 end architecture;
-  ```
+```
 
 Installation
 ------------
