@@ -1,4 +1,7 @@
 FCFC=../../_build/default/src/bin/fcfc.bc
+FCF_LIB=../../etc/lib/vhdl/fcf.vhd
+SOPC_DIR=./sopc_demo
+VHDL_OPTS=-vhdl_numeric_std
 GHDL=ghdl
 
 run: 
@@ -11,12 +14,11 @@ show:
 	$(FCFC) -show -dump_typed main.fsm
 
 vhdl: 
-	$(FCFC) -vhdl -qsys ./qsys -vhdl_numeric_std main.fsm
+	$(FCFC) -vhdl $(VHDL_OPTS) main.fsm
 
-vhdl.check:
-	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics gcd.vhd
-	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics gcd_cc.vhd
-
+sopc: 
+	$(FCFC) -vhdl -sopc $(SOPC_DIR) $(VHDL_OPTS) main.fsm
+	cp $(FCF_LIB) $(SOPC_DIR)/ip
 
 clean: 
 	\rm -f *~

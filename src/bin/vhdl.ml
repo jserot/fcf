@@ -10,6 +10,7 @@ type config = {
   mutable default_int_size: int;
   mutable act_sem: act_semantics;
   mutable dump_cc_intf: bool;
+  mutable use_support_lib: bool;
   mutable support_library: string;
   mutable support_package: string;
   }
@@ -26,6 +27,7 @@ let cfg = {
   default_int_size = 8;
   act_sem = Synchronous;  (* Default *)
   dump_cc_intf = false;
+  use_support_lib = false;
   support_library = "fcf";
   support_package = "fcf";
   }
@@ -211,8 +213,12 @@ let dump_model fname m =
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;\n";
   if cfg.use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
-  fprintf oc "library %s;\n" cfg.support_library;
-  fprintf oc "use %s.%s.all;\n" cfg.support_library cfg.support_package;
+  if cfg.use_support_lib then begin
+      fprintf oc "library %s;\n" cfg.support_library;
+      fprintf oc "use %s.%s.all;\n" cfg.support_library cfg.support_package
+    end
+  else
+      fprintf oc "use work.%s.all;\n" cfg.support_package;
   fprintf oc "\n";
   dump_module_intf "entity" oc m;
   fprintf oc "\n";
@@ -222,6 +228,5 @@ let dump_model fname m =
 
 let write ?(dir="") ~prefix f = 
   let m = build_model f in
-  (* let () = Misc.check_dir dir in *)
   let p = dir ^ Filename.dir_sep ^ prefix in
   dump_model (p ^ ".vhd") m

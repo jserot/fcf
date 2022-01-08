@@ -13,7 +13,7 @@ let mode = ref Nothing
 let dump_typed = ref false
 let dump_tenv = ref false
 let dump_fsm = ref false
-let qsys_dir = ref ""
+let sopc_dir = ref ""
 
 let options = [
   "-run", Arg.Unit (fun _ -> mode := Run), "run program";
@@ -26,7 +26,7 @@ let options = [
   "-vhdl", Arg.Unit (fun _ -> mode := Vhdl), "generate VHDL code";
   "-vhdl_numeric_std", Arg.Unit (fun _ -> Vhdl.cfg.use_numeric_std <- true), "translate integers as numeric_std [un]signed (default: false)";
   "-vhdl_default_int_size", Arg.Int (fun s -> Vhdl.cfg.default_int_size <- s), "default int/signed/unsigned size when not specified";
-  "-qsys", Arg.String (fun d -> qsys_dir := d), "generate QSys custom component wrapper and auxilliary files in specified directory (default: false)";
+  "-sopc", Arg.String (fun d -> sopc_dir := d), "generate SOPC files to be used by QSys and Quartus (default: don't)";
 ]
 
 let parse fname = 
@@ -39,9 +39,14 @@ let parse fname =
 
 let dump_vhdl (n,f) =
   let m = f.fd_desc |> Fsm.from_ast in
-  Vhdl.write ~dir:"." ~prefix:n m;
-  if !qsys_dir <> "" then 
-    Qsys.write ~dir:!qsys_dir ~prefix:n m
+  if !sopc_dir <> "" then 
+    begin
+      Utils.check_dir ~strict:true !sopc_dir;
+      Vhdl.write ~dir:(Utils.subdir !sopc_dir "ip") ~prefix:n m;
+      Qsys.write ~dir:!sopc_dir ~prefix:n ~src_file:(!source_file) m
+    end
+  else
+    Vhdl.write ~dir:"." ~prefix:n m
 
 let compile name =
   if !dump_tenv then Typing.dump_typing_environment (snd Builtins.typing_env);
