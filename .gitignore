@@ -11,4 +11,5 @@ HOWTO
 TODO
 examples/*/*.dot
 examples/*/*.vhd
+examples/*/qsys/
 *.merlin
