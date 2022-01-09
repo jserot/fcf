@@ -93,7 +93,7 @@ guard:
   | e=expr { e }
         
 continuation:
-  | RETURN e=expr { mk_continuation $sloc (Return e) }
+  | RETURN e=ret_expr { mk_continuation $sloc (Return e) }
   | e=state_expr { mk_continuation $sloc (Next e) }
 
 state_expr:
@@ -104,6 +104,14 @@ args:
   | LPAREN es=separated_list(COMMA,expr) RPAREN { es }
 
 (* EXPRESSIONS *)
+
+ret_expr:
+  | e = expr
+     { e }
+  | LPAREN es=separated_nonempty_list(COMMA,expr) RPAREN
+     { match es with 
+       | [e] -> e
+       | _ -> mk_expr $sloc (ETuple es) } (* The case es=[] is syntactically avoided *)
 
 expr:
   | e = simple_expr

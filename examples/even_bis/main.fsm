@@ -1,0 +1,12 @@
+let is_even(n) =
+  let even(m,cnt) = 
+  | m>0 -> odd(m-1,cnt+1)
+  | m<=0 -> return (true,cnt)
+  and odd(m,cnt) = 
+  | m>0 -> even(m-1,cnt+1)
+  | m<=0 -> return (false,cnt) in
+  even(n,0)  
+;
+
+is_even(3);
+is_even(2);

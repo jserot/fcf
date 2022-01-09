@@ -1,3 +1,11 @@
+type cfg = {
+  res_id: string;
+  }
+
+let cfg = {
+  res_id = "res";
+  }
+
 type t = {
   m_name: string;
   m_states: State.t list;
@@ -44,7 +52,7 @@ let strans_of f = match f.f_desc with
 
 let mk_trans senv src { t_desc=g,k } = match k with
   | { ct_desc = Return e } -> 
-     src, g, [Action.Assign ("res", e); Action.Assign ("rdy", mk_bool_expr @@ EBool true)], "idle"
+     src, g, [Action.Assign (cfg.res_id, e); Action.Assign ("rdy", mk_bool_expr @@ EBool true)], "idle"
   | { ct_desc = Next { ap_desc = dst, es} } ->
      src, g, state_assignations senv dst es, dst
      
@@ -65,8 +73,8 @@ let from_ast f =
     m_outps = ("rdy", Types.TyBool)
               :: (match ty_res with 
                   | [] -> []
-                  | [t] -> ["res", t]
-                  | ts -> List.mapi (fun i t -> "res" ^ string_of_int (i+1), t) ts);
+                  | [t] -> [cfg.res_id, t]
+                  | ts -> List.mapi (fun i t -> cfg.res_id ^ string_of_int (i+1), t) ts);
     m_vars = vars_of f;
     m_trans = strans_of f :: rtrans_of f;
     m_itrans = "idle", []

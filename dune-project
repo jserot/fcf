@@ -12,3 +12,4 @@
     (ocaml (>= 4.08))))
 
 (generate_opam_files true)
+(wrapped_executables false) 

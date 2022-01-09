@@ -137,9 +137,18 @@ let string_of_expr e =
 
 let string_of_action m a =
   let asn id = " <= " in
+  let string_of_act id expr = id ^ asn id ^ string_of_expr expr in
   match a with
   | Action.Assign (id, expr) ->
-     id ^ asn id ^ string_of_expr expr
+     begin match expr.e_desc with
+     | ETuple es when id = Fsm.cfg.Fsm.res_id  -> (* Special case *)
+        Misc.string_of_list
+          Fun.id
+          "; " 
+          (List.mapi (fun i e -> string_of_act (id ^ string_of_int (i+1)) e) es)
+     | _ ->
+        string_of_act id expr
+     end
 
 let string_of_guards gs =  
   Misc.string_of_list string_of_expr " and " gs

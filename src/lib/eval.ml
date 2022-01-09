@@ -13,7 +13,7 @@ let rec eval_expr env e =
 | EVar v -> lookup env e.e_loc v
 | EInt c -> Value.Int c
 | EBool c -> Value.Bool c
-| ETuple _ -> Misc.fatal_error "Eval.eval_expr: tuple" (* should not happen *)
+| ETuple es -> Tuple (List.map (eval_expr env) es)
 | EBinop (op, e1, e2) ->
    let _, f = lookup Builtins.primitives e.e_loc op in
    let args = List.map (eval_expr env) [e1; e2] in
