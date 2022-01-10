@@ -2,6 +2,7 @@
 %token IN
 %token AND
 %token RETURN
+%token CONST
 %token <int> INT
 %token TRUE
 %token FALSE
@@ -16,6 +17,10 @@
 %token NOTEQUAL
 %token LPAREN
 %token RPAREN
+%token LBRACE
+%token RBRACE
+%token LBRACKET
+%token RBRACKET
 %token LT
 %token GT
 %token LTE
@@ -25,6 +30,7 @@
 %token TYSIGNED
 %token TYUNSIGNED
 %token TYBOOL
+%token TYARRAY
 %token EOF
 
 (* Precedences and associativities for expressions *)
@@ -50,6 +56,7 @@ let mk_location (p1,p2) =
 let mk_type_expr l desc = { te_desc = desc; te_loc = mk_location l; te_typ = Types.no_type }
 let mk_appl l desc = { ap_desc = desc; ap_loc = mk_location l }
 let mk_fsm_decl l desc = { fd_desc = desc; fd_loc = mk_location l }
+let mk_const_decl l desc = { cst_desc = desc; cst_loc = mk_location l }
 let mk_state_decl l desc = { sd_desc = desc; sd_loc = mk_location l; sd_typ = Types.no_type; sd_params = [] }
 let mk_transition l desc = { t_desc = desc; t_loc = mk_location l }
 let mk_continuation l desc = { ct_desc = desc; ct_loc = mk_location l; ct_typ = Types.no_type }
@@ -59,8 +66,12 @@ let mk_expr l desc = { e_desc = desc; e_loc = mk_location l; e_typ = Types.no_ty
 %%
 
 program:
-  | fs=nonempty_list(fsm_decl) es=list(fsm_inst) EOF { { p_fsms=fs; p_insts=es } }
+  | cs=list(const_decl) fs=nonempty_list(fsm_decl) es=list(fsm_inst) EOF { { p_consts=cs; p_fsms=fs; p_insts=es } }
         
+const_decl:
+  | CONST name=LID COLON t=type_expr EQUAL v=const_expr SEMICOLON
+      { name, mk_const_decl $sloc { c_name=name; c_val=v; c_typ=t } }
+
 fsm_decl:
   | LET name=LID ps=params EQUAL ss=states IN s=state_expr SEMICOLON
       { name, mk_fsm_decl $sloc { f_name=name; f_params=ps; f_desc=ss,s; f_typ=Types.no_type_scheme }  }
@@ -113,6 +124,12 @@ ret_expr:
        | [e] -> e
        | _ -> mk_expr $sloc (ETuple es) } (* The case es=[] is syntactically avoided *)
 
+const_expr:
+  | e = scalar_expr 
+      { e }
+  | LBRACE es=separated_list(COMMA,scalar_expr) RBRACE
+      { mk_expr $sloc (EArray es) } 
+
 expr:
   | e = simple_expr
       { e }
@@ -148,6 +165,14 @@ expr:
 simple_expr:
   | v = LID
       { mk_expr $sloc (EVar v) }
+  | e = scalar_expr 
+      { e } 
+  | LPAREN e = expr RPAREN
+      { e }
+  | a=LID LBRACKET i=expr RBRACKET
+      { mk_expr $sloc (EArrRd (a,i)) } 
+
+scalar_expr:
   | c = INT
       { mk_expr $sloc (EInt c) }
   | TRUE
@@ -156,8 +181,6 @@ simple_expr:
       { mk_expr $sloc (EBool false) }
   | MINUS c=INT
       { mk_expr $sloc (EInt (-c)) }
-  | LPAREN e = expr RPAREN
-      { e }
 
 (* TYPE EXPRESSIONS *)
 
@@ -166,6 +189,7 @@ type_expr:
   | TYSIGNED sz=int_size {  mk_type_expr $sloc (TeInt (Some TeSigned,sz)) }
   | TYUNSIGNED sz=int_size {  mk_type_expr $sloc (TeInt (Some TeUnsigned,sz)) }
   | TYBOOL {  mk_type_expr $sloc TeBool }
+  | t=type_expr TYARRAY LBRACKET sz=INT RBRACKET { mk_type_expr $sloc (TeArray (sz,t)) }
 
 int_size:
   | (* Nothing *) { None }

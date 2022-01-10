@@ -24,6 +24,7 @@ let lookup_value venv loc id =
 (* Typing programs *)
 
 type typed_program = {
+  tp_consts: (string * Types.t) list;
   tp_fsms: (string * typed_fsm) list;
   tp_insts: Types.t list;
   }
@@ -44,7 +45,7 @@ let try_unify site ty1 ty2 loc =
 
 (* Typing type expressions *)
 
-let type_of_type_expression tenv te =
+let rec type_of_type_expression tenv te =
   let sign_attr sg = match sg with
     | None -> Var (make_var ())
     | Some TeSigned -> Const Signed
@@ -54,7 +55,8 @@ let type_of_type_expression tenv te =
     | Some sz -> Const sz in
   let ty = match te.te_desc with
     | TeInt (sg, sz) -> TyInt (sign_attr sg, size_attr sz)
-    | TeBool -> TyBool in
+    | TeBool -> TyBool
+    | TeArray (sz,te') -> type_sized_array sz (type_of_type_expression tenv te') in
   te.te_typ <- Types.real_type ty;
   ty
 
@@ -75,6 +77,22 @@ let rec type_expression tenv venv expr =
      let ty_result = TyVar (Types.new_type_var ()) in
      try_unify "expression" ty_op (type_arrow (type_pair ty_e1 ty_e2) ty_result) expr.e_loc ;
      ty_result
+  | EArray [] ->
+     Misc.fatal_error "empty array" (* syntactically forbidden *)
+  | EArray (e::es) ->
+     let ty_elem = type_expression tenv venv e in
+     List.iter 
+       (fun e' -> try_unify "array element" (type_expression tenv venv e') ty_elem e'.e_loc)
+       es;
+     type_sized_array (List.length es+1) ty_elem
+  | EArrRd (a,i) ->
+     let ty_arr = type_instance (lookup_value venv expr.e_loc a) in
+     let ty_idx = type_expression tenv venv i in
+     let ty_result = TyVar (Types.new_type_var ()) in
+     try_unify "array index" ty_idx (type_int ()) expr.e_loc;
+     try_unify "expression" ty_arr (type_array ty_result) expr.e_loc;
+     ty_result
+
   in
   expr.e_typ <- Types.real_type ty;
   ty
@@ -85,6 +103,21 @@ and type_application tenv venv { ap_desc=fn, args; ap_loc=loc } =
   let ty_result = TyVar (Types.new_type_var ()) in
   try_unify "application" ty_fn (type_arrow ty_args ty_result) loc;
   ty_result
+
+(* Typing CONST decls *)
+
+exception Illegal_const_type of string * Types.t
+
+let type_const_decl tenv venv (name,d) =
+  let c = d.cst_desc in
+  let ty = type_expression tenv venv c.c_val in
+  if Types.is_const_type ty then begin
+    let ty' = type_of_type_expression tenv c.c_typ in
+    try_unify "array declaration" ty ty' d.cst_loc;
+    name, ty
+    end
+  else
+    raise (Illegal_const_type (name, ty))
 
 (* Typing FSMs *)
 
@@ -167,8 +200,11 @@ let type_fsm_decl tenv venv (name,d) =
   
 let type_program (tycons,venv) p = 
   let tenv = { te_cons = tycons; te_vars = [] } in
-  let venv' = List.map (type_fsm_decl tenv venv) p.p_fsms in 
-  { tp_fsms =
+  let ty_consts = List.map (type_const_decl tenv venv) p.p_consts in 
+  let venv_c = List.map (fun (id,ty) -> id, generalize venv ty) ty_consts in
+  let venv_f = List.map (type_fsm_decl tenv (venv_c @ venv)) p.p_fsms in 
+  { tp_consts = ty_consts;
+    tp_fsms =
       List.map
         (fun (name, {fd_desc={f_typ=ty; f_desc=state_defns,_}}) ->
           name,
@@ -180,18 +216,24 @@ let type_program (tycons,venv) p =
         p.p_fsms;
     tp_insts =
       List.map
-        (type_application tenv (venv'@venv))
+        (type_application tenv (venv_c @ venv_f @ venv))
         p.p_insts }
 
 (* Printing *)
 
 let rec dump_typed_program tp =
   Printf.printf "Typed program ---------------\n";
+  Printf.printf "- CONSTs --------------------\n";
+  List.iter dump_typed_const tp.tp_consts;
   Printf.printf "- FSMs ----------------------\n";
   List.iter dump_typed_fsm tp.tp_fsms;
   Printf.printf "- Instances -----------------\n";
   List.iter dump_typed_inst tp.tp_insts;
   Printf.printf "-----------------------------\n"
+
+and dump_typed_const (name,ty) =
+  Printf.printf "%s : %s\n" name (Types.string_of_type ty);
+  flush stdout
 
 and dump_typed_inst ty =
   Printf.printf "- : %s\n" (Types.string_of_type ty);

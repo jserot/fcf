@@ -4,6 +4,7 @@ type t =
   | TyArrow of t * t
   | TyProduct of t list 
   | TyVar of t var 
+  | TyArr of size attr * t
 
 and 'a attr =
   | Const of 'a
@@ -44,6 +45,8 @@ let new_attr_var () = make_var ()
 let type_int () = TyInt (Var (make_var ()), Var (make_var ()))
 let type_arrow t1 t2 = TyArrow (t1, t2)
 let type_pair t1 t2 = TyProduct [t1;t2]
+let type_array t = TyArr (Var (make_var ()), t)
+let type_sized_array sz t = TyArr (Const sz, t)
 
 let trivial_scheme t = {
     ts_params={ tp_typ=[]; tp_sign=[]; tp_size=[] };
@@ -88,6 +91,14 @@ let real_type ty =
   | TyInt (sg, sz) -> TyInt (real_attr sg, real_attr sz)
   | TyVar { value=Known ty'; _} -> ty'
   | ty -> ty
+
+let is_scalar_type ty = match real_type ty with
+| TyInt _ | TyBool -> true
+| _ -> false
+
+let is_const_type ty = match real_type ty with
+| TyArr (_,t) -> is_scalar_type t
+| _ -> is_scalar_type ty
 
 exception Polymorphic of t
 
@@ -143,6 +154,9 @@ let rec unify ty1 ty2 =
       unify ty2 ty2'
   | TyProduct ts1, TyProduct ts2 when List.length ts1 = List.length ts2 ->
       List.iter2 unify ts1 ts2
+  | TyArr (sz1,ty1), TyArr (sz2,ty2) ->
+     unify_attr (val1,val2) sz1 sz2;
+     unify ty1 ty2;
   | _, _ ->
      raise (TypeConflict(val1, val2))
 
@@ -291,6 +305,7 @@ let rec string_of_type t = match real_type t with
   | TyArrow (t1, t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
   | TyProduct ts -> Misc.string_of_list string_of_type "*" ts
   | (TyVar v) as t -> "'" ^ name_of_type_var t
+  | TyArr (sz, t') -> string_of_type t' ^ " array" ^ string_of_size sz
 
 let string_of_type_scheme ts = 
   reset_type_var_names ();

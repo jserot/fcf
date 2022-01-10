@@ -2,6 +2,9 @@
 
 type state_name = string           
 type fsm_name = string           
+type const_name = string           
+
+let array_max_print_elems = ref 8
 
 type type_expr =
   { te_desc: type_expr_desc;
@@ -11,6 +14,7 @@ type type_expr =
 and type_expr_desc =
   | TeInt of int_sign option * int_size option
   | TeBool 
+  | TeArray of int * type_expr 
 
 and int_sign = TeSigned | TeUnsigned 
 and int_size = int
@@ -27,9 +31,22 @@ and e_desc =
 | EBool of bool
 | ETuple of expr list
 | EBinop of string * expr * expr
+| EArray of expr list
+| EArrRd of string * expr (* arr[idx] *)
 
 let mk_expr ty e = { e_desc = e; e_loc = Location.no_location; e_typ = ty }
 let mk_bool_expr e = { e_desc = e; e_loc = Location.no_location; e_typ = TyBool }
+
+type const_decl = {
+  cst_desc: const_desc;
+  cst_loc: Location.location;
+  }
+    
+and const_desc = {
+    c_name: string;
+    c_val: expr;  (* Will be syntactically limited to scalars and arrays of scalars *)
+    c_typ: type_expr;
+  }
 
 type appl = {
   ap_desc: string * expr list;  (* fsm(args) or state(args) *)
@@ -73,6 +90,7 @@ and cont_desc =
 | Return of expr
 
 type program = {
+    p_consts: (const_name * const_decl) list;
     p_fsms: (fsm_name * fsm_decl) list;
     p_insts: appl list;
   }
@@ -87,4 +105,6 @@ and string_of_edesc e = match e with
   | EBool c -> string_of_bool c
   | ETuple es -> "(" ^ Misc.string_of_list string_of_expr "," es ^ ")"
   | EBinop (op, e1, e2) -> string_of_expr e1 ^ op ^ string_of_expr e2 (*TODO : add parens *)
+  | EArray vs -> "{" ^ Misc.string_of_list ~max_elems:(!array_max_print_elems) string_of_expr ","  vs ^ "}"
+  | EArrRd (a,i) -> a ^ "[" ^ string_of_expr i ^ "]"
 

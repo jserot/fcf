@@ -8,12 +8,14 @@ let keyword_table = [
   "in", IN;
   "and", AND;
   "return", RETURN;
+  "const", CONST;
   "true", TRUE;
   "false", FALSE;
   "int", TYINT;
   "signed", TYSIGNED;
   "unsigned", TYUNSIGNED;
   "bool", TYBOOL;
+  "array", TYARRAY;
 ]
 }
 
@@ -33,6 +35,10 @@ rule main = parse
   | ";" { SEMICOLON }
   | "(" { LPAREN }
   | ")" { RPAREN }
+  | "{" { LBRACE }
+  | "}" { RBRACE }
+  | "[" { LBRACKET }
+  | "]" { RBRACKET }
   | "," { COMMA }
   | "->" { ARROW }
   | "|" { BAR }
