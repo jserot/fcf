@@ -15,6 +15,7 @@ let keyword_table = [
   "signed", TYSIGNED;
   "unsigned", TYUNSIGNED;
   "bool", TYBOOL;
+  "float", TYFLOAT;
   "array", TYARRAY;
 ]
 }
@@ -32,6 +33,8 @@ rule main = parse
    *     { UID (Lexing.lexeme lexbuf) } *)
   | ['0'-'9']+
       { INT (int_of_string(Lexing.lexeme lexbuf)) }
+  | ['0'-'9']+ ('.' ['0'-'9']*)? (['e' 'E'] ['+' '-']? ['0'-'9']+)?
+      { FLOAT (float_of_string(Lexing.lexeme lexbuf)) }
   | ";" { SEMICOLON }
   | "(" { LPAREN }
   | ")" { RPAREN }
@@ -54,5 +57,9 @@ rule main = parse
   | '-' { MINUS }
   | '*' { TIMES }
   | '/' { DIV }
+  | "+." { FPLUS }
+  | "-." { FMINUS }
+  | "*." { FTIMES }
+  | "/." { FDIV }
   | eof { EOF }
   | _ { raise (Illegal_character (Lexing.lexeme_start lexbuf, Lexing.lexeme lexbuf)) }

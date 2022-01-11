@@ -4,6 +4,7 @@
 %token RETURN
 %token CONST
 %token <int> INT
+%token <float> FLOAT
 %token TRUE
 %token FALSE
 %token <string> LID
@@ -26,10 +27,12 @@
 %token LTE
 %token GTE
 %token PLUS MINUS TIMES DIV
+%token FPLUS FMINUS FTIMES FDIV
 %token TYINT
 %token TYSIGNED
 %token TYUNSIGNED
 %token TYBOOL
+%token TYFLOAT
 %token TYARRAY
 %token EOF
 
@@ -38,8 +41,8 @@
 %left EQUAL NOTEQUAL GT LT GTE LTE
 (* %left SHR SHL
  * %left LAND LOR LXOR *)
-%left PLUS MINUS
-%left TIMES DIV
+%left PLUS MINUS FPLUS FMINUS
+%left TIMES DIV FTIMES FDIV
 (* %nonassoc prec_unary_minus         (\* Highest precedence *\) *)
 
 %start <Syntax.program> program
@@ -143,6 +146,14 @@ expr:
       { mk_expr $sloc (EBinop ("*", e1, e2)) }
   | e1 = expr DIV e2 = expr
       { mk_expr $sloc (EBinop ("/", e1, e2)) }
+  | e1 = expr FPLUS e2 = expr
+      { mk_expr $sloc (EBinop ("+.", e1, e2)) }
+  | e1 = expr FMINUS e2 = expr
+      { mk_expr $sloc (EBinop ("-.", e1, e2)) }
+  | e1 = expr FTIMES e2 = expr
+      { mk_expr $sloc (EBinop ("*.", e1, e2)) }
+  | e1 = expr FDIV e2 = expr
+      { mk_expr $sloc (EBinop ("/.", e1, e2)) }
   | e1 = expr EQUAL e2 = expr
       { mk_expr $sloc (EBinop ("=", e1, e2)) }
   | e1 = expr NOTEQUAL e2 = expr
@@ -175,6 +186,8 @@ simple_expr:
 scalar_expr:
   | c = INT
       { mk_expr $sloc (EInt c) }
+  | c = FLOAT
+      { mk_expr $sloc (EFloat c) }
   | TRUE
       { mk_expr $sloc (EBool true) }
   | FALSE
@@ -189,6 +202,7 @@ type_expr:
   | TYSIGNED sz=int_size {  mk_type_expr $sloc (TeInt (Some TeSigned,sz)) }
   | TYUNSIGNED sz=int_size {  mk_type_expr $sloc (TeInt (Some TeUnsigned,sz)) }
   | TYBOOL {  mk_type_expr $sloc TeBool }
+  | TYFLOAT {  mk_type_expr $sloc TeFloat }
   | t=type_expr TYARRAY LBRACKET sz=INT RBRACKET { mk_type_expr $sloc (TeArray (sz,t)) }
 
 int_size:

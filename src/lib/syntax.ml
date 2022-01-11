@@ -14,6 +14,7 @@ type type_expr =
 and type_expr_desc =
   | TeInt of int_sign option * int_size option
   | TeBool 
+  | TeFloat
   | TeArray of int * type_expr 
 
 and int_sign = TeSigned | TeUnsigned 
@@ -29,6 +30,7 @@ and e_desc =
 | EVar of string
 | EInt of int
 | EBool of bool
+| EFloat of float
 | ETuple of expr list
 | EBinop of string * expr * expr
 | EArray of expr list
@@ -103,6 +105,7 @@ and string_of_edesc e = match e with
   | EVar v -> v
   | EInt c -> string_of_int c
   | EBool c -> string_of_bool c
+  | EFloat c -> string_of_float c
   | ETuple es -> "(" ^ Misc.string_of_list string_of_expr "," es ^ ")"
   | EBinop (op, e1, e2) -> string_of_expr e1 ^ op ^ string_of_expr e2 (*TODO : add parens *)
   | EArray vs -> "{" ^ Misc.string_of_list ~max_elems:(!array_max_print_elems) string_of_expr ","  vs ^ "}"

@@ -56,6 +56,7 @@ let rec type_of_type_expression tenv te =
   let ty = match te.te_desc with
     | TeInt (sg, sz) -> TyInt (sign_attr sg, size_attr sz)
     | TeBool -> TyBool
+    | TeFloat -> TyFloat
     | TeArray (sz,te') -> type_sized_array sz (type_of_type_expression tenv te') in
   te.te_typ <- Types.real_type ty;
   ty
@@ -70,6 +71,7 @@ let rec type_expression tenv venv expr =
      TyProduct (List.map (type_expression tenv venv) es)
   | EInt _ ->  type_int ()
   | EBool _ ->  TyBool
+  | EFloat _ ->  TyFloat
   | EBinop (op, e1, e2) ->
      let ty_op = type_instance (lookup_value venv expr.e_loc op) in
      let ty_e1 = type_expression tenv venv e1 in

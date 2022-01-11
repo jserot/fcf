@@ -1,6 +1,7 @@
 type t =
   | TyInt of sign attr * size attr
   | TyBool
+  | TyFloat
   | TyArrow of t * t
   | TyProduct of t list 
   | TyVar of t var 
@@ -93,7 +94,7 @@ let real_type ty =
   | ty -> ty
 
 let is_scalar_type ty = match real_type ty with
-| TyInt _ | TyBool -> true
+| TyInt _ | TyBool | TyFloat -> true
 | _ -> false
 
 let is_const_type ty = match real_type ty with
@@ -301,6 +302,7 @@ let string_of_size sz = match real_attr sz with
 
 let rec string_of_type t = match real_type t with
   | TyBool -> "bool"
+  | TyFloat -> "float"
   | TyInt (sg, sz) -> string_of_sign sg ^ string_of_size sz
   | TyArrow (t1, t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
   | TyProduct ts -> Misc.string_of_list string_of_type "*" ts
