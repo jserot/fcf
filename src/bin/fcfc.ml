@@ -26,7 +26,8 @@ let options = [
   "-vhdl", Arg.Unit (fun _ -> mode := Vhdl), "generate VHDL code";
   "-vhdl_numeric_std", Arg.Unit (fun _ -> Vhdl.cfg.use_numeric_std <- true), "translate integers as numeric_std [un]signed (default: false)";
   "-vhdl_default_int_size", Arg.Int (fun s -> Vhdl.cfg.default_int_size <- s), "default int/signed/unsigned size when not specified";
-  "-sopc", Arg.String (fun d -> sopc_dir := d), "generate SOPC files to be used by QSys and Quartus (default: don't)";
+  "-sopc", Arg.String (fun d -> sopc_dir := d; Vhdl.cfg.use_support_lib <- false),
+    "generate SOPC files to be used by QSys and Quartus in the specified dir (default: don't)";
 ]
 
 let parse fname = 
@@ -37,16 +38,25 @@ let parse fname =
   Location.input_lexbuf := lexbuf;
   Parser.program Lexer.main !Location.input_lexbuf 
 
-let dump_vhdl (n,f) =
+let dump_vhdl ~has_globals (n,f) =
   let m = f.fd_desc |> Fsm.from_ast in
   if !sopc_dir <> "" then 
     begin
       Utils.check_dir ~strict:true !sopc_dir;
-      Vhdl.write ~dir:(Utils.subdir !sopc_dir "ip") ~prefix:n m;
+      Vhdl.write ~dir:(Utils.subdir !sopc_dir "ip") ~has_globals ~prefix:n m;
       Qsys.write ~dir:!sopc_dir ~prefix:n ~src_file:(!source_file) m
     end
   else
-    Vhdl.write ~dir:"." ~prefix:n m
+    Vhdl.write ~dir:"." ~has_globals ~prefix:n m
+
+let dump_vhdl_globals typed_consts consts =
+  if !sopc_dir <> "" then 
+    begin
+      Utils.check_dir ~strict:true !sopc_dir;
+      Vhdl.write_globals ~dir:(Utils.subdir !sopc_dir "ip") ~fname:"globals.vhd" typed_consts consts
+    end
+  else
+    Vhdl.write_globals ~dir:"." ~fname:"globals.vhd" typed_consts consts
 
 let compile name =
   if !dump_tenv then Typing.dump_typing_environment (snd Builtins.typing_env);
@@ -67,7 +77,9 @@ let compile name =
        (fun (n,f) -> f.fd_desc |> Fsm.from_ast |> Dot.view |> ignore)
        p.p_fsms
   | Vhdl ->
-     List.iter dump_vhdl p.p_fsms
+     let has_globals = p.p_consts <> [] in
+     if has_globals then dump_vhdl_globals tp.tp_consts p.p_consts;
+     List.iter (dump_vhdl ~has_globals:has_globals) p.p_fsms
   | Nothing -> ()
 
 

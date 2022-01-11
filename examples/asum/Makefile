@@ -14,7 +14,8 @@ vhdl:
 	$(FCFC) -vhdl -vhdl_numeric_std main.fsm
 
 vhdl.check:
-	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics fact.vhd
+	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics globals.vhd
+	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics sum.vhd
 
 
 clean: 

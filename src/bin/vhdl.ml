@@ -1,5 +1,4 @@
 open Fcf
-open Syntax
 open Printf
 
 type config = {
@@ -13,6 +12,7 @@ type config = {
   mutable use_support_lib: bool;
   mutable support_library: string;
   mutable support_package: string;
+  mutable globals_pkg_name: string;
   }
 
 and act_semantics =  (** Interpretation of actions associated to transitions *)
@@ -27,9 +27,10 @@ let cfg = {
   default_int_size = 8;
   act_sem = Synchronous;  (* Default *)
   dump_cc_intf = false;
-  use_support_lib = false;
+  use_support_lib = true;
   support_library = "fcf";
   support_package = "fcf";
+  globals_pkg_name = "globals";
   }
 
 type model = {
@@ -76,10 +77,11 @@ type vhdl_type =
   | Integer of int_range option
   | Std_logic
   | NoType  (* for debug only *)
+  | Array of int * vhdl_type
 
 and int_range = int * int (* lo, hi *)             
 
-let vhdl_type_of t =
+let rec vhdl_type_of t =
   let open Types in
   match real_type t, cfg.use_numeric_std with 
   | TyBool, _ -> Std_logic
@@ -91,11 +93,12 @@ let vhdl_type_of t =
   | TyInt (_, Const sz), false -> Integer (Some (-Misc.pow2 (sz-1), Misc.pow2 (sz-1) - 1))
   | TyInt (_, _), _ -> Integer None
   | TyProduct [], _ -> NoType                   
+  | TyArr (Const sz, t'), _ when is_scalar_type t' -> Array (sz, vhdl_type_of t') 
   | t, _ -> failwith ("VHDL backend: illegal type: " ^ Types.string_of_type t)
 
 type type_mark = TM_Full | TM_Abbr | TM_None [@@warning "-37"]
-                                   
-let string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with 
+
+let rec string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with 
   | Unsigned n, TM_Full -> Printf.sprintf "unsigned(%d downto 0)" (n-1)
   | Unsigned n, TM_Abbr -> Printf.sprintf "unsigned%d" n
   | Unsigned _, TM_None -> "unsigned"
@@ -105,25 +108,36 @@ let string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with
   | Integer (Some (lo,hi)), TM_Full -> Printf.sprintf "integer range %d to %d" lo hi
   | Integer _, _ -> "integer"
   | Std_logic, _ -> "std_logic"
+  | Array (sz,t'), _ -> string_of_vhdl_array_type (sz,t') 
   | NoType, _ -> "<unknown>"
 
-let string_of_type ?(type_marks=TM_Full) t =
+and string_of_type ?(type_marks=TM_Full) t =
   string_of_vhdl_type ~type_marks:type_marks (vhdl_type_of t)
 
+and string_of_vhdl_array_type (sz,t) = 
+  Printf.sprintf "%s_arr%d" (string_of_vhdl_array_subtype t) sz
+
+and string_of_vhdl_array_subtype t = match t with 
+  | Unsigned n -> "u" ^ string_of_int n
+  | Signed n -> "s" ^ string_of_int n
+  | Integer _ -> "int"
+  | Std_logic -> "sl"
+  | _ -> failwith ("VHDL backend: illegal subtype: " ^ string_of_vhdl_type t)
+                                   
 let string_of_op = function
   | "!=" -> " /= "
   | op ->  op
 
-let string_of_expr e =
+let rec string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
   let rec string_of level e =
-    match e.e_desc, vhdl_type_of (e.e_typ)  with
-    | EInt n, Unsigned s -> Printf.sprintf "to_unsigned(%d,%d)" n s
-    | EInt n, Signed s -> Printf.sprintf "to_signed(%d,%d)" n s
-    | EInt n, _ -> string_of_int n
-    | EBool b, _ -> if b then "'1'" else "'0'"
-    | EVar n, _ ->  n
-    | EBinop (op,e1,e2), ty -> 
+    match e.Syntax.e_desc, vhdl_type_of (e.Syntax.e_typ)  with
+    | Syntax.EInt n, Unsigned s -> Printf.sprintf "to_unsigned(%d,%d)" n s
+    | Syntax.EInt n, Signed s -> Printf.sprintf "to_signed(%d,%d)" n s
+    | Syntax.EInt n, _ -> string_of_int n
+    | Syntax.EBool b, _ -> if b then "'1'" else "'0'"
+    | Syntax.EVar n, _ ->  n
+    | Syntax.EBinop (op,e1,e2), ty -> 
        let s1 = string_of (level+1) e1 
        and s2 = string_of (level+1) e2 in 
        begin match op, ty with
@@ -131,6 +145,8 @@ let string_of_expr e =
        | "*", Unsigned _ -> "mul(" ^ s1 ^ "," ^ s2 ^ ")"
        | _, _ -> paren level (s1 ^ string_of_op op ^ s2)
        end
+    | Syntax.EArray es, _ -> Printf.sprintf "(%s)" (Misc.string_of_list string_of_expr "," es)
+    | Syntax.EArrRd (a,idx), _ -> Printf.sprintf "%s(%s)" a (string_of level idx)
     | _ -> Misc.fatal_error "Vhdl.string_of_expr"
   in
   string_of 0 e
@@ -217,17 +233,21 @@ let dump_module_intf kind oc m =
   fprintf oc "        %s: in std_logic\n);\n" cfg.reset_sig;
   fprintf oc "end %s;\n" kind
 
-let dump_model fname m =
-  let oc = open_out fname in
+let dump_libraries oc =
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;\n";
   if cfg.use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
   if cfg.use_support_lib then begin
-      fprintf oc "library %s;\n" cfg.support_library;
-      fprintf oc "use %s.%s.all;\n" cfg.support_library cfg.support_package
+    fprintf oc "library %s;\n" cfg.support_library;
+    fprintf oc "use %s.%s.all;\n" cfg.support_library cfg.support_package
     end
   else
-      fprintf oc "use work.%s.all;\n" cfg.support_package;
+    fprintf oc "use work.%s.all;\n" cfg.support_package
+
+let dump_model ~has_globals fname m =
+  let oc = open_out fname in
+  dump_libraries oc;
+  if has_globals then fprintf oc "use work.%s.all;\n" cfg.globals_pkg_name;
   fprintf oc "\n";
   dump_module_intf "entity" oc m;
   fprintf oc "\n";
@@ -235,7 +255,48 @@ let dump_model fname m =
   printf "Wrote file %s\n" fname;
   close_out oc
 
-let write ?(dir="") ~prefix f = 
+let dump_type_decl oc ty = match ty with 
+  | Array(sz,t') ->
+     fprintf oc "  type %s is array(0 to %d) of %s;\n" 
+       (string_of_vhdl_array_type (sz,t'))
+       (sz-1)
+       (string_of_vhdl_type t')
+  | _ ->
+     ()
+
+let dump_const_decl oc ~with_val (id,ty,v) = 
+  if with_val then Printf.fprintf oc "  constant %s: %s := %s;\n" id (string_of_vhdl_type ty) (string_of_expr v)
+  else Printf.fprintf oc "  constant %s: %s;\n" id (string_of_vhdl_type ty)
+
+let write ?(dir="") ~has_globals ~prefix f = 
   let m = build_model f in
   let p = dir ^ Filename.dir_sep ^ prefix in
-  dump_model (p ^ ".vhd") m
+  dump_model ~has_globals (p ^ ".vhd") m
+
+let write_globals ?(dir="") ~fname typed_consts consts = 
+  let typed_consts, arr_types = 
+    List.fold_left
+      (fun (tcs,tys) (id,d) ->
+        let open Syntax in
+        let ty = vhdl_type_of (List.assoc id typed_consts) in 
+        let tys' = match ty with
+        | Array(_,_) when not (List.mem ty tys) -> ty::tys
+        | _ -> tys in
+        (id,ty,d.cst_desc.c_val) :: tcs,
+        tys')
+    ([],[])
+    consts in
+  let oc = open_out fname in
+  dump_libraries oc;
+  fprintf oc "\n";
+  fprintf oc "package %s is\n" cfg.globals_pkg_name;
+  List.iter (dump_type_decl oc) arr_types;
+  List.iter (dump_const_decl oc ~with_val:false) typed_consts;
+  fprintf oc "end package;\n\n";
+  dump_libraries oc;
+  fprintf oc "\n";
+  fprintf oc "package body %s is\n" cfg.globals_pkg_name;
+  List.iter (dump_const_decl oc ~with_val:true) typed_consts;
+  fprintf oc "end package body;\n";
+  printf "Wrote file %s\n" fname;
+  close_out oc
