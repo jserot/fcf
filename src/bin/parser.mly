@@ -14,18 +14,16 @@
 %token ARROW
 %token COLON
 (* %token QUOTE *)
-%token EQUAL
-%token NOTEQUAL
+%token EQUAL NOTEQUAL
+%token FEQUAL FNOTEQUAL
 %token LPAREN
 %token RPAREN
 %token LBRACE
 %token RBRACE
 %token LBRACKET
 %token RBRACKET
-%token LT
-%token GT
-%token LTE
-%token GTE
+%token LT GT LTE GTE
+%token FLT FGT FLTE FGTE
 %token PLUS MINUS TIMES DIV
 %token FPLUS FMINUS FTIMES FDIV
 %token TYINT
@@ -166,6 +164,18 @@ expr:
       { mk_expr $sloc (EBinop (">=", e1, e2)) }
   | e1 = expr LTE e2 = expr
       { mk_expr $sloc (EBinop ("<=", e1, e2)) }
+  | e1 = expr FEQUAL e2 = expr
+      { mk_expr $sloc (EBinop ("=.", e1, e2)) }
+  | e1 = expr FNOTEQUAL e2 = expr
+      { mk_expr $sloc (EBinop ("!=.", e1, e2)) }
+  | e1 = expr FGT e2 = expr
+      { mk_expr $sloc (EBinop (">.", e1, e2)) }
+  | e1 = expr FLT e2 = expr
+      { mk_expr $sloc (EBinop ("<.", e1, e2)) }
+  | e1 = expr FGTE e2 = expr
+      { mk_expr $sloc (EBinop (">=.", e1, e2)) }
+  | e1 = expr FLTE e2 = expr
+      { mk_expr $sloc (EBinop ("<=.", e1, e2)) }
 
 (* expr_comma_list:
  *         expr_comma_list COMMA expr

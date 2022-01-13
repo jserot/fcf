@@ -61,5 +61,11 @@ rule main = parse
   | "-." { FMINUS }
   | "*." { FTIMES }
   | "/." { FDIV }
+  | "=." { FEQUAL }
+  | "!=."    { FNOTEQUAL }
+  | ">."    { FGT }
+  | "<."    { FLT }
+  | ">=."    { FGTE }
+  | "<=."    { FLTE }
   | eof { EOF }
   | _ { raise (Illegal_character (Lexing.lexeme_start lexbuf, Lexing.lexeme lexbuf)) }

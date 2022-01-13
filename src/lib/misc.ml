@@ -2,7 +2,7 @@ exception Error
 
 let fatal_error msg = failwith msg
 
-let string_of_list ?(max_elems=16) f sep l =
+let string_of_list ?(max_elems=max_int) f sep l =
   let rec h i l = match l with
     | [] -> ""
     | [x] -> f x

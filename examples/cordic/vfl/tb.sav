@@ -1,0 +1,31 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Thu Jan 13 13:38:38 2022
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/fcf/examples/cordic/vfl/tb.vcd"
+[dumpfile_mtime] "Thu Jan 13 13:38:26 2022"
+[dumpfile_size] 5659
+[savefile] "/Users/jserot/Dev/ml/fcf/examples/cordic/vfl/tb.sav"
+[timestart] 0
+[size] 1000 600
+[pos] 0 0
+*-28.043787 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 193
+[signals_width] 184
+[sst_expanded] 1
+[sst_vpaned_height] 168
+@28
+clk
+rst
+cordic_start
+@24
+cordic_niter[31:0]
+@28
+cordic_phi
+cordic_rdy
+@29
+cordic_res1
+@28
+cordic_res2
+[pattern_trace] 1
+[pattern_trace] 0
