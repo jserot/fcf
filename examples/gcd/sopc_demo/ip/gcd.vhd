@@ -5,11 +5,11 @@ use work.fcf.all;
 
 entity gcd is
   port(
-        start: in std_logic;
         a: in unsigned(15 downto 0);
         b: in unsigned(15 downto 0);
-        rdy: out std_logic;
+        start: in std_logic;
         res: out unsigned(15 downto 0);
+        rdy: out std_logic;
         clk: in std_logic;
         rst: in std_logic
 );
@@ -25,6 +25,7 @@ begin
   begin
     if rst='1' then
       state <= Idle;
+      rdy <= '1';
     elsif rising_edge(clk) then 
       case state is
       when Compute =>
