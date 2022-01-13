@@ -26,6 +26,7 @@
 %token FLT FGT FLTE FGTE
 %token PLUS MINUS TIMES DIV
 %token FPLUS FMINUS FTIMES FDIV
+%token SHL SHR
 %token TYINT
 %token TYSIGNED
 %token TYUNSIGNED
@@ -37,8 +38,8 @@
 (* Precedences and associativities for expressions *)
 
 %left EQUAL NOTEQUAL GT LT GTE LTE
-(* %left SHR SHL
- * %left LAND LOR LXOR *)
+%left SHR SHL
+(* %left LAND LOR LXOR *)
 %left PLUS MINUS FPLUS FMINUS
 %left TIMES DIV FTIMES FDIV
 (* %nonassoc prec_unary_minus         (\* Highest precedence *\) *)
@@ -136,6 +137,10 @@ expr:
       { e }
   (* | es=expr_comma_list
    *     { mk_expr $sloc (ETuple (List.rev es)) } *)
+  | e1 = expr SHL e2 = expr
+      { mk_expr $sloc (EBinop ("<<", e1, e2)) }
+  | e1 = expr SHR e2 = expr
+      { mk_expr $sloc (EBinop (">>", e1, e2)) }
   | e1 = expr PLUS e2 = expr
       { mk_expr $sloc (EBinop ("+", e1, e2)) }
   | e1 = expr MINUS e2 = expr

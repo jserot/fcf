@@ -21,6 +21,7 @@ let options = [
   "-dump_tenv", Arg.Unit (fun _ -> dump_tenv := true), "dump builtin typing environment";
   "-dump_fsm", Arg.Unit (fun _ -> dump_fsm := true), "dump FSM intermediate representation";
   "-trace", Arg.Unit (fun _ -> Eval.trace := true), "trace execution when running program";
+  "-array_print_length", Arg.Int (fun n -> Syntax.array_print_length := n), "max number of printed elements for arrays (default: 32)";
   "-dot", Arg.Unit (fun _ -> mode := Dot), "generate dot representation";
   "-show", Arg.Unit (fun _ -> mode := Show), "generate and view dot representation";
   "-vhdl", Arg.Unit (fun _ -> mode := Vhdl), "generate VHDL code";

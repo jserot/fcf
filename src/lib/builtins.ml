@@ -51,6 +51,8 @@ let primitives = [
     "<=", (type_compare (), prim2_bool ( <= ));
     ">=", (type_compare (), prim2_bool ( >= ));
     "!=", (type_compare (), prim2_bool ( != ));
+    ">>", (type_arithm (), prim2_int Int.shift_right);
+    "<<", (type_arithm (), prim2_int Int.shift_left);
     "+", (type_arithm (), prim2_int ( + ));
     "-", (type_arithm (), prim2_int ( - ));
     "*", (type_arithm (), prim2_int ( * ));

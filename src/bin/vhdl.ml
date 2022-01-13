@@ -163,6 +163,8 @@ let rec string_of_expr e =
     | Syntax.EBool b, _ -> if b then "'1'" else "'0'"
     | Syntax.EFloat n, _ -> string_of_float n
     | Syntax.EVar n, _ ->  n
+    | Syntax.EBinop (">>",e1,e2), ty -> string_of_shift level "shift_left" e1 e2 (* Special cases *)
+    | Syntax.EBinop ("<<",e1,e2), ty -> string_of_shift level "shift_right" e1 e2
     | Syntax.EBinop (op,e1,e2), ty -> 
        let s1 = string_of (level+1) e1 
        and s2 = string_of (level+1) e2 in 
@@ -174,6 +176,12 @@ let rec string_of_expr e =
     | Syntax.EArray es, _ -> Printf.sprintf "(%s)" (Misc.string_of_list string_of_expr "," es)
     | Syntax.EArrRd (a,idx), _ -> Printf.sprintf "%s(%s)" a (string_of level idx)
     | _ -> Misc.fatal_error "Vhdl.string_of_expr"
+  and string_of_shift level op e1 e2 =
+    op ^ "(" ^ string_of (level+1) e1 ^ "," ^ string_of_int_expr (level+1) e2 ^ ")"
+  and string_of_int_expr level e = match vhdl_type_of e.Syntax.e_typ with 
+      | Integer _ -> string_of level e
+      | Unsigned _ | Signed _ -> "to_integer(" ^ string_of level e ^ ")"
+      | _ -> Misc.fatal_error "Vhdl.string_of_expr"  (* should not happen *)
   in
   string_of 0 e
 

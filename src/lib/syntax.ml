@@ -4,7 +4,7 @@ type state_name = string
 type fsm_name = string           
 type const_name = string           
 
-let array_max_print_elems = ref 8
+let array_print_length = ref 8
 
 type type_expr =
   { te_desc: type_expr_desc;
@@ -108,6 +108,6 @@ and string_of_edesc e = match e with
   | EFloat c -> string_of_float c
   | ETuple es -> "(" ^ Misc.string_of_list string_of_expr "," es ^ ")"
   | EBinop (op, e1, e2) -> string_of_expr e1 ^ op ^ string_of_expr e2 (*TODO : add parens *)
-  | EArray vs -> "{" ^ Misc.string_of_list ~max_elems:(!array_max_print_elems) string_of_expr ","  vs ^ "}"
+  | EArray vs -> "{" ^ Misc.string_of_list ~max_elems:(!array_print_length) string_of_expr ","  vs ^ "}"
   | EArrRd (a,i) -> a ^ "[" ^ string_of_expr i ^ "]"
 

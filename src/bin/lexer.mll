@@ -57,6 +57,8 @@ rule main = parse
   | '-' { MINUS }
   | '*' { TIMES }
   | '/' { DIV }
+  | ">>" { SHR }
+  | "<<" { SHL }
   | "+." { FPLUS }
   | "-." { FMINUS }
   | "*." { FTIMES }
@@ -67,5 +69,11 @@ rule main = parse
   | "<."    { FLT }
   | ">=."    { FGTE }
   | "<=."    { FLTE }
+  | "--" { comment lexbuf; main lexbuf }
   | eof { EOF }
   | _ { raise (Illegal_character (Lexing.lexeme_start lexbuf, Lexing.lexeme lexbuf)) }
+
+and comment = parse
+  | "\n" { () }
+  | eof { () }
+  | _ { comment lexbuf }

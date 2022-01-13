@@ -10,5 +10,5 @@ let rec to_string v = match v with
   | Int i -> string_of_int i
   | Float f -> string_of_float f
   | Tuple vs -> "(" ^ Misc.string_of_list to_string "," vs ^ ")"
-  | Array vs -> "{" ^ Misc.string_of_list ~max_elems:(!Syntax.array_max_print_elems) to_string "," vs ^ "}"
+  | Array vs -> "{" ^ Misc.string_of_list ~max_elems:(!Syntax.array_print_length) to_string "," vs ^ "}"
           
