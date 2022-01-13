@@ -90,6 +90,7 @@ type vhdl_type =
   | Signed of int
   | Integer of int_range option
   | Std_logic
+  | Real
   | NoType  (* for debug only *)
   | Array of int * vhdl_type
 
@@ -99,6 +100,7 @@ let rec vhdl_type_of t =
   let open Types in
   match real_type t, cfg.use_numeric_std with 
   | TyBool, _ -> Std_logic
+  | TyFloat, _ -> Real
   | TyInt (Const Unsigned, Const sz), true -> Unsigned sz
   | TyInt (Const Unsigned, _), true -> Unsigned cfg.default_int_size
   | TyInt (Const Signed, Const sz), true -> Signed sz
@@ -122,6 +124,7 @@ let rec string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with
   | Integer (Some (lo,hi)), TM_Full -> Printf.sprintf "integer range %d to %d" lo hi
   | Integer _, _ -> "integer"
   | Std_logic, _ -> "std_logic"
+  | Real, _ -> "real"
   | Array (sz,t'), _ -> string_of_vhdl_array_type (sz,t') 
   | NoType, _ -> "<unknown>"
 
@@ -136,20 +139,29 @@ and string_of_vhdl_array_subtype t = match t with
   | Signed n -> "s" ^ string_of_int n
   | Integer _ -> "int"
   | Std_logic -> "sl"
+  | Real -> "r"
   | _ -> failwith ("VHDL backend: illegal subtype: " ^ string_of_vhdl_type t)
-                                   
-let string_of_op = function
+
+let string_of_op op =
+  let undot op =
+    let l = String.length op in
+    if String.get op (l-1) = '.' then String.sub op 0 (l-1) else op in
+  match undot op with
   | "!=" -> " /= "
   | op ->  op
 
 let rec string_of_expr e =
   let paren level s = if level > 0 then "(" ^ s ^ ")" else s in
+  let string_of_float x =
+    let s = Stdlib.string_of_float x in
+    if String.get s (String.length s -1) = '.' then s ^ "0" else s  in
   let rec string_of level e =
     match e.Syntax.e_desc, vhdl_type_of (e.Syntax.e_typ)  with
     | Syntax.EInt n, Unsigned s -> Printf.sprintf "to_unsigned(%d,%d)" n s
     | Syntax.EInt n, Signed s -> Printf.sprintf "to_signed(%d,%d)" n s
     | Syntax.EInt n, _ -> string_of_int n
     | Syntax.EBool b, _ -> if b then "'1'" else "'0'"
+    | Syntax.EFloat n, _ -> string_of_float n
     | Syntax.EVar n, _ ->  n
     | Syntax.EBinop (op,e1,e2), ty -> 
        let s1 = string_of (level+1) e1 
