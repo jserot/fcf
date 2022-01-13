@@ -68,13 +68,15 @@ let from_ast f =
   let ty_args, ty_res = Types.fn_types @@ Types.type_instance f.f_typ in
   { m_name = f.f_name;
     m_states = "idle" :: states_of f;
-    m_inps =   ("start", Types.TyBool)
-               :: List.map2 (fun (p,_) ty -> p, ty) f.f_params ty_args;
-    m_outps = ("rdy", Types.TyBool)
-              :: (match ty_res with 
-                  | [] -> []
-                  | [t] -> [cfg.res_id, t]
-                  | ts -> List.mapi (fun i t -> cfg.res_id ^ string_of_int (i+1), t) ts);
+    m_inps =
+        List.map2 (fun (p,_) ty -> p, ty) f.f_params ty_args
+      @ ["start", Types.TyBool];
+    m_outps = 
+        (match ty_res with 
+         | [] -> []
+         | [t] -> [cfg.res_id, t]
+         | ts -> List.mapi (fun i t -> cfg.res_id ^ string_of_int (i+1), t) ts)
+      @ ["rdy", Types.TyBool];
     m_vars = vars_of f;
     m_trans = strans_of f :: rtrans_of f;
     m_itrans = "idle", []

@@ -58,14 +58,6 @@ let no_type_scheme = trivial_scheme no_type
 
 exception Illegal_function_type of t
 
-let fn_types t =
-  let list_of t = match t with
-    | TyProduct ts -> ts
-    | _ -> [t] in
-  match t with
-  | TyArrow (t1, t2) -> list_of t1, list_of t2
-  | _ -> raise (Illegal_function_type t)
-
 (* Path compression *)
 
 let rec type_repr = function
@@ -100,6 +92,16 @@ let is_scalar_type ty = match real_type ty with
 let is_const_type ty = match real_type ty with
 | TyArr (_,t) -> is_scalar_type t
 | _ -> is_scalar_type ty
+
+let list_of_types t = match real_type t with
+    | TyProduct ts -> ts
+    | _ -> [t] 
+
+let fn_types t =
+  match t with
+  | TyArrow (t1, t2) -> list_of_types t1, list_of_types t2
+  | _ -> raise (Illegal_function_type t)
+
 
 exception Polymorphic of t
 

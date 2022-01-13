@@ -26,8 +26,9 @@ let options = [
   "-vhdl", Arg.Unit (fun _ -> mode := Vhdl), "generate VHDL code";
   "-vhdl_numeric_std", Arg.Unit (fun _ -> Vhdl.cfg.use_numeric_std <- true), "translate integers as numeric_std [un]signed (default: false)";
   "-vhdl_default_int_size", Arg.Int (fun s -> Vhdl.cfg.default_int_size <- s), "default int/signed/unsigned size when not specified";
-  "-sopc", Arg.String (fun d -> sopc_dir := d; Vhdl.cfg.use_support_lib <- false),
+  "-vhdl_sopc", Arg.String (fun d -> sopc_dir := d; Vhdl.cfg.use_support_lib <- false),
     "generate SOPC files to be used by QSys and Quartus in the specified dir (default: don't)";
+  "-vhdl_testbench", Arg.Unit (fun _ -> Vhdl.cfg.with_testbench <- true), "generate VHDL testbench (default: false)";
 ]
 
 let parse fname = 
@@ -38,16 +39,17 @@ let parse fname =
   Location.input_lexbuf := lexbuf;
   Parser.program Lexer.main !Location.input_lexbuf 
 
-let dump_vhdl ~has_globals (n,f) =
+let dump_vhdl_fsm ~has_globals (n,f) =
   let m = f.fd_desc |> Fsm.from_ast in
   if !sopc_dir <> "" then 
     begin
       Utils.check_dir ~strict:true !sopc_dir;
-      Vhdl.write ~dir:(Utils.subdir !sopc_dir "ip") ~has_globals ~prefix:n m;
-      Qsys.write ~dir:!sopc_dir ~prefix:n ~src_file:(!source_file) m
+      let m' = Vhdl.write_fsm ~dir:(Utils.subdir !sopc_dir "ip") ~has_globals ~prefix:n m in
+      Qsys.write ~dir:!sopc_dir ~prefix:n ~src_file:(!source_file) m;
+      m'
     end
   else
-    Vhdl.write ~dir:"." ~has_globals ~prefix:n m
+    Vhdl.write_fsm ~dir:"." ~has_globals ~prefix:n m
 
 let dump_vhdl_globals typed_consts consts =
   if !sopc_dir <> "" then 
@@ -79,7 +81,8 @@ let compile name =
   | Vhdl ->
      let has_globals = p.p_consts <> [] in
      if has_globals then dump_vhdl_globals tp.tp_consts p.p_consts;
-     List.iter (dump_vhdl ~has_globals:has_globals) p.p_fsms
+     let models = List.map (dump_vhdl_fsm ~has_globals:has_globals) p.p_fsms in
+     if Vhdl.cfg.with_testbench then Vhdl.write_testbench ~dir:"." ~fname:"tb.vhd" ~has_globals:has_globals models p.p_insts
   | Nothing -> ()
 
 

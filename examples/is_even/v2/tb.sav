@@ -1,0 +1,29 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Wed Jan 12 15:21:38 2022
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/fcf/examples/even_bis/tb.vcd"
+[dumpfile_mtime] "Wed Jan 12 15:21:16 2022"
+[dumpfile_size] 1554
+[savefile] "/Users/jserot/Dev/ml/fcf/examples/even_bis/tb.sav"
+[timestart] 0
+[size] 1000 600
+[pos] 2 0
+*-26.597986 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 193
+[signals_width] 184
+[sst_expanded] 1
+[sst_vpaned_height] 168
+@28
+clk
+rst
+is_even_start
+@24
+is_even_n[31:0]
+@28
+is_even_rdy
+is_even_res1
+@24
+is_even_res2[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

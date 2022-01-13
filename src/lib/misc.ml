@@ -28,3 +28,11 @@ let bits_of_int sz n =
       end in
   h n (sz-1);
   Bytes.to_string b
+
+let list_unique ~eq l =
+  let rec h acc l = match l with
+    | [] -> List.rev acc
+    | x::xs ->
+       let acc' = if List.exists (eq x) acc then acc else x::acc in
+       h acc' xs in
+  h [] l

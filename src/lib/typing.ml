@@ -26,12 +26,17 @@ let lookup_value venv loc id =
 type typed_program = {
   tp_consts: (string * Types.t) list;
   tp_fsms: (string * typed_fsm) list;
-  tp_insts: Types.t list;
+  tp_insts: (string * typed_inst) list;
   }
 
 and typed_fsm = {
     tf_sig: typ_scheme;
     tf_states: (string * Types.t) list;
+  }
+
+and typed_inst = {
+  ti_args: Types.t list;
+  ti_results: Types.t list;
   }
 
 (* Unification *)
@@ -93,9 +98,7 @@ let rec type_expression tenv venv expr =
      let ty_result = TyVar (Types.new_type_var ()) in
      try_unify "array index" ty_idx (type_int ()) expr.e_loc;
      try_unify "expression" ty_arr (type_array ty_result) expr.e_loc;
-     ty_result
-
-  in
+     ty_result in
   expr.e_typ <- Types.real_type ty;
   ty
 
@@ -104,7 +107,7 @@ and type_application tenv venv { ap_desc=fn, args; ap_loc=loc } =
   let ty_args = TyProduct (List.map (type_expression tenv venv) args) in
   let ty_result = TyVar (Types.new_type_var ()) in
   try_unify "application" ty_fn (type_arrow ty_args ty_result) loc;
-  ty_result
+  ty_args, ty_result
 
 (* Typing CONST decls *)
 
@@ -134,7 +137,7 @@ let type_pattern id =
   ty, (id, trivial_scheme ty)
 
 let type_state_continuation tenv venv cont = match cont.ct_desc with
-  | Next e -> type_application tenv venv e
+  | Next e -> snd @@ type_application tenv venv e
   | Return e -> type_expression tenv venv e
 
 let type_state_trans tenv venv { t_desc = guard, cont; t_loc = loc } = 
@@ -193,11 +196,17 @@ let type_fsm_decl tenv venv (name,d) =
   let ty_params, venv' = List.map (type_param tenv) f.f_params |> List.split in
   let defns, expr = f.f_desc in
   let venv'' = type_state_defns tenv (venv'@venv) defns in
-  let ty_result = type_application tenv (venv''@venv'@venv) expr in
+  let ty_result = snd @@ type_application tenv (venv''@venv'@venv) expr in
   let ty = generalize venv @@ type_arrow (TyProduct ty_params) ty_result in
   f.f_typ <- ty;
   name, ty
 
+(* Typing FSM instances *)
+
+let type_fsm_inst tenv venv ({ap_desc = f, args} as appl) = 
+  let ty_args, ty_res = type_application tenv venv appl in 
+  f, { ti_args = Types.list_of_types ty_args; ti_results = Types.list_of_types ty_res }
+  
 (* Typing programs *)
   
 let type_program (tycons,venv) p = 
@@ -205,7 +214,8 @@ let type_program (tycons,venv) p =
   let ty_consts = List.map (type_const_decl tenv venv) p.p_consts in 
   let venv_c = List.map (fun (id,ty) -> id, generalize venv ty) ty_consts in
   let venv_f = List.map (type_fsm_decl tenv (venv_c @ venv)) p.p_fsms in 
-  { tp_consts = ty_consts;
+  { tp_consts =
+      ty_consts;
     tp_fsms =
       List.map
         (fun (name, {fd_desc={f_typ=ty; f_desc=state_defns,_}}) ->
@@ -218,7 +228,7 @@ let type_program (tycons,venv) p =
         p.p_fsms;
     tp_insts =
       List.map
-        (type_application tenv (venv_c @ venv_f @ venv))
+        (type_fsm_inst tenv (venv_c @ venv_f @ venv))
         p.p_insts }
 
 (* Printing *)
@@ -237,8 +247,9 @@ and dump_typed_const (name,ty) =
   Printf.printf "%s : %s\n" name (Types.string_of_type ty);
   flush stdout
 
-and dump_typed_inst ty =
-  Printf.printf "- : %s\n" (Types.string_of_type ty);
+and dump_typed_inst (name, ti) =
+  let string_of_types tys = Misc.string_of_list Types.string_of_type "*" tys in
+  Printf.printf "- : %s -> %s\n" (string_of_types ti.ti_args) (string_of_types ti.ti_results);
   flush stdout
 
 and dump_typed_fsm (name, f) =

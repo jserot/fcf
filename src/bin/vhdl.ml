@@ -4,7 +4,12 @@ open Printf
 type config = {
   mutable state_var: string;
   mutable reset_sig: string;
-  mutable clk_sig: string;
+  mutable reset_duration: int;
+  mutable clock_sig: string;
+  mutable clock_period: int;
+  mutable start_duration: int;
+  mutable sim_interval: int;
+  mutable time_unit: string;
   mutable use_numeric_std: bool;
   mutable default_int_size: int;
   mutable act_sem: act_semantics;
@@ -13,6 +18,8 @@ type config = {
   mutable support_library: string;
   mutable support_package: string;
   mutable globals_pkg_name: string;
+  mutable with_testbench: bool;
+  mutable tb_name: string;
   }
 
 and act_semantics =  (** Interpretation of actions associated to transitions *)
@@ -22,7 +29,12 @@ and act_semantics =  (** Interpretation of actions associated to transitions *)
 let cfg = {
   state_var = "state";
   reset_sig = "rst";
-  clk_sig = "clk";
+  reset_duration = 2;
+  clock_sig = "clk";
+  clock_period = 10;
+  start_duration = 15;
+  sim_interval = 50;
+  time_unit = "ns";
   use_numeric_std = false;
   default_int_size = 8;
   act_sem = Synchronous;  (* Default *)
@@ -31,6 +43,8 @@ let cfg = {
   support_library = "fcf";
   support_package = "fcf";
   globals_pkg_name = "globals";
+  with_testbench = false;
+  tb_name = "tb";
   }
 
 type model = {
@@ -201,7 +215,7 @@ let dump_module_arch oc m =
       (fun (id,ty) -> fprintf oc "  signal %s: %s;\n" id (string_of_type ~type_marks:TM_Full ty))
       m.v_vars;
   fprintf oc "begin\n";
-  fprintf oc "  process(%s, %s)\n" cfg.reset_sig cfg.clk_sig;
+  fprintf oc "  process(%s, %s)\n" cfg.reset_sig cfg.clock_sig;
   if cfg.act_sem = Sequential then 
     List.iter
       (fun (id,ty) -> fprintf oc "    variable %s: %s;\n" id (string_of_type ty))
@@ -209,8 +223,9 @@ let dump_module_arch oc m =
   fprintf oc "  begin\n";
   fprintf oc "    if %s='1' then\n" cfg.reset_sig;
   fprintf oc "      %s <= %s;\n" cfg.state_var (fst m.v_init);
+  fprintf oc "      rdy <= '1';\n";
   List.iter (dump_action oc "      " m) (snd m.v_init);
-  fprintf oc "    elsif rising_edge(%s) then \n" cfg.clk_sig;
+  fprintf oc "    elsif rising_edge(%s) then \n" cfg.clock_sig;
   begin match m.v_trans with
     [] -> () (* should not happen *)
   | [c] -> dump_state oc m c 
@@ -229,7 +244,7 @@ let dump_module_intf kind oc m =
   fprintf oc "  port(\n";
   List.iter (fun (id,ty) -> fprintf oc "        %s: in %s;\n" id (string_of_type ty)) m.v_inps;
   List.iter (fun (id,ty) -> fprintf oc "        %s: out %s;\n" id (string_of_type ty)) m.v_outps;
-  fprintf oc "        %s: in std_logic;\n" cfg.clk_sig;
+  fprintf oc "        %s: in std_logic;\n" cfg.clock_sig;
   fprintf oc "        %s: in std_logic\n);\n" cfg.reset_sig;
   fprintf oc "end %s;\n" kind
 
@@ -268,10 +283,11 @@ let dump_const_decl oc ~with_val (id,ty,v) =
   if with_val then Printf.fprintf oc "  constant %s: %s := %s;\n" id (string_of_vhdl_type ty) (string_of_expr v)
   else Printf.fprintf oc "  constant %s: %s;\n" id (string_of_vhdl_type ty)
 
-let write ?(dir="") ~has_globals ~prefix f = 
+let write_fsm ?(dir="") ~has_globals ~prefix f = 
   let m = build_model f in
   let p = dir ^ Filename.dir_sep ^ prefix in
-  dump_model ~has_globals (p ^ ".vhd") m
+  dump_model ~has_globals (p ^ ".vhd") m;
+  m.v_name, m
 
 let write_globals ?(dir="") ~fname typed_consts consts = 
   let typed_consts, arr_types = 
@@ -298,5 +314,97 @@ let write_globals ?(dir="") ~fname typed_consts consts =
   fprintf oc "package body %s is\n" cfg.globals_pkg_name;
   List.iter (dump_const_decl oc ~with_val:true) typed_consts;
   fprintf oc "end package body;\n";
+  printf "Wrote file %s\n" fname;
+  close_out oc
+
+let sig_name m name = Printf.sprintf "%s_%s" m.v_name name
+
+let dump_fsm_signals oc m =
+    List.iter
+      (fun (name,ty) -> fprintf oc "signal %s: %s;\n" (sig_name m name) (string_of_type ty))
+      (m.v_inps @ m.v_outps)
+
+let dump_fsm_inst oc lbl m = 
+  fprintf oc "%s: %s port map(%s,%s,%s,%s);\n"
+    lbl
+    m.v_name
+    (Misc.string_of_list (fun (name,_) -> sig_name m name) "," m.v_inps)
+    (Misc.string_of_list (fun (name,_) -> sig_name m name) "," m.v_outps)
+    cfg.clock_sig
+    cfg.reset_sig
+
+let dump_init_signals oc (_,m) = 
+  Printf.fprintf oc "  %s <= '0';\n" (sig_name m "start")
+
+let dump_inst_sim oc fsms { Syntax.ap_desc = (f,vs) } =
+  fprintf oc "  --  %s(%s)\n" f (Misc.string_of_list string_of_expr "," vs);
+  let m = List.assoc f fsms in
+  try
+    List.iter2
+      (fun (name,ty) v -> fprintf oc "  %s <= %s;\n" (sig_name m name) (string_of_expr v))
+      m.v_inps
+      vs
+  with 
+    Invalid_argument _ -> ();
+  fprintf oc "  %s_start <= '1';\n" m.v_name;
+  fprintf oc "  wait for %d %s;\n" cfg.start_duration cfg.time_unit;
+  fprintf oc "  %s_start <= '0';\n" m.v_name;
+  fprintf oc "  wait until %s_rdy = '1';\n" m.v_name;
+  fprintf oc "  wait for %d %s;\n" cfg.sim_interval cfg.time_unit
+
+let dump_reset_process oc = 
+  fprintf oc "RESET: process\n";
+  fprintf oc "begin\n";
+  fprintf oc "  %s <= '1';\n" cfg.reset_sig;
+  fprintf oc "  wait for %d %s;\n" cfg.reset_duration cfg.time_unit;
+  fprintf oc "  %s <= '0';\n" cfg.reset_sig;
+  fprintf oc "  wait;\n";
+  fprintf oc "end process;\n"
+
+let dump_clock_process oc = 
+  fprintf oc "\n";
+  fprintf oc "CLOCK: process\n";
+  fprintf oc "begin\n";
+  fprintf oc "  %s <= '1';\n" cfg.clock_sig;
+  fprintf oc "  wait for %d %s;\n" cfg.clock_period cfg.time_unit;
+  fprintf oc "  %s <= '0';\n" cfg.clock_sig;
+  fprintf oc "  wait for %d %s;\n" cfg.clock_period cfg.time_unit;
+  fprintf oc "end process;\n"
+
+let dump_sim_process oc fsms insts = 
+  fprintf oc "process\n";
+  fprintf oc "begin\n";
+  List.iter (dump_init_signals oc) fsms;
+  fprintf oc "  wait for %d %s;\n" cfg.clock_period cfg.time_unit;
+  List.iter (dump_inst_sim oc fsms) insts;
+  fprintf oc "  assert false report \"end of simulation\" severity note;\n";
+  fprintf oc "  wait;\n";
+  fprintf oc "end process;\n\n"
+
+let write_testbench ~dir ~fname ~has_globals named_fsms insts = 
+  let oc = open_out fname in
+  let fsms = List.map snd named_fsms in
+  dump_libraries oc;
+  if has_globals then fprintf oc "use work.%s.all;\n" cfg.globals_pkg_name;
+  fprintf oc "\n";
+  fprintf oc "entity %s is\n" cfg.tb_name;
+  fprintf oc "end entity;\n";
+  fprintf oc "\n";
+  fprintf oc "architecture struct of %s is\n" cfg.tb_name;
+  fprintf oc "\n";
+  List.iter (dump_module_intf "component" oc) fsms;
+  fprintf oc "\n";
+  List.iter (dump_fsm_signals oc) fsms;
+  fprintf oc "signal %s: std_logic;\n" cfg.clock_sig;
+  fprintf oc "signal %s: std_logic;\n" cfg.reset_sig;
+  fprintf oc "\nbegin\n\n";
+  dump_reset_process oc;
+  fprintf oc "\n";
+  dump_clock_process oc;
+  fprintf oc "\n";
+  List.iteri (fun i f -> dump_fsm_inst oc ("U" ^ string_of_int (i+1)) f) fsms;
+  fprintf oc "\n\n";
+  dump_sim_process oc named_fsms insts;
+  fprintf oc "end architecture;\n";
   printf "Wrote file %s\n" fname;
   close_out oc
