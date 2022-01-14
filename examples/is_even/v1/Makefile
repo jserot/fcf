@@ -1,6 +1,6 @@
 FCFC=../../../_build/default/src/bin/fcfc.bc
 GHDL=ghdl
-GHDLOPTS=-P../../etc/lib/vhdl -fno-color-diagnostics
+GHDLOPTS=-P../../../etc/lib/vhdl -fno-color-diagnostics
 GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
 
 run: 

@@ -13,7 +13,7 @@ show:
 	$(FCFC) -show main.fsm
 
 vhdl: 
-	$(FCFC) -vhdl -vhdl_numeric_std -vhdl_testbench main.fsm
+	$(FCFC) -vhdl -vhdl_testbench main.fsm
 
 vhdl.check:
 	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics fact.vhd

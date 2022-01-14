@@ -38,10 +38,10 @@
 (* Precedences and associativities for expressions *)
 
 %left EQUAL NOTEQUAL GT LT GTE LTE
-%left SHR SHL
 (* %left LAND LOR LXOR *)
 %left PLUS MINUS FPLUS FMINUS
 %left TIMES DIV FTIMES FDIV
+%left SHR SHL
 (* %nonassoc prec_unary_minus         (\* Highest precedence *\) *)
 
 %start <Syntax.program> program

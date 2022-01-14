@@ -1,16 +1,16 @@
 FCFC=../../../_build/default/src/bin/fcfc.bc
 GHDL=ghdl
-GHDLOPTS=-P../../etc/lib/vhdl -fno-color-diagnostics
+GHDLOPTS=-P../../../etc/lib/vhdl -fno-color-diagnostics
 GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
 
 run: 
 	$(FCFC) -run -trace main.fsm
 
 dot: 
-	$(FCFC) -dot -dump_typed main.fsm
+	$(FCFC) -dot main.fsm
 
 show: 
-	$(FCFC) -show -dump_typed main.fsm
+	$(FCFC) -show main.fsm
 
 vhdl: 
 	$(FCFC) -dump_typed -vhdl -vhdl_testbench main.fsm

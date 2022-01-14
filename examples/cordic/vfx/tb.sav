@@ -1,10 +1,10 @@
 [*]
 [*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
-[*] Thu Jan 13 14:59:19 2022
+[*] Fri Jan 14 09:20:43 2022
 [*]
 [dumpfile] "/Users/jserot/Dev/ml/fcf/examples/cordic/vfx/tb.vcd"
-[dumpfile_mtime] "Thu Jan 13 14:58:24 2022"
-[dumpfile_size] 7449
+[dumpfile_mtime] "Fri Jan 14 09:20:11 2022"
+[dumpfile_size] 6495
 [savefile] "/Users/jserot/Dev/ml/fcf/examples/cordic/vfx/tb.sav"
 [timestart] 0
 [size] 1000 600
@@ -23,7 +23,7 @@ cordic_niter[31:0]
 cordic_phi[31:0]
 @28
 cordic_rdy
-@25
+@24
 cordic_res1[31:0]
 cordic_res2[31:0]
 [pattern_trace] 1

@@ -10,8 +10,6 @@ type config = {
   mutable start_duration: int;
   mutable sim_interval: int;
   mutable time_unit: string;
-  mutable use_numeric_std: bool;
-  mutable default_int_size: int;
   mutable act_sem: act_semantics;
   mutable dump_cc_intf: bool;
   mutable use_support_lib: bool;
@@ -35,8 +33,6 @@ let cfg = {
   start_duration = 15;
   sim_interval = 50;
   time_unit = "ns";
-  use_numeric_std = false;
-  default_int_size = 8;
   act_sem = Synchronous;  (* Default *)
   dump_cc_intf = false;
   use_support_lib = true;
@@ -98,19 +94,16 @@ and int_range = int * int (* lo, hi *)
 
 let rec vhdl_type_of t =
   let open Types in
-  match real_type t, cfg.use_numeric_std with 
-  | TyBool, _ -> Std_logic
-  | TyFloat, _ -> Real
-  | TyInt (Const Unsigned, Const sz), true -> Unsigned sz
-  | TyInt (Const Unsigned, _), true -> Unsigned cfg.default_int_size
-  | TyInt (Const Signed, Const sz), true -> Signed sz
-  | TyInt (Const Signed, _), true -> Signed cfg.default_int_size
-  | TyInt (_, Const sz), true -> Signed sz
-  | TyInt (_, Const sz), false -> Integer (Some (-Misc.pow2 (sz-1), Misc.pow2 (sz-1) - 1))
-  | TyInt (_, _), _ -> Integer None
-  | TyProduct [], _ -> NoType                   
-  | TyArr (Const sz, t'), _ when is_scalar_type t' -> Array (sz, vhdl_type_of t') 
-  | t, _ -> failwith ("VHDL backend: illegal type: " ^ Types.string_of_type t)
+  match real_type t with 
+  | TyBool -> Std_logic
+  | TyFloat -> Real
+  | TyInt (Const Unsigned, Const sz) -> Unsigned sz
+  | TyInt (Const Signed, Const sz) -> Signed sz
+  | TyInt (_, Const sz) -> Signed sz  (* [int<n>] is interpreted as [signed<n>] *)
+  | TyInt (_, _) -> Integer None
+  | TyProduct [] -> NoType                   
+  | TyArr (Const sz, t') when is_scalar_type t' -> Array (sz, vhdl_type_of t') 
+  | t -> failwith ("VHDL backend: illegal type: " ^ Types.string_of_type t)
 
 type type_mark = TM_Full | TM_Abbr | TM_None [@@warning "-37"]
 
@@ -271,7 +264,7 @@ let dump_module_intf kind oc m =
 let dump_libraries oc =
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;\n";
-  if cfg.use_numeric_std then fprintf oc "use ieee.numeric_std.all;\n";
+  fprintf oc "use ieee.numeric_std.all;\n";
   if cfg.use_support_lib then begin
     fprintf oc "library %s;\n" cfg.support_library;
     fprintf oc "use %s.%s.all;\n" cfg.support_library cfg.support_package

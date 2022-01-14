@@ -67,10 +67,10 @@ const x0: signed<32> array[32] = {
     1214505870 } ; 
 
 let cordic (niter:int, phi:signed<32>) =
-  let compute (i:int,a,x,y) = 
+  let compute (i, a, x:signed<32>, y:signed<32>) = 
   | i >= niter -> return (x,y)
-  | a < phi  -> compute (i+1, a+arctan[i], x-(y>>i), y+(x>>i))
-  | a >= phi -> compute (i+1, a-arctan[i], x+(y>>i), y-(x>>i)) in
+  | a < phi  -> compute (i+1, a+arctan[i], x-y>>i, y+x>>i)
+  | a >= phi -> compute (i+1, a-arctan[i], x+y>>i, y-x>>i) in
   compute (0, 0, x0[niter-1], 0)
 ;
 

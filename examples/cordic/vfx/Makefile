@@ -7,13 +7,13 @@ run:
 	$(FCFC) -run -trace -array_print_length 1 main.fsm
 
 dot: 
-	$(FCFC) -dot -dump_typed main.fsm
+	$(FCFC) -dot main.fsm
 
 show: 
 	$(FCFC) -show main.fsm
 
 vhdl: 
-	$(FCFC) -vhdl -vhdl_numeric_std -vhdl_testbench main.fsm
+	$(FCFC) -dump_typed -vhdl -vhdl_testbench main.fsm
 
 vhdl.check:
 	$(GHDL) -a $(GHDLOPTS) globals.vhd

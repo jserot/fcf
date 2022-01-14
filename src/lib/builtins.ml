@@ -24,6 +24,16 @@ and type_fcompare () =
   { ts_params = { tp_typ=[]; tp_sign=[]; tp_size=[] };
     ts_body = type_arrow (type_pair TyFloat TyFloat) TyBool }
 
+let type_shift () = 
+  let sg1 = make_var () in
+  let sz1 = make_var () in
+  let sg2 = make_var () in
+  let sz2 = make_var () in
+  { ts_params = { tp_typ=[]; tp_sign=[sg1;sg2]; tp_size=[sz1;sz2] };
+    ts_body = type_arrow
+                (type_pair (TyInt (Var sg1, Var sz1)) (TyInt ( Var sg2, Var sz2)))
+                (TyInt (Var sg1, Var sz1)) }
+
 let decode_int = function Value.Int v -> v | _ -> failwith "decode_int"
 let decode_bool = function Value.Bool v -> v | _ -> failwith "decode_Bool"
 let decode_float = function Value.Float v -> v | _ -> failwith "decode_float"
@@ -51,8 +61,8 @@ let primitives = [
     "<=", (type_compare (), prim2_bool ( <= ));
     ">=", (type_compare (), prim2_bool ( >= ));
     "!=", (type_compare (), prim2_bool ( != ));
-    ">>", (type_arithm (), prim2_int Int.shift_right);
-    "<<", (type_arithm (), prim2_int Int.shift_left);
+    ">>", (type_shift (), prim2_int Int.shift_right);
+    "<<", (type_shift (), prim2_int Int.shift_left);
     "+", (type_arithm (), prim2_int ( + ));
     "-", (type_arithm (), prim2_int ( - ));
     "*", (type_arithm (), prim2_int ( * ));

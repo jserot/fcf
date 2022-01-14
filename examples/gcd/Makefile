@@ -4,7 +4,7 @@ GHDL=ghdl
 GHDLOPTS=-P../../etc/lib/vhdl -fno-color-diagnostics
 GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
 SOPC_DIR=./sopc_demo
-VHDL_OPTS=-vhdl_numeric_std
+VHDL_OPTS=
 
 run: 
 	$(FCFC) -run -trace main.fsm
@@ -16,7 +16,7 @@ show:
 	$(FCFC) -show main.fsm
 
 vhdl: 
-	$(FCFC) -vhdl -vhdl_testbench $(VHDL_OPTS) main.fsm
+	$(FCFC) -dump_typed -vhdl -vhdl_testbench $(VHDL_OPTS) main.fsm
 
 vhdl.run: gcd.vhd tb.vhd
 	$(GHDL) -a $(GHDLOPTS) gcd.vhd 
