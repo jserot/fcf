@@ -8,6 +8,7 @@ type cfg = {
   mutable ext_tcl_idx: int;
   mutable ip_group: string;
   mutable ip_rel_dir: string;
+  mutable default_int_size: int;
   compiler: string;
   }
 
@@ -18,6 +19,7 @@ let cfg = {
   ext_tcl_idx = 10000000;
   ip_group = "my_ips";
   ip_rel_dir = "../ip";
+  default_int_size = 32;
   compiler = "fcfc"
   }
     
@@ -45,7 +47,7 @@ let size_of_type where t =
   let err () = raise (Illegal_type (where, string_of_type t)) in
   let int_size sz = match real_attr sz with
     | Const s -> s
-    | _ -> err () in
+    | _ -> cfg.default_int_size in
   match real_type t with
   | TyBool -> 1
   | TyInt (_, sz) -> int_size sz
