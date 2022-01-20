@@ -1,0 +1,12 @@
+let eval (a:int, b:int, c:int, nn:int) = 
+  let f (n, acc) = 
+  | n>0 -> g (n, n, acc)
+  | n=0 -> return acc+c
+  and g (n, m, acc) = 
+  | m>0 -> g (n, m-1, acc+a+a) 
+  | m=0 -> f (n-1, acc+b-a) in
+  f (nn,0)
+;
+
+eval(2,3,5,3); -- 2x^2+3x+3 (3) -> 32
+eval(1,1,1,5); -- x^2+x+1 (5) -> 31
