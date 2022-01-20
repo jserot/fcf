@@ -4,16 +4,16 @@ GHDLOPTS=-P../../../etc/lib/vhdl -fno-color-diagnostics
 GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
 
 run: 
-	$(FCFC) -run  main.fsm
+	$(FCFC) -run  main.fcf
 
 dot: 
-	$(FCFC) -dot main.fsm
+	$(FCFC) -dot main.fcf
 
 show: 
-	$(FCFC) -show main.fsm
+	$(FCFC) -show main.fcf
 
 vhdl: 
-	$(FCFC) -vhdl -vhdl_numeric_std -vhdl_testbench main.fsm
+	$(FCFC) -vhdl -vhdl_numeric_std -vhdl_testbench main.fcf
 
 vhdl.check:
 	$(GHDL) -a $(GHDLOPTS) globals.vhd

@@ -1,2 +1,1 @@
-- use suffix `.fcf` instead of `.fsm` for source files and add custom emacs mode
 - add babbage example

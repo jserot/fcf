@@ -1,0 +1,3 @@
+(install
+ (section share_root)
+ (files (fcf-mode.el as emacs/site-lisp/fcf-mode.el)))

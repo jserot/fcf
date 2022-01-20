@@ -6,16 +6,16 @@ FCF_LIB=../../../etc/lib/vhdl/fcf.vhd
 SOPC_DIR=./sopc_demo
 
 run: 
-	$(FCFC) -run -trace -array_print_length 1 main.fsm
+	$(FCFC) -run -trace -array_print_length 1 main.fcf
 
 dot: 
-	$(FCFC) -dot main.fsm
+	$(FCFC) -dot main.fcf
 
 show: 
-	$(FCFC) -show main.fsm
+	$(FCFC) -show main.fcf
 
 vhdl: 
-	$(FCFC) -dump_typed -vhdl -vhdl_testbench main.fsm
+	$(FCFC) -dump_typed -vhdl -vhdl_testbench main.fcf
 
 vhdl.check:
 	$(GHDL) -a $(GHDLOPTS) globals.vhd
@@ -33,7 +33,7 @@ vhdl.view: tb.vcd
 	$(GTKWAVE) -f tb.vcd -a tb.sav> /tmp/gtkwave.log 2>&1
 
 sopc: 
-	$(FCFC) -vhdl -vhdl_sopc $(SOPC_DIR) $(VHDL_OPTS) main.fsm
+	$(FCFC) -vhdl -vhdl_sopc $(SOPC_DIR) $(VHDL_OPTS) main.fcf
 	cp $(FCF_LIB) $(SOPC_DIR)/ip
 
 clean: 

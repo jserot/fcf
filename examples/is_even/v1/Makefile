@@ -4,16 +4,16 @@ GHDLOPTS=-P../../../etc/lib/vhdl -fno-color-diagnostics
 GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
 
 run: 
-	$(FCFC) -run -trace main.fsm
+	$(FCFC) -run -trace main.fcf
 
 dot: 
-	$(FCFC) -dot -dump_typed main.fsm
+	$(FCFC) -dot -dump_typed main.fcf
 
 show: 
-	$(FCFC) -show -dump_typed main.fsm
+	$(FCFC) -show -dump_typed main.fcf
 
 vhdl: 
-	$(FCFC) -vhdl -vhdl_testbench main.fsm
+	$(FCFC) -vhdl -vhdl_testbench main.fcf
 
 vhdl.check:
 	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics is_even.vhd
