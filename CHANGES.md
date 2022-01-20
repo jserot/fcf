@@ -1,4 +1,4 @@
-# v0.2 - TBA
+# v0.2 - Jan 20, 2022
 
 - support for multi-results FSMs (see for ex. `examples/cordic/vfl`)
 - support for global constants and (immutable) arrays (see for ex. `examples/{asum,cordic}`)
@@ -9,7 +9,7 @@
 - default file suffix for source file is now `.fcf` (instead of `.fsm`)
 - added an `emacs` mode (`fcf-mode.el`) for editing source files
 - added CORDIC examples (with fixed-point and floating-point versions)
-  
+- added BABBAGE examples 
 
 # v0.1 - Jul 28, 2021
 
