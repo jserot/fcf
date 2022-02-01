@@ -2,13 +2,14 @@ Evaluating degree-2 polynomials (ax^2+bx+c) using the Babbage "difference engine
 
 The classical recurrent equations :
 
-       | c  if n=0
-f(n) = |
-       | f(n-1) + g(n)
+       
+```
+f(n) = if n=0 then c else f(n-1) + g(n)
+```
 
 
-       | b-a  if n=0
-g(n) = |
-       | g(n-1) + 2a
+```
+g(n) = if n=0 then b-a else g(n-1) + 2a
+```
 
 are here re-written in tail-recursive form, each one giving a distinct state
