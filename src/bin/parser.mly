@@ -3,17 +3,21 @@
 %token AND
 %token RETURN
 %token CONST
+%token TYPE
+%token OF
 %token <int> INT
 %token <float> FLOAT
 %token TRUE
 %token FALSE
 %token <string> LID
+%token <string> UID
 %token SEMICOLON
 %token BAR
+%token TILDE
 %token COMMA
 %token ARROW
 %token COLON
-(* %token QUOTE *)
+%token QUOTE
 %token EQUAL NOTEQUAL
 %token FEQUAL FNOTEQUAL
 %token LPAREN
@@ -59,17 +63,51 @@ let mk_type_expr l desc = { te_desc = desc; te_loc = mk_location l; te_typ = Typ
 let mk_appl l desc = { ap_desc = desc; ap_loc = mk_location l }
 let mk_fsm_decl l desc = { fd_desc = desc; fd_loc = mk_location l }
 let mk_const_decl l desc = { cst_desc = desc; cst_loc = mk_location l }
+let mk_type_decl l desc = { td_desc = desc; td_loc = mk_location l }
 let mk_state_decl l desc = { sd_desc = desc; sd_loc = mk_location l; sd_typ = Types.no_type; sd_params = [] }
 let mk_transition l desc = { t_desc = desc; t_loc = mk_location l }
 let mk_continuation l desc = { ct_desc = desc; ct_loc = mk_location l; ct_typ = Types.no_type }
 let mk_expr l desc = { e_desc = desc; e_loc = mk_location l; e_typ = Types.no_type }
+let mk_guard l desc = { g_desc = desc; g_loc = mk_location l }
+let mk_pat l desc = { p_desc = desc; p_loc = mk_location l }
 %}
 
 %%
 
 program:
-  | cs=list(const_decl) fs=nonempty_list(fsm_decl) es=list(fsm_inst) EOF { { p_consts=cs; p_fsms=fs; p_insts=es } }
+  | ts=list(type_decl)
+    cs=list(const_decl)
+    fs=nonempty_list(fsm_decl)
+    es=list(fsm_inst) EOF
+      { { p_types=ts; p_consts=cs; p_fsms=fs; p_insts=es } }
         
+type_decl:
+  | TYPE params=type_params name=LID EQUAL td=type_defn SEMICOLON
+      { name, params, mk_type_decl $sloc td }
+
+type_params:
+        LPAREN params=separated_nonempty_list(COMMA,type_var) RPAREN
+          { params }
+      | param=type_var
+          { [param] }
+      | (* empty *)
+          { [] }
+;
+
+type_var:
+        QUOTE id=LID
+          { id }
+;
+type_defn:
+  | cds = separated_nonempty_list(BAR, ctor_defn) 
+      {  Variant_decl cds }
+
+ctor_defn:
+  | c=UID
+        { Constr0_decl c }
+  | c=UID OF ts=separated_nonempty_list(TIMES,type_expr)
+        { Constr1_decl(c,ts) }
+
 const_decl:
   | CONST name=LID COLON t=type_expr EQUAL v=const_expr SEMICOLON
       { name, mk_const_decl $sloc { c_name=name; c_val=v; c_typ=t } }
@@ -103,7 +141,28 @@ transition:
   | BAR e=guard ARROW c=continuation { mk_transition $sloc (e,c) }
 
 guard:
-  | e=expr { e }
+  | e=expr { mk_guard $sloc (Cond e) }
+  | e=expr TILDE pat=pattern { mk_guard $sloc (Match (e,pat)) }
+
+pattern:
+  | p=simple_pattern { p }
+  | c=UID { mk_pat $sloc (Pat_constr0 c) }
+  | c=UID p=simple_pattern { mk_pat $sloc (Pat_constr1 (c,p)) }
+  | c=UID LPAREN ps=separated_nonempty_list(COMMA,simple_pattern) RPAREN
+      { let p = mk_pat $sloc (Pat_tuple ps) in
+        mk_pat $sloc (Pat_constr1 (c,p)) }
+
+simple_pattern:
+        v=INT
+          { mk_pat $sloc (Pat_int(v)) }
+      | MINUS v=INT
+          { mk_pat $sloc (Pat_int(-v)) }
+      | TRUE
+          { mk_pat $sloc (Pat_bool(true)) }
+      | FALSE
+          { mk_pat $sloc (Pat_bool(false)) }
+      | v=LID
+          { mk_pat $sloc (Pat_var v) }
         
 continuation:
   | RETURN e=ret_expr { mk_continuation $sloc (Return e) }
@@ -182,12 +241,6 @@ expr:
   | e1 = expr FLTE e2 = expr
       { mk_expr $sloc (EBinop ("<=.", e1, e2)) }
 
-(* expr_comma_list:
- *         expr_comma_list COMMA expr
- *           { $3 :: $1 }
- *       | expr COMMA expr
- *           { [$3; $1] } *)
-
 simple_expr:
   | v = LID
       { mk_expr $sloc (EVar v) }
@@ -219,6 +272,10 @@ type_expr:
   | TYBOOL {  mk_type_expr $sloc TeBool }
   | TYFLOAT {  mk_type_expr $sloc TeFloat }
   | t=type_expr TYARRAY LBRACKET sz=INT RBRACKET { mk_type_expr $sloc (TeArray (sz,t)) }
+  | c=LID { mk_type_expr $sloc (TeConstr(c, [])) }
+  | t=type_expr c=LID { mk_type_expr $sloc (TeConstr(c, [t])) }
+  | LPAREN ts=separated_nonempty_list(COMMA,type_expr) RPAREN c=LID { mk_type_expr $sloc (TeConstr(c, ts)) }
+  | v=type_var { mk_type_expr $sloc (TeVar v) }
 
 int_size:
   | (* Nothing *) { None }

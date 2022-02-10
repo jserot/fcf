@@ -6,6 +6,8 @@ type t =
   | TyProduct of t list 
   | TyVar of t var 
   | TyArr of size attr * t
+  | TyCon of string * t list
+  | TyUnit
 
 and 'a attr =
   | Const of 'a
@@ -32,6 +34,22 @@ and typ_params = {
   mutable tp_size: ((size attr) var) list;
   }
 
+(* Type and values constructor descriptions *)
+
+type type_desc =
+  { ty_arity: int;              (* Arity (ex: 0, 1) *)
+    ty_desc: type_components }  (* Description *)
+
+and type_components =
+  | Abstract_type
+  | Variant_type of constr_desc list   
+
+and constr_desc =
+  { cs_name: string;
+    cs_arity: int;                     (* 0 for constant ctors *)
+    cs_res: t;                       (* Result type *)
+    cs_arg: t; }                     (* Argument type *)
+
 (* Builders *)
 
 let new_stamp =
@@ -48,6 +66,9 @@ let type_arrow t1 t2 = TyArrow (t1, t2)
 let type_pair t1 t2 = TyProduct [t1;t2]
 let type_array t = TyArr (Var (make_var ()), t)
 let type_sized_array sz t = TyArr (Const sz, t)
+let type_constr c ts = TyCon (c, ts)
+let type_unit = TyUnit
+let type_product ts = TyProduct ts
 
 let trivial_scheme t = {
     ts_params={ tp_typ=[]; tp_sign=[]; tp_size=[] };
@@ -116,6 +137,7 @@ let rec mono_type = function
   | TyProduct ts -> TyProduct (List.map mono_type ts)
   | TyVar ({value = Known ty1; _}) -> mono_type ty1
   | TyVar ({value = Unknown; _}) as t -> raise (Polymorphic t)
+  | TyCon (c,ts) -> TyCon (c, List.map mono_type ts)
   | ty -> ty 
 
 (* Unification *)
@@ -148,6 +170,7 @@ let rec unify ty1 ty2 =
   | ty, TyVar var ->
       occur_check var ty;
       var.value <- Known ty
+  | TyUnit, TyUnit -> ()
   | TyBool, TyBool -> ()
   | TyInt (sg1,sz1), TyInt (sg2,sz2) ->
      unify_attr (val1,val2) sg1 sg2;
@@ -160,6 +183,8 @@ let rec unify ty1 ty2 =
   | TyArr (sz1,ty1), TyArr (sz2,ty2) ->
      unify_attr (val1,val2) sz1 sz2;
      unify ty1 ty2;
+  | TyCon (c1,ts1), TyCon (c2,ts2) when c1=c2 && List.length ts1 = List.length ts2 ->
+      List.iter2 unify ts1 ts2
   | _, _ ->
      raise (TypeConflict(val1, val2))
 
@@ -202,6 +227,8 @@ let copy_type bs ty =
        TyArrow (copy ty1, copy ty2)
     | TyProduct ts ->
        TyProduct (List.map copy ts)
+    | TyCon (c,ts) ->
+       TyCon (c, List.map copy ts)
     | ty -> ty in
   copy ty
 
@@ -214,6 +241,8 @@ let type_instance ts =
          tb_sign = List.map (fun var -> (var, Var (make_var()))) ts.ts_params.tp_sign;
          tb_size = List.map (fun var -> (var, Var (make_var()))) ts.ts_params.tp_size }
        ts.ts_body
+
+let type_copy t = copy_type { tb_typ=[]; tb_sign=[]; tb_size=[] } t 
 
 (* Generalization *)
 
@@ -233,6 +262,8 @@ let generalize env ty =
           scan_ty t1;
           scan_ty t2
       | TyProduct ts ->
+          List.iter scan_ty ts
+      | TyCon (c,ts) ->
           List.iter scan_ty ts
       | TyInt (sign, size) ->
           scan_sign sign;
@@ -303,14 +334,30 @@ let string_of_size sz = match real_attr sz with
   | _ -> ""
 
 let rec string_of_type t = match real_type t with
+  | TyUnit -> "unit"
   | TyBool -> "bool"
   | TyFloat -> "float"
   | TyInt (sg, sz) -> string_of_sign sg ^ string_of_size sz
-  | TyArrow (t1, t2) -> string_of_type t1 ^ "->" ^ string_of_type t2
-  | TyProduct ts -> Misc.string_of_list string_of_type "*" ts
+  | TyArrow (t1, t2) -> string_of_type t1 ^ " -> " ^ string_of_type t2
+  | TyProduct ts -> Misc.string_of_list string_of_type " * " ts
+  | TyCon (c,[]) -> c
+  | TyCon (c,[t]) -> string_of_type t ^ " " ^ c
+  | TyCon (c,ts) ->  "(" ^ Misc.string_of_list string_of_type "," ts ^ ") " ^ c
   | (TyVar v) as t -> "'" ^ name_of_type_var t
   | TyArr (sz, t') -> string_of_type t' ^ " array" ^ string_of_size sz
 
 let string_of_type_scheme ts = 
   reset_type_var_names ();
   string_of_type ts.ts_body
+
+let string_of_type_components = function
+| Abstract_type -> "<abstract>"
+| Variant_type cds ->
+   let string_of_ctor_desc cd = cd.cs_name ^ ":" ^ string_of_int cd.cs_arity in
+   Misc.string_of_list string_of_ctor_desc " | " cds
+
+let string_of_type_desc td = 
+  string_of_int td.ty_arity ^ ", " ^ string_of_type_components td.ty_desc
+
+let string_of_ctor_desc cd =
+  string_of_type cd.cs_arg ^ " -> " ^ string_of_type cd.cs_res

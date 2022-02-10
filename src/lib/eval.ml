@@ -32,6 +32,8 @@ let rec eval_expr env e =
      | _, _ ->
         Misc.fatal_error "Illegal array expression" (* should not happen *)
    end
+| ECon0 c -> Con0 c
+| ECon1 (c,e) -> Con1 (c, eval_expr env e)
    
 let rec eval_state env state_defns (name,args) =
   if !trace then 
@@ -47,7 +49,10 @@ let rec eval_state env state_defns (name,args) =
   let params, transitions = lookup_state name in
   let bindings = List.map2 (fun (id,_) arg -> id, eval_expr env arg) params args in
   let env' = List.fold_left Env.update env bindings in
-  let fireable { t_desc= guard, _ } = eval_expr env' guard = Value.Bool true in
+  let fireable { t_desc= guard, _ } =
+    match guard.g_desc with
+    | Cond expr -> eval_expr env' expr = Value.Bool true
+    | Match _ -> failwith "** Eval.eval_state: not implemented: match-guard" in
   match List.find_opt fireable transitions with
   | Some { t_desc= _, { ct_desc=Return e } } -> eval_expr env' e
   | Some { t_desc= _, { ct_desc=Next { ap_desc = s',exprs' } } } -> eval_state env' state_defns (s', exprs')

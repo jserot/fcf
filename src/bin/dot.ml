@@ -1,5 +1,4 @@
 open Fcf
-open Syntax
 
 type options = {
     mutable node_shape: string;
@@ -28,10 +27,9 @@ let output oc ?(options=default_options) m =
         id
         options.node_shape
         options.node_style in
-    let string_of_guard g =
-      let s = string_of_expr g in 
-      let l = String.length s in
-      s, l in
+    let string_of_guard g = 
+      let s = Syntax.string_of_guard g in 
+      s, String.length s in
     let string_of_actions actions = 
       let ss = List.map Action.to_string actions in
       let l = List.fold_left (fun m s -> max m (String.length s)) 0 ss in

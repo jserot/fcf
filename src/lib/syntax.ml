@@ -3,6 +3,7 @@
 type state_name = string           
 type fsm_name = string           
 type const_name = string           
+type type_name = string           
 
 let array_print_length = ref 8
 
@@ -16,6 +17,8 @@ and type_expr_desc =
   | TeBool 
   | TeFloat
   | TeArray of int * type_expr 
+  | TeConstr of string * type_expr list         (* Ex: int list *)
+  | TeVar of string 
 
 and int_sign = TeSigned | TeUnsigned 
 and int_size = int
@@ -35,9 +38,20 @@ and e_desc =
 | EBinop of string * expr * expr
 | EArray of expr list
 | EArrRd of string * expr (* arr[idx] *)
+| ECon0 of string
+| ECon1 of string * expr
 
-let mk_expr ty e = { e_desc = e; e_loc = Location.no_location; e_typ = ty }
-let mk_bool_expr e = { e_desc = e; e_loc = Location.no_location; e_typ = TyBool }
+type pattern =
+  { p_desc: pattern_desc;
+    p_loc: Location.location }
+
+and pattern_desc =
+  | Pat_var of string
+  | Pat_bool of bool
+  | Pat_int of int
+  | Pat_tuple of pattern list
+  | Pat_constr0 of string
+  | Pat_constr1 of string * pattern
 
 type const_decl = {
   cst_desc: const_desc;
@@ -49,6 +63,20 @@ and const_desc = {
     c_val: expr;  (* Will be syntactically limited to scalars and arrays of scalars *)
     c_typ: type_expr;
   }
+
+type type_definition = {
+  td_desc: type_defn;
+  td_loc: Location.location;
+  }
+    
+and type_defn = 
+| Variant_decl of constr_decl list
+
+and constr_decl =
+  | Constr0_decl of string
+  | Constr1_decl of string * type_expr list
+
+and type_param = string
 
 type appl = {
   ap_desc: string * expr list;  (* fsm(args) or state(args) *)
@@ -77,9 +105,18 @@ and state_defn = {
   }
 
 and transition = {
-  t_desc: expr * continuation;
+  t_desc: guard * continuation;
   t_loc: Location.location;
   }
+
+and guard = {
+  g_desc: guard_desc;
+  g_loc: Location.location;
+  }
+
+and guard_desc = 
+| Cond of expr
+| Match of expr * pattern 
 
 and continuation = {
   ct_desc: cont_desc;
@@ -92,10 +129,17 @@ and cont_desc =
 | Return of expr
 
 type program = {
+    p_types: (type_name * type_param list * type_definition) list;
     p_consts: (const_name * const_decl) list;
     p_fsms: (fsm_name * fsm_decl) list;
     p_insts: appl list;
   }
+
+(* Helpers *)
+
+let mk_expr ty e = { e_desc = e; e_loc = Location.no_location; e_typ = ty }
+let mk_bool_expr e = { e_desc = e; e_loc = Location.no_location; e_typ = TyBool }
+let mk_cond_guard e = { g_desc = Cond e; g_loc = Location.no_location }
 
 (* Printing *)
 
@@ -110,4 +154,21 @@ and string_of_edesc e = match e with
   | EBinop (op, e1, e2) -> string_of_expr e1 ^ op ^ string_of_expr e2 (*TODO : add parens *)
   | EArray vs -> "{" ^ Misc.string_of_list ~max_elems:(!array_print_length) string_of_expr ","  vs ^ "}"
   | EArrRd (a,i) -> a ^ "[" ^ string_of_expr i ^ "]"
+  | ECon0 c -> c 
+  | ECon1 (c,e) -> c ^ " " ^ string_of_expr e
 
+let rec string_of_pattern p = string_of_pdesc p.p_desc 
+
+and string_of_pdesc p = match p with 
+  | Pat_var v -> v
+  | Pat_bool b -> string_of_bool  b
+  | Pat_int i -> string_of_int i
+  | Pat_tuple [] -> "()" 
+  | Pat_tuple [p] -> string_of_pattern p
+  | Pat_tuple ps -> "(" ^ Misc.string_of_list string_of_pattern "," ps ^ ")"
+  | Pat_constr0 c -> c
+  | Pat_constr1 (c,p) -> c ^ " " ^ string_of_pattern p
+
+let string_of_guard g = match g.g_desc with
+| Cond e -> string_of_expr e
+| Match (e,p) -> string_of_expr e ^ "~" ^ string_of_pattern p

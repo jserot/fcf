@@ -193,8 +193,12 @@ let string_of_action m a =
         string_of_act id expr
      end
 
+let string_of_guard g = match g.Syntax.g_desc with
+| Cond e -> string_of_expr e
+| Match _ -> "<match>" (* TO BE FIXED *)
+
 let string_of_guards gs =  
-  Misc.string_of_list string_of_expr " and " gs
+  Misc.string_of_list string_of_guard " and " gs
 
 let dump_action oc tab m a = fprintf oc "%s%s;\n" tab (string_of_action m a)
 
