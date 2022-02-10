@@ -36,3 +36,9 @@ let list_unique ~eq l =
        let acc' = if List.exists (eq x) acc then acc else x::acc in
        h acc' xs in
   h [] l
+
+let list_find_opt2 (f:'a->bool*'b) (l:'a list) = 
+  let rec find l = match l with
+    | [] -> None
+    | x::xs -> (match f x with true, r -> Some r | false, _ -> find xs) in
+  find l

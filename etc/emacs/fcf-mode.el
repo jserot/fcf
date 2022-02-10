@@ -6,7 +6,7 @@
 (setq fcf-font-lock-keywords
       (let* (
             ;; define several category of keywords
-            (x-keywords '("let" "in" "and" "const"))
+            (x-keywords '("type" "let" "in" "and" "const"))
             (x-types '("int" "signed" "unsigned" "bool" "float" "array"))
             (x-constants '("true" "false"))
             (x-functions '("return" ))

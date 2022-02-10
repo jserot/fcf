@@ -34,6 +34,27 @@ let rec eval_expr env e =
    end
 | ECon0 c -> Con0 c
 | ECon1 (c,e) -> Con1 (c, eval_expr env e)
+
+exception Matching_fail
+
+let rec eval_match v pat =
+  let open Value in
+  match (v, pat.p_desc) with
+  | (v, Pat_var id) -> [id, v]
+  | (Bool b1, Pat_bool b2) ->
+      if b1 = b2 then [] else raise Matching_fail
+  | (Int i1, Pat_int i2) ->
+      if i1 = i2 then [] else raise Matching_fail
+  | (Tuple vs, Pat_tuple ps) ->
+      if List.length vs = List.length ps then
+        List.flatten (List.map2 eval_match vs ps)
+      else
+        raise Matching_fail
+  | (Con0 c1, Pat_constr0 c2) ->
+      if c1 = c2 then [] else raise Matching_fail
+  | (Con1 (c1, v1), Pat_constr1 (c2, p2)) ->
+      if c1 = c2 then eval_match v1 p2 else raise Matching_fail
+  | (_, _) -> raise Matching_fail
    
 let rec eval_state env state_defns (name,args) =
   if !trace then 
@@ -49,14 +70,31 @@ let rec eval_state env state_defns (name,args) =
   let params, transitions = lookup_state name in
   let bindings = List.map2 (fun (id,_) arg -> id, eval_expr env arg) params args in
   let env' = List.fold_left Env.update env bindings in
-  let fireable { t_desc= guard, _ } =
+  let fireable ({ t_desc= guard, _ } as t) =
     match guard.g_desc with
-    | Cond expr -> eval_expr env' expr = Value.Bool true
-    | Match _ -> failwith "** Eval.eval_state: not implemented: match-guard" in
-  match List.find_opt fireable transitions with
-  | Some { t_desc= _, { ct_desc=Return e } } -> eval_expr env' e
-  | Some { t_desc= _, { ct_desc=Next { ap_desc = s',exprs' } } } -> eval_state env' state_defns (s', exprs')
-  | None -> raise (BlockedInState name)
+    | Cond expr ->
+       eval_expr env' expr = Value.Bool true,
+       (t,[])
+    | Match (expr,pat) ->
+       let v = eval_expr env' expr in
+       begin
+         try
+           true,
+           (t, eval_match v pat)
+         with
+           Matching_fail ->
+            false,
+            (t,[])
+       end in
+  match Misc.list_find_opt2 fireable transitions with
+  | Some ({ t_desc= _, { ct_desc=Return e } }, bindings') ->
+     let env'' = List.fold_left Env.update env' bindings' in
+     eval_expr env'' e
+  | Some ({ t_desc= _, { ct_desc=Next { ap_desc = s',exprs' } } }, bindings') ->
+     let env'' = List.fold_left Env.update env' bindings' in
+     eval_state env'' state_defns (s', exprs')
+  | None ->
+     raise (BlockedInState name)
 
 let eval_fsm_inst genv fsms { ap_desc=name,args } =
   let f =

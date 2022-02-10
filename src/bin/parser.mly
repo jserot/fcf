@@ -242,14 +242,21 @@ expr:
       { mk_expr $sloc (EBinop ("<=.", e1, e2)) }
 
 simple_expr:
-  | v = LID
+  | v=LID
       { mk_expr $sloc (EVar v) }
-  | e = scalar_expr 
+  | e=scalar_expr 
       { e } 
   | LPAREN e = expr RPAREN
       { e }
   | a=LID LBRACKET i=expr RBRACKET
       { mk_expr $sloc (EArrRd (a,i)) } 
+  | c=UID 
+      { mk_expr $sloc (ECon0 c) } 
+  | c=UID e=expr 
+      { mk_expr $sloc (ECon1 (c,e)) } 
+  | c=UID LPAREN es=separated_nonempty_list(COMMA,expr) RPAREN 
+      { let e = mk_expr $sloc (ETuple es) in
+        mk_expr $sloc (ECon1 (c,e)) } 
 
 scalar_expr:
   | c = INT
