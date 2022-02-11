@@ -16,6 +16,12 @@ and type_compare () =
                 (type_pair (TyInt (Var sg, Var sz)) (TyInt (Var sg, Var sz)))
                 TyBool }
 
+and type_bbool () = 
+  { ts_params = { tp_typ=[]; tp_sign=[]; tp_size=[] };
+    ts_body = type_arrow
+                (type_pair TyBool TyBool)
+                TyBool }
+
 and type_farithm () = 
   { ts_params = { tp_typ=[]; tp_sign=[]; tp_size=[] };
     ts_body = type_arrow (type_pair TyFloat TyFloat) TyFloat }
@@ -37,6 +43,10 @@ let type_shift () =
 let decode_int = function Value.Int v -> v | _ -> failwith "decode_int"
 let decode_bool = function Value.Bool v -> v | _ -> failwith "decode_Bool"
 let decode_float = function Value.Float v -> v | _ -> failwith "decode_float"
+
+let prim2_bbool f args = match args with
+  | [arg1; arg2] -> Value.Bool (f (decode_bool arg1) (decode_bool arg2))
+  | _ -> failwith "primitive arity mismatch"
                                               
 let prim2_bool f args = match args with
   | [arg1; arg2] -> Value.Bool (f (decode_int arg1) (decode_int arg2))
@@ -67,6 +77,8 @@ let primitives = [
     "-", (type_arithm (), prim2_int ( - ));
     "*", (type_arithm (), prim2_int ( * ));
     "/", (type_arithm (), prim2_int ( / ));
+    "&&", (type_bbool (), prim2_bbool ( && ));
+    "||", (type_bbool (), prim2_bbool ( || ));
     "=.", (type_fcompare (), prim2_fbool ( = ));
     "<.", (type_fcompare (), prim2_fbool ( < ));
     ">.", (type_fcompare (), prim2_fbool ( > ));

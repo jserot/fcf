@@ -27,8 +27,8 @@ let output oc ?(options=default_options) m =
         id
         options.node_shape
         options.node_style in
-    let string_of_guard g = 
-      let s = Syntax.string_of_guard g in 
+    let string_of_guards gs = 
+      let s = Misc.string_of_list Syntax.string_of_guard "," gs in 
       s, String.length s in
     let string_of_actions actions = 
       let ss = List.map Action.to_string actions in
@@ -43,8 +43,8 @@ let output oc ?(options=default_options) m =
       | _ ->
          let sep = "\n" ^ String.make l '_' ^ "\n" in
          Printf.fprintf oc "%s->%s [label=\"%s%s\"]\n" ini_id dst sep s in
-    let dump_transition (src,guard,actions,dst) =
-      let s1, l1  = string_of_guard guard in
+    let dump_transition (src,guards,actions,dst) =
+      let s1, l1  = string_of_guards guards in
       let s2, l2  = string_of_actions actions in
       match s1, s2 with 
       | "", "" ->

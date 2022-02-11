@@ -46,7 +46,7 @@ let strans_of f = match f.f_desc with
   | state_defns, { ap_desc = s,es } -> 
      let senv = state_env state_defns in
      "idle",
-     mk_cond_guard @@ mk_bool_expr @@ EBinop ("=", mk_bool_expr @@ EVar "start", mk_bool_expr @@ EBool true), 
+     [mk_cond_guard @@ mk_bool_expr @@ EBinop ("=", mk_bool_expr @@ EVar "start", mk_bool_expr @@ EBool true)], 
      state_assignations senv  s es @ [Action.Assign ("rdy", mk_bool_expr @@ EBool false)],
      s
 

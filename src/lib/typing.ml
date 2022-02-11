@@ -35,6 +35,8 @@ let lookup_ctor tenv loc id =
   try List.assoc id tenv.te_ctors
   with Not_found -> raise (Unbound_value_ctor (id,loc))
 
+let type_inst env t = type_instance (generalize env t)
+
 (* Typing programs *)
 
 type typed_program = {
@@ -130,7 +132,7 @@ let rec type_expression tenv venv expr =
   | ECon0 c ->
      let cd = lookup_ctor tenv expr.e_loc c in
      if cd.cs_arity = 0
-     then type_copy cd.cs_res
+     then type_inst venv cd.cs_res
      (* else type_copy (type_arrow cdsc.cs_arg cdsc.cs_res) *)
      else raise (Ctor_arity_mismatch (cd.cs_name, cd.cs_arity, 0, expr.e_loc))
   | ECon1 (c,e) ->
@@ -138,8 +140,8 @@ let rec type_expression tenv venv expr =
      (* if cd.cs_arity <> List.length es then 
       *   raise (Ctor_arity_mismatch (cd.cs_name, cd.cs_arity, List.length es, expr.e_loc))
       * else *)
-       let ty_arg = type_copy cd.cs_arg in
-       let ty_res = type_copy cd.cs_res in
+       let ty_arg = type_inst venv cd.cs_arg in
+       let ty_res = type_inst venv cd.cs_res in
        try_unify "expression" ty_arg (type_expression tenv venv e) expr.e_loc;
        ty_res
   in
@@ -234,13 +236,13 @@ let rec type_pattern tenv env p = match p.p_desc with
   | Pat_constr0 c ->
      let cd = lookup_ctor tenv p.p_loc c in
      if cd.cs_arity = 0
-     then type_copy cd.cs_res, env
+     then type_inst [] cd.cs_res, env
      else raise (Ctor_arity_mismatch (cd.cs_name, cd.cs_arity, 0, p.p_loc))
   | Pat_constr1 (c, arg) ->
      let cd = lookup_ctor tenv p.p_loc c in
      let ty_arg, env' = type_pattern tenv env arg in
      let ty_res = TyVar (new_type_var ()) in
-     let t = type_copy (type_arrow cd.cs_arg cd.cs_res) in
+     let t = type_inst [] (type_arrow cd.cs_arg cd.cs_res) in
      try_unify "pattern" t (type_arrow ty_arg ty_res) p.p_loc;
      ty_res, env'
 
@@ -254,15 +256,19 @@ let type_state_continuation tenv venv cont = match cont.ct_desc with
   | Next e -> snd @@ type_application tenv venv e
   | Return e -> type_expression tenv venv e
 
-let type_state_trans tenv venv { t_desc = guard, cont; t_loc = loc } = 
-  match guard.g_desc with 
+let type_state_guard tenv venv g = 
+  match g.g_desc with 
   | Cond expr ->
      let ty_g = type_expression tenv venv expr in
-     try_unify "guard expression" ty_g TyBool expr.e_loc;
-     type_state_continuation tenv venv cont, loc
+     try_unify "guard expression" ty_g TyBool g.g_loc;
+     []
   | Match (expr,pat) ->
-     let venv' = type_match guard.g_loc tenv venv expr pat in
-     type_state_continuation tenv venv' cont, loc
+     let venv' = type_match g.g_loc tenv venv expr pat in
+     venv'
+
+let type_state_trans tenv venv { t_desc = guards, cont; t_loc = loc } = 
+  let venv' = List.flatten @@ List.map (type_state_guard tenv venv) guards in
+  type_state_continuation tenv (venv'@venv) cont, loc
 
 let type_state_defn tenv venv sd =
   (* Type ( s(x_1,...,x_m)= | guard_1 -> cont_1 ... | guard_n -> cont_n ) = t_1 * ... * t_m -> t

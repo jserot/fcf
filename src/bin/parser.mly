@@ -27,6 +27,7 @@
 %token LBRACKET
 %token RBRACKET
 %token LT GT LTE GTE
+%token BAND BOR
 %token FLT FGT FLTE FGTE
 %token PLUS MINUS TIMES DIV
 %token FPLUS FMINUS FTIMES FDIV
@@ -42,7 +43,7 @@
 (* Precedences and associativities for expressions *)
 
 %left EQUAL NOTEQUAL GT LT GTE LTE
-(* %left LAND LOR LXOR *)
+%left BAND BOR
 %left PLUS MINUS FPLUS FMINUS
 %left TIMES DIV FTIMES FDIV
 %left SHR SHL
@@ -138,7 +139,7 @@ state:
      { mk_state_decl $sloc (name, ps, ts) } 
 
 transition:
-  | BAR e=guard ARROW c=continuation { mk_transition $sloc (e,c) }
+  | BAR gs=separated_nonempty_list(COMMA,guard) ARROW c=continuation { mk_transition $sloc (gs,c) }
 
 guard:
   | e=expr { mk_guard $sloc (Cond e) }
@@ -228,6 +229,10 @@ expr:
       { mk_expr $sloc (EBinop (">=", e1, e2)) }
   | e1 = expr LTE e2 = expr
       { mk_expr $sloc (EBinop ("<=", e1, e2)) }
+  | e1 = expr BAND e2 = expr
+      { mk_expr $sloc (EBinop ("&&", e1, e2)) }
+  | e1 = expr BOR e2 = expr
+      { mk_expr $sloc (EBinop ("||", e1, e2)) }
   | e1 = expr FEQUAL e2 = expr
       { mk_expr $sloc (EBinop ("=.", e1, e2)) }
   | e1 = expr FNOTEQUAL e2 = expr

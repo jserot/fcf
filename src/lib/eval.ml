@@ -70,22 +70,33 @@ let rec eval_state env state_defns (name,args) =
   let params, transitions = lookup_state name in
   let bindings = List.map2 (fun (id,_) arg -> id, eval_expr env arg) params args in
   let env' = List.fold_left Env.update env bindings in
-  let fireable ({ t_desc= guard, _ } as t) =
-    match guard.g_desc with
-    | Cond expr ->
-       eval_expr env' expr = Value.Bool true,
-       (t,[])
-    | Match (expr,pat) ->
-       let v = eval_expr env' expr in
-       begin
-         try
-           true,
-           (t, eval_match v pat)
-         with
-           Matching_fail ->
-            false,
-            (t,[])
-       end in
+  let fireable ({ t_desc= guards, _ } as t) =
+    let check_single_guard g = 
+      (* Returns [(true, bindings)] is guard [g] (for transition [t]) is fireable *)
+      match g.g_desc with
+      | Cond expr ->
+         eval_expr env' expr = Value.Bool true,
+         []
+      | Match (expr,pat) ->
+         let v = eval_expr env' expr in
+         begin
+           try
+             true,
+             eval_match v pat
+           with
+             Matching_fail ->
+             false,
+             []
+         end in
+    (* guard [g1,...,gn] is fireable iff _each_ single guard [gi] gives [true];
+       in this case, the set of the resulting bindings is the union of the collected bindings *)
+    let (bs,bss) = List.map check_single_guard guards |> List.split in
+    if List.for_all Fun.id bs then 
+      true,
+      (t, List.concat bss)
+    else
+      false,
+      (t,[]) in
   match Misc.list_find_opt2 fireable transitions with
   | Some ({ t_desc= _, { ct_desc=Return e } }, bindings') ->
      let env'' = List.fold_left Env.update env' bindings' in

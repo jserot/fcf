@@ -202,8 +202,8 @@ let string_of_guards gs =
 
 let dump_action oc tab m a = fprintf oc "%s%s;\n" tab (string_of_action m a)
 
-let dump_transition oc tab src m (is_first,_) (_,guard,acts,dst) =
-       fprintf oc "%s%s ( %s ) then\n" tab (if is_first then "if" else "elsif ") (string_of_guards [guard]);
+let dump_transition oc tab src m (is_first,_) (_,guards,acts,dst) =
+       fprintf oc "%s%s ( %s ) then\n" tab (if is_first then "if" else "elsif ") (string_of_guards guards);
        List.iter (dump_action oc (tab ^ "  ") m) acts;
        if dst <> src then fprintf oc "%s  %s <= %s;\n" tab cfg.state_var dst;
        (false,true)

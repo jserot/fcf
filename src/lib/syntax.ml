@@ -105,7 +105,7 @@ and state_defn = {
   }
 
 and transition = {
-  t_desc: guard * continuation;
+  t_desc: guard list * continuation;
   t_loc: Location.location;
   }
 

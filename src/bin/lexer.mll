@@ -72,6 +72,8 @@ rule main = parse
   | "<."    { FLT }
   | ">=."    { FGTE }
   | "<=."    { FLTE }
+  | "&&"    { BAND }
+  | "||"    { BOR }
   | "--" { comment lexbuf; main lexbuf }
   | eof { EOF }
   | _ { raise (Illegal_character (Lexing.lexeme_start lexbuf, Lexing.lexeme lexbuf)) }
