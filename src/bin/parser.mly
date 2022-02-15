@@ -84,7 +84,7 @@ program:
         
 type_decl:
   | TYPE params=type_params name=LID EQUAL td=type_defn SEMICOLON
-      { name, params, mk_type_decl $sloc td }
+      { name, mk_type_decl $sloc (params,td) }
 
 type_params:
         LPAREN params=separated_nonempty_list(COMMA,type_var) RPAREN
@@ -93,12 +93,11 @@ type_params:
           { [param] }
       | (* empty *)
           { [] }
-;
 
 type_var:
         QUOTE id=LID
           { id }
-;
+
 type_defn:
   | cds = separated_nonempty_list(BAR, ctor_defn) 
       {  Variant_decl cds }

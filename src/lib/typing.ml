@@ -22,6 +22,7 @@ exception Unbound_value_ctor of string * Location.location
 exception Ctor_arity_mismatch of string * int * int * Location.location
 exception Duplicate_type_param of string * string * Location.location
 exception Unbound_type_var of string * Location.location
+exception Duplicate_param_in_type_decl_err of Location.location
 
 let lookup_value venv loc id = 
     try List.assoc id venv
@@ -65,6 +66,42 @@ let try_unify site ty1 ty2 loc =
   with 
     TypeConflict(t1, t2) -> raise (Wrong_type (site,t1,t2,loc))
   | TypeCircularity(t1, t2) -> raise (Circular_type (site,t1,t2,loc))
+
+(* Keeping track of polymorphic type constructor instanciations *)
+                             
+let specialize_cdesc tvbs c =
+  let bs = { tb_typ=tvbs; tb_sign=[]; tb_size=[] } in
+  { c with
+    (* cs_params = [];    (\* Specialisation turns a polymorphic value constr into a monomorphic one *\) *)
+    cs_arg = Types.copy_type bs c.cs_arg;
+    cs_res = Types.copy_type bs c.cs_res }
+
+let specialize_type_defn tvbs (name,td) = match td with
+    Variant_type (tvs,cds) ->
+     TyCon (name, List.map snd tvbs),
+     Variant_type ([], List.map (specialize_cdesc tvbs) cds)
+    (* Specialisation turns a polymorphic type constr into a monomorphic one *)
+| _ -> failwith "Typing.specialize_type_defn"    (* should not be happen *)
+
+let update_tc_insts tenv loc ty = 
+  let add_type_inst td (t,tc) =
+    match List.find_opt (fun (t',_) -> type_equal t t') td.ty_insts with
+    | None -> td.ty_insts <- (t,tc) :: td.ty_insts
+    | _ -> () in
+  match real_type ty with
+    TyCon (name, ty_args) ->
+      let td = lookup_type tenv loc name in
+      begin match td.ty_desc, td.ty_arity, ty_args with
+      | Variant_type ([], cds), 0, _ -> ()
+      | Variant_type (tvs, cds), n, ty_args when List.for_all is_ground_type ty_args ->
+            begin
+              let tvbs = List.combine tvs (List.map real_type ty_args) in
+              let t,tc = specialize_type_defn tvbs (name,td.ty_desc) in
+              add_type_inst td (t,tc)
+            end
+      | _ -> () (* should not happen *)
+      end
+  | _ -> ()
 
 (* Typing type expressions *)
 
@@ -146,6 +183,7 @@ let rec type_expression tenv venv expr =
        ty_res
   in
   expr.e_typ <- Types.real_type ty;
+  update_tc_insts tenv expr.e_loc ty;
   ty
 
 and type_application tenv venv { ap_desc=fn, args; ap_loc=loc } =
@@ -163,37 +201,39 @@ let bind_type_params name loc params =
       if List.mem_assoc v acc then
         raise (Duplicate_type_param (name, v, loc))
       else 
-        (v, TyVar (Types.new_type_var ())) :: acc)
+        (v, Types.new_type_var ()) :: acc)
     []
     params
 
-let type_type_decl tenv (name,params,td) =
+let type_type_decl tenv (name, {td_desc=params,td; td_loc=loc}) =
   let arity = List.length params in
-  let ty_vars = bind_type_params name td.td_loc params in
+  let tvars = bind_type_params name loc params in
+  let ty_vars = List.map (fun (n,v) -> n, TyVar v) tvars in 
   let ty_res = type_constr name (List.map snd ty_vars) in
   let type_comp, ctors =
-    match td.td_desc with
+    match td with
     | Variant_decl constrs ->
         let cds =
           List.map
             (function
               | Constr0_decl id ->
                   id,
-                  { cs_name=id; cs_arity=0; cs_res=ty_res; cs_arg=type_unit } 
+                  { cs_name=id; cs_arity=0; (* cs_params=[]; *) cs_res=ty_res; cs_arg=type_unit } 
               | Constr1_decl (id, args) ->
-                 let defined_type = { ty_arity = arity; ty_desc = Abstract_type } in (* Temporary *)
+                 let defined_type = { ty_arity = arity; ty_desc = Abstract_type; ty_insts = [] } in (* Temporary *)
                  let tenv' = { tenv with te_types = (name, defined_type) :: tenv.te_types; te_vars = ty_vars } in
                  id,
-                 { cs_name = id; cs_arity = 1; cs_res = ty_res;
+                 { cs_name = id; cs_arity = 1; (* cs_params=[]; *) cs_res = ty_res;
                    cs_arg = TyProduct (List.map (type_of_type_expression tenv') args) })
             constrs in
-        Variant_type (List.map snd cds), cds in
-  { tenv with te_types = tenv.te_types @ [name, { ty_arity = arity; ty_desc = type_comp }];
+        Variant_type (List.map snd tvars, List.map snd cds), cds in
+  { tenv with te_types = tenv.te_types @ [name, { ty_arity = arity; ty_desc = type_comp; ty_insts = [] }];
               te_ctors = tenv.te_ctors @ ctors }
 
 (* Typing CONST decls *)
 
 exception Illegal_const_type of string * Types.t
+exception Illegal_poly_type of Types.t
 
 let type_const_decl tenv venv (name,d) =
   let c = d.cst_desc in
@@ -336,7 +376,7 @@ let type_fsm_inst tenv venv ({ap_desc = f, args} as appl) =
   
 let type_program (builtin_tenv,builtin_venv) p = 
   let tenv0 = {
-    te_types = List.map (fun (name,arity) -> name, { ty_arity=arity; ty_desc=Abstract_type }) builtin_tenv;
+    te_types = List.map (fun (name,arity) -> name, { ty_arity=arity; ty_desc=Abstract_type; ty_insts=[] }) builtin_tenv;
     te_ctors = [];
     te_vars = [] } in
   let tenv = List.fold_left type_type_decl tenv0 p.p_types in
@@ -369,8 +409,8 @@ let rec dump_typed_program tp =
   Printf.printf "Typed program ---------------\n";
   Printf.printf "- TYPES ---------------------\n";
   List.iter dump_typed_type tp.tp_types;
-  Printf.printf "- CTORS ---------------------\n";
-  List.iter dump_typed_ctor tp.tp_ctors;
+  (* Printf.printf "- CTORS ---------------------\n";
+   * List.iter dump_typed_ctor tp.tp_ctors; *)
   Printf.printf "- CONSTs --------------------\n";
   List.iter dump_typed_const tp.tp_consts;
   Printf.printf "- FSMs ----------------------\n";

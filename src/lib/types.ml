@@ -37,16 +37,19 @@ and typ_params = {
 (* Type and values constructor descriptions *)
 
 type type_desc =
-  { ty_arity: int;              (* Arity (ex: 0, 1) *)
-    ty_desc: type_components }  (* Description *)
+  { ty_arity: int;              (* Arity *)
+    ty_desc: type_components;   (* Description *)
+    mutable ty_insts: (t * type_components) list;   (* Instances *)
+  } 
 
 and type_components =
   | Abstract_type
-  | Variant_type of constr_desc list   
+  | Variant_type of t var list * constr_desc list   
 
 and constr_desc =
   { cs_name: string;
-    cs_arity: int;                     (* 0 for constant ctors *)
+    cs_arity: int;                   (* 0 for constant ctors *)
+    (* cs_params: t var list;            *)
     cs_res: t;                       (* Result type *)
     cs_arg: t; }                     (* Argument type *)
 
@@ -114,6 +117,16 @@ let is_const_type ty = match real_type ty with
 | TyArr (_,t) -> is_scalar_type t
 | _ -> is_scalar_type ty
 
+let rec is_ground_type ?(strict=false) ty = 
+  match real_type ty with
+  | TyInt (_,_) | TyBool | TyFloat -> true
+  | TyArrow (t1, t2) -> false
+  | TyProduct ts -> List.for_all is_ground_type ts
+  | TyArr (sz, t) -> is_ground_type t
+  | TyCon (_, ts) -> List.for_all is_ground_type ts
+  | TyUnit -> true
+  | _ -> false
+
 let list_of_types t = match real_type t with
     | TyProduct ts -> ts
     | _ -> [t] 
@@ -123,22 +136,14 @@ let fn_types t =
   | TyArrow (t1, t2) -> list_of_types t1, list_of_types t2
   | _ -> raise (Illegal_function_type t)
 
-
-exception Polymorphic of t
-
-(* let rec mono_attr t = function
- *   | Var ({value = Known v1; _}) -> mono_attr t v1
- *   | Var ({value = Unknown; _}) -> raise (Polymorphic t)
- *   | r -> r  *)
-                       
-let rec mono_type = function
-  (* | TyInt (sg, sz, rg) as t -> TyInt (mono_attr t sg, mono_attr t sz, mono_attr t rg) *)
-  | TyArrow (t1, t2) -> TyArrow (mono_type t1, mono_type t2)
-  | TyProduct ts -> TyProduct (List.map mono_type ts)
-  | TyVar ({value = Known ty1; _}) -> mono_type ty1
-  | TyVar ({value = Unknown; _}) as t -> raise (Polymorphic t)
-  | TyCon (c,ts) -> TyCon (c, List.map mono_type ts)
-  | ty -> ty 
+let rec is_mono_type = function
+  | TyArrow (t1, t2) -> is_mono_type t1 && is_mono_type t2
+  | TyProduct ts -> List.for_all is_mono_type ts
+  | TyCon (c,ts) -> List.for_all is_mono_type ts
+  | TyArr (_,t) -> is_mono_type t
+  | TyVar ({value = Known ty1; _}) -> is_mono_type ty1
+  | TyVar ({value = Unknown; _}) -> false
+  | _ -> true
 
 (* Unification *)
 
@@ -189,10 +194,17 @@ let rec unify ty1 ty2 =
      raise (TypeConflict(val1, val2))
 
 and occur_check var ty =
-  let test s =
+  let rec test s =
     match type_repr s with
     | TyVar var' ->
         if var == var' then raise(TypeCircularity(TyVar var,ty))
+    | TyArrow (ty1,ty2) ->
+        test ty1;
+        test ty2
+    | TyProduct ts ->
+        List.iter test ts
+    | TyCon (c, args) ->
+        List.iter test args
     | _ ->
         ()
   in test ty
@@ -301,6 +313,27 @@ let generalize env ty =
         tp_size = List.rev gen_vars.tp_size };
     ts_body = ty }
 
+let rec type_equal t1 t2 =
+  match real_type t1, real_type t2 with
+  | TyVar { stamp=s1; value=Unknown }, TyVar { stamp=s2; value=Unknown } ->
+      s1 = s2
+  | TyArrow (ty1, ty1'), TyArrow (ty2, ty2') ->
+      type_equal ty1 ty2 && type_equal ty1' ty2'
+  | TyProduct ts, TyProduct ts' when List.length ts = List.length ts'->
+      List.for_all2 type_equal ts ts'
+  | TyInt (sg1, sz1), TyInt(sg2, sz2) ->
+      begin match real_attr sg1, real_attr sg2, real_attr sz1, real_attr sz2 with
+      | Const sg1, Const sg2, Const sz1, Const sz2 -> sg1=sg2 && sz1=sz2
+      | Const sg1, Const sg2, _ , _ -> sg1=sg2
+      | _, _ , Const sz1, Const sz2 -> sz1=sz2
+      | _, _ , _, _ -> true
+      end
+  | TyCon (c1, args1), TyCon(c2, args2) when List.length args1 = List.length args2  ->
+      c1 = c2 && List.for_all2 type_equal args1 args2
+  | _, _ -> 
+      false
+
+
 (* Printing *)
 
 let int_to_alpha i =
@@ -350,14 +383,20 @@ let string_of_type_scheme ts =
   reset_type_var_names ();
   string_of_type ts.ts_body
 
-let string_of_type_components = function
+let string_of_type_component tc = match tc with
 | Abstract_type -> "<abstract>"
-| Variant_type cds ->
-   let string_of_ctor_desc cd = cd.cs_name ^ ":" ^ string_of_int cd.cs_arity in
+| Variant_type (params,cds) ->
+   let string_of_ctor_desc cd = cd.cs_name ^ ":" ^ string_of_type cd.cs_arg ^" -> " ^ string_of_type cd.cs_res in 
    Misc.string_of_list string_of_ctor_desc " | " cds
 
+let string_of_type_inst (t,tc) = "    " ^ string_of_type t ^ ": " ^ string_of_type_component tc
+                               
+let string_of_type_insts ts = match ts with
+  | [] -> ""
+  | _ -> " \n  instanciated as:\n" ^ Misc.string_of_list string_of_type_inst "\n" ts ^ ")"
+
 let string_of_type_desc td = 
-  string_of_int td.ty_arity ^ ", " ^ string_of_type_components td.ty_desc
+  string_of_int td.ty_arity ^ ", " ^ string_of_type_component td.ty_desc ^ string_of_type_insts td.ty_insts
 
 let string_of_ctor_desc cd =
   string_of_type cd.cs_arg ^ " -> " ^ string_of_type cd.cs_res

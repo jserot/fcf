@@ -57,6 +57,20 @@ module StateSet = Set.Make (struct type t = string let compare = compare end)
 
 let state_id = String.capitalize_ascii
 
+(* let tenv = open Typing in ref { te_types=[]; te_ctors=[]; te_vars=[] } *)
+  (* This is a hack for avoiding passing the typing environment computed by the typing step to many
+     functions deep in the VHDL module.. *)                          
+
+let lookup_type tp id = 
+  let open Typing in
+  try List.assoc id tp.tp_types 
+  with Not_found -> failwith "Vhdl.lookup_type" (* should not happen *)
+
+let lookup_ctor tp id = 
+  let open Typing in
+  try List.assoc id tp.tp_ctors
+  with Not_found -> failwith "Vhdl.lookup_ctor" (* should not happen *)
+
 let build_model f = 
   let open Fsm in
   let src_states = 
@@ -89,8 +103,31 @@ type vhdl_type =
   | Real
   | NoType  (* for debug only *)
   | Array of int * vhdl_type
+  (* | Variant of variant_desc  *)
 
 and int_range = int * int (* lo, hi *)             
+
+(* and variant_desc = 
+ *    { vd_name: string;            (\* full type name *\)
+ *      vd_tparams: Types.t list;       (\* actual type params for polymorphic variants (empty for monomorphic variants) *\)
+ *      vd_repr: vd_bits;           (\* Bit level repr *\)
+ *      vd_ctors: vc_desc list }    (\* value ctors *\)
+ * 
+ * and vd_bits = 
+ *    { vr_size: int;               (\* Total size in bits *\)
+ *      vr_tag_size: int;           (\* Size of the tag part [ceil(log2(nb_of_ctors))] *\)
+ *      vr_data_size: int;          (\* Size of the data part [max_i(size(ctor_i))] *\)
+ *      vr_tag: bit_range; 
+ *      vr_data: bit_range }
+ *  
+ * and bit_range = { hi: int; lo: int }
+ * 
+ * and vc_desc =
+ *   { vc_name: string;
+ *     vc_tag: int;
+ *     vc_size: int;                        (\* Total size for the associated data (0 for nullary ctors) *\)
+ *     vc_arity: int;                       (\* 0 for constant ctors *\)
+ *     vc_arg: (vhdl_type * int) list; }    (\* Argument type(s), with their size ([] for constant ctors) *\) *)
 
 let rec vhdl_type_of t =
   let open Types in
@@ -103,7 +140,39 @@ let rec vhdl_type_of t =
   | TyInt (_, _) -> Integer None
   | TyProduct [] -> NoType                   
   | TyArr (Const sz, t') when is_scalar_type t' -> Array (sz, vhdl_type_of t') 
+  (* | TyCon (name, ts) -> Variant (mk_variant_desc tp name ts) *)
   | t -> failwith ("VHDL backend: illegal type: " ^ Types.string_of_type t)
+
+(* and mk_variant_desc tp name ts = 
+ *   match Typing.lookup_type tenv Location.no_location name with
+ *     { Types.ty_desc=Variant_type cdescs } ->
+ *       let cds = Misc.list_map_index (variant_ctor_desc (List.combine tvs ts) (List.combine svs ss)) cdescs in
+ *       let tag_sz = Misc.bits_from_card (List.length cds)
+ *       and data_sz = Misc.list_max (List.map (function c -> c.vc_size) cds) in
+ *       let sz = tag_sz + data_sz in
+ *       { vd_name = Mangling.string_of_name name ts ss [];
+ *         vd_tparams = ts;
+ *         vd_repr= {
+ *           vr_size = sz;
+ *           vr_tag_size = tag_sz;
+ *           vr_data_size = data_sz;
+ *           vr_tag = {hi=sz-1; lo=sz-tag_sz};
+ *           vr_data = {hi=data_sz-1; lo=0} };
+ *         vd_ctors = cds }
+ *   | _ -> failwith "Vhdl.mk_variant_desc"  (\* should not happen *\)
+ * 
+ * and variant_ctor_desc tvbs svbs i c =
+ *    let ty_arg = copy_type tvbs svbs (real_type c.cs_arg) in
+ *    { vc_name = c.cs_name;
+ *      vc_arity = c.cs_arity;
+ *      vc_tag = begin match c.cs_tag with Some tag -> tag | None -> i end;
+ *      vc_size = num_size_of_type ty_arg;
+ *      vc_arg = 
+ *        match c.cs_arity, ty_arg with
+ *      | 0, _  -> []
+ *      | 1, t -> [vhdl_type_of t, num_size_of_type t]
+ *      | n, Tproduct ts when List.length ts = n -> List.map (function t -> vhdl_type_of t, num_size_of_type t) ts
+ *      | _, _ -> Error.invalid_ctor_arity "by the VHDL backend" c.cs_name } *)
 
 type type_mark = TM_Full | TM_Abbr | TM_None [@@warning "-37"]
 
@@ -306,23 +375,25 @@ let write_fsm ?(dir="") ~has_globals ~prefix f =
   dump_model ~has_globals (p ^ ".vhd") m;
   m.v_name, m
 
-let write_globals ?(dir="") ~fname typed_consts consts = 
+let write_globals ?(dir="") ~fname tp p = 
   let typed_consts, arr_types = 
     List.fold_left
       (fun (tcs,tys) (id,d) ->
         let open Syntax in
-        let ty = vhdl_type_of (List.assoc id typed_consts) in 
+        let ty = vhdl_type_of (List.assoc id tp.Typing.tp_consts) in 
         let tys' = match ty with
         | Array(_,_) when not (List.mem ty tys) -> ty::tys
         | _ -> tys in
         (id,ty,d.cst_desc.c_val) :: tcs,
         tys')
     ([],[])
-    consts in
+    p.Syntax.p_consts in
+  (* let ud_types = List.map vhdl_type_of p.p_types in *)
   let oc = open_out fname in
   dump_libraries oc;
   fprintf oc "\n";
   fprintf oc "package %s is\n" cfg.globals_pkg_name;
+  (* List.iter (dump_type_decl oc) ud_types; *)
   List.iter (dump_type_decl oc) arr_types;
   List.iter (dump_const_decl oc ~with_val:false) typed_consts;
   fprintf oc "end package;\n\n";

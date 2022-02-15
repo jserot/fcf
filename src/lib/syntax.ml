@@ -64,12 +64,7 @@ and const_desc = {
     c_typ: type_expr;
   }
 
-type type_definition = {
-  td_desc: type_defn;
-  td_loc: Location.location;
-  }
-    
-and type_defn = 
+type type_defn = 
 | Variant_decl of constr_decl list
 
 and constr_decl =
@@ -128,10 +123,15 @@ and cont_desc =
 | Next of appl
 | Return of expr
 
+type type_decl = {
+  td_desc: type_param list * type_defn;
+  td_loc: Location.location;
+  }
+
 type program = {
-    p_types: (type_name * type_param list * type_definition) list;
-    p_consts: (const_name * const_decl) list;
-    p_fsms: (fsm_name * fsm_decl) list;
+    p_types: (string * type_decl) list;
+    p_consts: (string * const_decl) list;
+    p_fsms: (string * fsm_decl) list;
     p_insts: appl list;
   }
 
