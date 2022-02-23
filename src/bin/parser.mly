@@ -70,7 +70,7 @@ let mk_transition l desc = { t_desc = desc; t_loc = mk_location l }
 let mk_continuation l desc = { ct_desc = desc; ct_loc = mk_location l; ct_typ = Types.no_type }
 let mk_expr l desc = { e_desc = desc; e_loc = mk_location l; e_typ = Types.no_type }
 let mk_guard l desc = { g_desc = desc; g_loc = mk_location l }
-let mk_pat l desc = { p_desc = desc; p_loc = mk_location l }
+let mk_pat l desc = { p_desc = desc; p_loc = mk_location l; p_typ=Types.no_type }
 %}
 
 %%

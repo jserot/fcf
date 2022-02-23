@@ -1,0 +1,13 @@
+type 'a option = None | Some of 'a;
+
+let foo (a:int option) = 
+  let f (x) =
+  | x~None -> return 0 
+  | x~Some 1 -> return 1
+  | x~Some v -> return v+1 in
+  f (a)
+;
+
+foo(None);
+foo(Some 1);
+foo(Some 2);

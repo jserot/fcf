@@ -38,17 +38,17 @@ let parse fname =
   Location.input_lexbuf := lexbuf;
   Parser.program Lexer.main !Location.input_lexbuf 
 
-let dump_vhdl_fsm ~has_globals (n,f) =
+let dump_vhdl_fsm ~pkgs (n,f) =
   let m = f.fd_desc |> Fsm.from_ast in
   if !sopc_dir <> "" then 
     begin
       Utils.check_dir ~strict:true !sopc_dir;
-      let m' = Vhdl.write_fsm ~dir:(Utils.subdir !sopc_dir "ip") ~has_globals ~prefix:n m in
+      let m' = Vhdl.write_fsm ~dir:(Utils.subdir !sopc_dir "ip") ~pkgs ~prefix:n m in
       Qsys.write ~dir:!sopc_dir ~prefix:n ~src_file:(!source_file) m;
       m'
     end
   else
-    Vhdl.write_fsm ~dir:"." ~has_globals ~prefix:n m
+    Vhdl.write_fsm ~dir:"." ~pkgs ~prefix:n m
 
 let dump_vhdl_globals typed_pgm pgm =
   if !sopc_dir <> "" then 
@@ -78,12 +78,10 @@ let compile name =
        (fun (n,f) -> f.fd_desc |> Fsm.from_ast |> Dot.view |> ignore)
        p.p_fsms
   | Vhdl ->
-     let has_globals = p.p_types <> [] || p.p_consts <> [] in
-     if has_globals then dump_vhdl_globals tp p;
-     let models = List.map (dump_vhdl_fsm ~has_globals:has_globals) p.p_fsms in
-     if Vhdl.cfg.with_testbench then Vhdl.write_testbench ~dir:"." ~fname:"tb.vhd" ~has_globals:has_globals models p.p_insts
+     let used_packages = dump_vhdl_globals tp p in
+     let models = List.map (dump_vhdl_fsm ~pkgs:used_packages) p.p_fsms in
+     if Vhdl.cfg.with_testbench then Vhdl.write_testbench ~dir:"." ~fname:"tb.vhd" ~pkgs:used_packages models p.p_insts
   | Nothing -> ()
-
 
 let main () =
 try

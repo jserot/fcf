@@ -11,6 +11,15 @@ let string_of_list ?(max_elems=max_int) f sep l =
        f x ^ sep ^ rest in
   h 1 l
 
+let string_of_indexed_list ?(max_elems=max_int) f sep l =
+  let rec h i l = match l with
+    | [] -> ""
+    | [x] -> f i x
+    | x::xs ->
+       let rest = if i < max_elems then h (i+1) xs else "..." in
+       f i x ^ sep ^ rest in
+  h 1 l
+
 let rec list_iter3 f l1 l2 l3 = 
   match (l1, l2, l3) with
     ([], [], []) -> ()
@@ -42,3 +51,13 @@ let list_find_opt2 (f:'a->bool*'b) (l:'a list) =
     | [] -> None
     | x::xs -> (match f x with true, r -> Some r | false, _ -> find xs) in
   find l
+
+let bits_from_card n = int_of_float (ceil (log (float_of_int n)))
+
+let quote q s = q ^ s ^ q
+
+let list_fold_lefti f acc l = 
+  let rec fold i acc l = match l with
+    | [] -> acc
+    | x::xs -> fold (i+1) (f i acc x) xs in
+  fold 0 acc l 

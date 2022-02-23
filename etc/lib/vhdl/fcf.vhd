@@ -21,6 +21,7 @@ package fcf is
   function mul(e1: signed; e2: integer) return signed;
   function mul(e1: integer; e2: unsigned) return unsigned;
   function mul(e1: integer; e2: signed) return signed;
+  function to_std_logic_vector(e: integer; s: natural) return std_logic_vector;
   function to_std_logic_vector(e: unsigned; s: natural) return std_logic_vector;
   function to_std_logic_vector(e: signed; s: natural) return std_logic_vector;
   function to_std_logic_vector(e: boolean; s: natural) return std_logic_vector;
@@ -177,6 +178,11 @@ package body fcf is
     begin
         return resize(to_signed(e1,length)*e2, length);
     end;
+
+  function to_std_logic_vector(e: integer; s:natural) return std_logic_vector is
+  begin
+    return STD_LOGIC_VECTOR(to_signed(e,s));
+  end;
 
   function to_std_logic_vector(e: unsigned; s:natural) return std_logic_vector is
   begin

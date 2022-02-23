@@ -43,7 +43,8 @@ and e_desc =
 
 type pattern =
   { p_desc: pattern_desc;
-    p_loc: Location.location }
+    p_loc: Location.location;
+    mutable p_typ: Types.t }
 
 and pattern_desc =
   | Pat_var of string

@@ -222,9 +222,12 @@ let type_type_decl tenv (name, {td_desc=params,td; td_loc=loc}) =
               | Constr1_decl (id, args) ->
                  let defined_type = { ty_arity = arity; ty_desc = Abstract_type; ty_insts = [] } in (* Temporary *)
                  let tenv' = { tenv with te_types = (name, defined_type) :: tenv.te_types; te_vars = ty_vars } in
+                 let arg, arity = 
+                   match List.map (type_of_type_expression tenv') args with
+                   | [t] -> t, 1
+                   | ts -> TyProduct ts, List.length ts in
                  id,
-                 { cs_name = id; cs_arity = 1; (* cs_params=[]; *) cs_res = ty_res;
-                   cs_arg = TyProduct (List.map (type_of_type_expression tenv') args) })
+                 { cs_name = id; cs_arity = arity; (* cs_params=[]; *) cs_arg = arg; cs_res = ty_res })
             constrs in
         Variant_type (List.map snd tvars, List.map snd cds), cds in
   { tenv with te_types = tenv.te_types @ [name, { ty_arity = arity; ty_desc = type_comp; ty_insts = [] }];
@@ -258,7 +261,8 @@ let type_state_pattern id =
   let ty = TyVar (new_type_var ()) in
   ty, (id, trivial_scheme ty)
 
-let rec type_pattern tenv env p = match p.p_desc with
+let rec type_pattern tenv env p =
+  let ty, bindings = match p.p_desc with
   | Pat_var id ->
      let ty = TyVar (new_type_var ()) in
       ty, (id, trivial_scheme ty) :: env
@@ -284,7 +288,9 @@ let rec type_pattern tenv env p = match p.p_desc with
      let ty_res = TyVar (new_type_var ()) in
      let t = type_inst [] (type_arrow cd.cs_arg cd.cs_res) in
      try_unify "pattern" t (type_arrow ty_arg ty_res) p.p_loc;
-     ty_res, env'
+     ty_res, env' in
+  p.p_typ <- Types.real_type ty;
+  ty, bindings
 
 let type_match loc tenv venv expr pat =
   let ty_p, venv' = type_pattern tenv venv pat in

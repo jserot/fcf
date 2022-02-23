@@ -39,7 +39,7 @@ and typ_params = {
 type type_desc =
   { ty_arity: int;              (* Arity *)
     ty_desc: type_components;   (* Description *)
-    mutable ty_insts: (t * type_components) list;   (* Instances *)
+    mutable ty_insts: (t * type_components) list;   (* Instances (for polymorphic type ctors) *)
   } 
 
 and type_components =
@@ -372,7 +372,7 @@ let rec string_of_type t = match real_type t with
   | TyFloat -> "float"
   | TyInt (sg, sz) -> string_of_sign sg ^ string_of_size sz
   | TyArrow (t1, t2) -> string_of_type t1 ^ " -> " ^ string_of_type t2
-  | TyProduct ts -> Misc.string_of_list string_of_type " * " ts
+  | TyProduct ts -> "(" ^ Misc.string_of_list string_of_type " * " ts ^ ")"
   | TyCon (c,[]) -> c
   | TyCon (c,[t]) -> string_of_type t ^ " " ^ c
   | TyCon (c,ts) ->  "(" ^ Misc.string_of_list string_of_type "," ts ^ ") " ^ c
