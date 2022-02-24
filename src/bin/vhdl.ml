@@ -603,7 +603,6 @@ let dump_variant_package oc pkgs t =
       dump_libraries oc;
       fprintf oc "\n";
       fprintf oc "package body %s is\n" name;
-      let string_of_arg va = sprintf "to_std_logic_vector(arg%d,%d)" va.va_idx va.va_size in
       List.iter
         (fun (vc,intf) ->
           fprintf oc "%s is\n" intf;
@@ -611,7 +610,12 @@ let dump_variant_package oc pkgs t =
           fprintf oc "  begin\n";
           fprintf oc "    r.tag := %s;\n" vc.vc_name;
           if vc.vc_arity > 0 then 
-            fprintf oc "    r.data := %s;\n" (Misc.string_of_list string_of_arg " & " vc.vc_args);
+            List.iter 
+              (fun va ->
+                let lo = va.va_offset in
+                let hi = va.va_offset+va.va_size-1 in
+                fprintf oc "    r.data(%d to %d) := to_std_logic_vector(arg%d,%d);\n" lo hi va.va_idx va.va_size)
+              vc.vc_args;
           fprintf oc "    return r;\n";
           fprintf oc "  end function;\n")
         injectors;

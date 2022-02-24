@@ -17,9 +17,9 @@ show:
 vhdl: 
 	$(FCFC) -vhdl -vhdl_testbench $(VHDL_OPTS) main.fcf
 
-vhdl.run: globals.vhd foo.vhd tb.vhd
+vhdl.run: globals.vhd silly.vhd tb.vhd
 	$(GHDL) -a $(GHDLOPTS) globals.vhd
-	$(GHDL) -a $(GHDLOPTS) foo.vhd
+	$(GHDL) -a $(GHDLOPTS) silly.vhd
 	$(GHDL) -a $(GHDLOPTS) tb.vhd
 	$(GHDL) -e $(GHDLOPTS) tb
 	$(GHDL) -r $(GHDLOPTS) tb --vcd=tb.vcd --stop-time=400ns

@@ -1,13 +1,17 @@
-type 'a option = None | Some of 'a;
+type 'a option =
+    None
+  | Single of 'a
+  | Pair of 'a * 'a
+;
 
-let foo (a:int option) = 
+let silly (a:int option) = 
   let f (x) =
   | x~None -> return 0 
-  | x~Some 1 -> return 1
-  | x~Some v -> return v+1 in
+  | x~Single 0 -> f (None)
+  | x~Single n -> f (Single (n-1))
+  | x~Pair (m,0) -> f (Single m)
+  | x~Pair (m,n) -> f (Pair (m,n-1)) in
   f (a)
 ;
 
-foo(None);
-foo(Some 1);
-foo(Some 2);
+silly(Pair (2,3));
