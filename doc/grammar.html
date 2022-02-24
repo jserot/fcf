@@ -59,18 +59,76 @@
       
       <tr class="rule">
         <th><span class="nonterminal">program</span></th>
-        <td><span class="ne_list"><span class="nonterminal">fsm_decl</span></span>
+        <td><span class="list"><span class="nonterminal">type_decl</span></span>
+        <span class="list"><span class="nonterminal">const_decl</span></span>
+        <span class="ne_list"><span class="nonterminal">fsm_decl</span></span>
         <span class="list"><span class="nonterminal">fsm_inst</span></span>
         EOF</td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">type_decl</span></th>
+        <td>TYPE
+        <span class="nonterminal">type_params</span>
+        LID
+        EQUAL
+        <span class="nonterminal">type_defn</span>
+        SEMICOLON</td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">type_params</span></th>
+        <td>LPAREN
+        <span class="nonterminal">type_var</span><sup>+</sup><sub>COMMA</sub>
+        RPAREN</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">type_var</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>&epsilon;</td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">type_var</span></th>
+        <td>QUOTE
+        LID</td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">type_defn</span></th>
+        <td><span class="nonterminal">ctor_defn</span><sup>+</sup><sub>BAR</sub></td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">ctor_defn</span></th>
+        <td>UID</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>UID
+        OF
+        <span class="nonterminal">type_expr</span><sup>+</sup><sub>TIMES</sub></td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">const_decl</span></th>
+        <td>CONST
+        LID
+        COLON
+        <span class="nonterminal">type_expr</span>
+        EQUAL
+        <span class="nonterminal">const_expr</span>
+        SEMICOLON</td>
       </tr>
       
       <tr class="rule">
         <th><span class="nonterminal">fsm_decl</span></th>
         <td>LET
         LID
-        <span class="option">LPAREN
-        <span class="nonterminal">param</span><sup>*</sup><sub>COMMA</sub>
-        RPAREN</span>
+        <span class="nonterminal">params</span>
         EQUAL
         <span class="nonterminal">states</span>
         IN
@@ -81,16 +139,26 @@
       <tr class="rule">
         <th><span class="nonterminal">fsm_inst</span></th>
         <td>LID
-        <span class="option">LPAREN
-        <span class="nonterminal">expr</span><sup>*</sup><sub>COMMA</sub>
-        RPAREN</span>
+        <span class="nonterminal">args</span>
         SEMICOLON</td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">params</span></th>
+        <td><span class="option">LPAREN
+        <span class="nonterminal">param</span><sup>*</sup><sub>COMMA</sub>
+        RPAREN</span></td>
       </tr>
       
       <tr class="rule">
         <th><span class="nonterminal">param</span></th>
         <td>LID
-        <span class="option">COLON
+        <span class="nonterminal">optional_type_expr</span></td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">optional_type_expr</span></th>
+        <td><span class="option">COLON
         <span class="nonterminal">type_expr</span></span></td>
       </tr>
       
@@ -103,9 +171,7 @@
       <tr class="rule">
         <th><span class="nonterminal">state</span></th>
         <td>LID
-        <span class="option">LPAREN
-        <span class="nonterminal">param</span><sup>*</sup><sub>COMMA</sub>
-        RPAREN</span>
+        <span class="nonterminal">params</span>
         EQUAL
         <span class="ne_list"><span class="nonterminal">transition</span></span></td>
       </tr>
@@ -113,7 +179,7 @@
       <tr class="rule">
         <th><span class="nonterminal">transition</span></th>
         <td>BAR
-        <span class="nonterminal">guard</span>
+        <span class="nonterminal">guard</span><sup>+</sup><sub>COMMA</sub>
         ARROW
         <span class="nonterminal">continuation</span></td>
       </tr>
@@ -122,11 +188,60 @@
         <th><span class="nonterminal">guard</span></th>
         <td><span class="nonterminal">expr</span></td>
       </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        TILDE
+        <span class="nonterminal">pattern</span></td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">pattern</span></th>
+        <td><span class="nonterminal">simple_pattern</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>UID</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>UID
+        <span class="nonterminal">simple_pattern</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>UID
+        LPAREN
+        <span class="nonterminal">simple_pattern</span><sup>+</sup><sub>COMMA</sub>
+        RPAREN</td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">simple_pattern</span></th>
+        <td>INT</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>MINUS
+        INT</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>TRUE</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>FALSE</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>LID</td>
+      </tr>
       
       <tr class="rule">
         <th><span class="nonterminal">continuation</span></th>
         <td>RETURN
-        <span class="nonterminal">expr</span></td>
+        <span class="nonterminal">ret_expr</span></td>
       </tr>
       <tr>
         <th class="bar"></th>
@@ -136,14 +251,53 @@
       <tr class="rule">
         <th><span class="nonterminal">state_expr</span></th>
         <td>LID
-        <span class="option">LPAREN
+        <span class="nonterminal">args</span></td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">args</span></th>
+        <td><span class="option">LPAREN
         <span class="nonterminal">expr</span><sup>*</sup><sub>COMMA</sub>
         RPAREN</span></td>
       </tr>
       
       <tr class="rule">
+        <th><span class="nonterminal">ret_expr</span></th>
+        <td><span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>LPAREN
+        <span class="nonterminal">expr</span><sup>+</sup><sub>COMMA</sub>
+        RPAREN</td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">const_expr</span></th>
+        <td><span class="nonterminal">scalar_expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>LBRACE
+        <span class="nonterminal">scalar_expr</span><sup>*</sup><sub>COMMA</sub>
+        RBRACE</td>
+      </tr>
+      
+      <tr class="rule">
         <th><span class="nonterminal">expr</span></th>
         <td><span class="nonterminal">simple_expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        SHL
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        SHR
+        <span class="nonterminal">expr</span></td>
       </tr>
       <tr>
         <th class="bar"></th>
@@ -167,6 +321,30 @@
         <th class="bar"></th>
         <td><span class="nonterminal">expr</span>
         DIV
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        FPLUS
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        FMINUS
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        FTIMES
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        FDIV
         <span class="nonterminal">expr</span></td>
       </tr>
       <tr>
@@ -205,6 +383,54 @@
         LTE
         <span class="nonterminal">expr</span></td>
       </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        BAND
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        BOR
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        FEQUAL
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        FNOTEQUAL
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        FGT
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        FLT
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        FGTE
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">expr</span>
+        FLTE
+        <span class="nonterminal">expr</span></td>
+      </tr>
       
       <tr class="rule">
         <th><span class="nonterminal">simple_expr</span></th>
@@ -212,7 +438,45 @@
       </tr>
       <tr>
         <th class="bar"></th>
+        <td><span class="nonterminal">scalar_expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>LPAREN
+        <span class="nonterminal">expr</span>
+        RPAREN</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>LID
+        LBRACKET
+        <span class="nonterminal">expr</span>
+        RBRACKET</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>UID</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>UID
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>UID
+        LPAREN
+        <span class="nonterminal">expr</span><sup>+</sup><sub>COMMA</sub>
+        RPAREN</td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">scalar_expr</span></th>
         <td>INT</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>FLOAT</td>
       </tr>
       <tr>
         <th class="bar"></th>
@@ -227,37 +491,64 @@
         <td>MINUS
         INT</td>
       </tr>
-      <tr>
-        <th class="bar"></th>
-        <td>LPAREN
-        <span class="nonterminal">expr</span>
-        RPAREN</td>
-      </tr>
       
       <tr class="rule">
         <th><span class="nonterminal">type_expr</span></th>
         <td>TYINT
-        <span class="option">LT
-        INT
-        GT</span></td>
+        <span class="nonterminal">int_size</span></td>
       </tr>
       <tr>
         <th class="bar"></th>
         <td>TYSIGNED
-        <span class="option">LT
-        INT
-        GT</span></td>
+        <span class="nonterminal">int_size</span></td>
       </tr>
       <tr>
         <th class="bar"></th>
         <td>TYUNSIGNED
-        <span class="option">LT
-        INT
-        GT</span></td>
+        <span class="nonterminal">int_size</span></td>
       </tr>
       <tr>
         <th class="bar"></th>
         <td>TYBOOL</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>TYFLOAT</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">type_expr</span>
+        TYARRAY
+        LBRACKET
+        INT
+        RBRACKET</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>LID</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">type_expr</span>
+        LID</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>LPAREN
+        <span class="nonterminal">type_expr</span><sup>+</sup><sub>COMMA</sub>
+        RPAREN
+        LID</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td><span class="nonterminal">type_var</span></td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">int_size</span></th>
+        <td><span class="option">LT
+        INT
+        GT</span></td>
       </tr>
       
       
