@@ -1,0 +1,41 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Sun Mar  6 15:58:27 2022
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/fcf/examples/option2/tb.ghw"
+[dumpfile_mtime] "Sun Mar  6 15:56:26 2022"
+[dumpfile_size] 3719
+[savefile] "/Users/jserot/Dev/ml/fcf/examples/option2/tb.sav"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-26.963587 17400000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.tb.
+[treeopen] top.tb.silly_a.
+[treeopen] top.tb.u1.
+[treeopen] top.tb.u1.heap.
+[treeopen] top.tb.u1.x.
+[sst_width] 193
+[signals_width] 159
+[sst_expanded] 1
+[sst_vpaned_height] 168
+@28
+top.tb.u1.clk
+top.tb.u1.rst
+top.tb.u1.start
+top.tb.u1.rdy
+top.tb.u1.state
+@22
+#{top.tb.u1.a[31:0]} top.tb.u1.a[31] top.tb.u1.a[30] top.tb.u1.a[29] top.tb.u1.a[28] top.tb.u1.a[27] top.tb.u1.a[26] top.tb.u1.a[25] top.tb.u1.a[24] top.tb.u1.a[23] top.tb.u1.a[22] top.tb.u1.a[21] top.tb.u1.a[20] top.tb.u1.a[19] top.tb.u1.a[18] top.tb.u1.a[17] top.tb.u1.a[16] top.tb.u1.a[15] top.tb.u1.a[14] top.tb.u1.a[13] top.tb.u1.a[12] top.tb.u1.a[11] top.tb.u1.a[10] top.tb.u1.a[9] top.tb.u1.a[8] top.tb.u1.a[7] top.tb.u1.a[6] top.tb.u1.a[5] top.tb.u1.a[4] top.tb.u1.a[3] top.tb.u1.a[2] top.tb.u1.a[1] top.tb.u1.a[0]
+#{top.tb.u1.x[31:0]} top.tb.u1.x[31] top.tb.u1.x[30] top.tb.u1.x[29] top.tb.u1.x[28] top.tb.u1.x[27] top.tb.u1.x[26] top.tb.u1.x[25] top.tb.u1.x[24] top.tb.u1.x[23] top.tb.u1.x[22] top.tb.u1.x[21] top.tb.u1.x[20] top.tb.u1.x[19] top.tb.u1.x[18] top.tb.u1.x[17] top.tb.u1.x[16] top.tb.u1.x[15] top.tb.u1.x[14] top.tb.u1.x[13] top.tb.u1.x[12] top.tb.u1.x[11] top.tb.u1.x[10] top.tb.u1.x[9] top.tb.u1.x[8] top.tb.u1.x[7] top.tb.u1.x[6] top.tb.u1.x[5] top.tb.u1.x[4] top.tb.u1.x[3] top.tb.u1.x[2] top.tb.u1.x[1] top.tb.u1.x[0]
+@28
+top.tb.u1.h_ptr
+@22
+#{top.tb.u1.heap[0][31:0]} top.tb.u1.heap[0][31] top.tb.u1.heap[0][30] top.tb.u1.heap[0][29] top.tb.u1.heap[0][28] top.tb.u1.heap[0][27] top.tb.u1.heap[0][26] top.tb.u1.heap[0][25] top.tb.u1.heap[0][24] top.tb.u1.heap[0][23] top.tb.u1.heap[0][22] top.tb.u1.heap[0][21] top.tb.u1.heap[0][20] top.tb.u1.heap[0][19] top.tb.u1.heap[0][18] top.tb.u1.heap[0][17] top.tb.u1.heap[0][16] top.tb.u1.heap[0][15] top.tb.u1.heap[0][14] top.tb.u1.heap[0][13] top.tb.u1.heap[0][12] top.tb.u1.heap[0][11] top.tb.u1.heap[0][10] top.tb.u1.heap[0][9] top.tb.u1.heap[0][8] top.tb.u1.heap[0][7] top.tb.u1.heap[0][6] top.tb.u1.heap[0][5] top.tb.u1.heap[0][4] top.tb.u1.heap[0][3] top.tb.u1.heap[0][2] top.tb.u1.heap[0][1] top.tb.u1.heap[0][0]
+#{top.tb.u1.heap[1][31:0]} top.tb.u1.heap[1][31] top.tb.u1.heap[1][30] top.tb.u1.heap[1][29] top.tb.u1.heap[1][28] top.tb.u1.heap[1][27] top.tb.u1.heap[1][26] top.tb.u1.heap[1][25] top.tb.u1.heap[1][24] top.tb.u1.heap[1][23] top.tb.u1.heap[1][22] top.tb.u1.heap[1][21] top.tb.u1.heap[1][20] top.tb.u1.heap[1][19] top.tb.u1.heap[1][18] top.tb.u1.heap[1][17] top.tb.u1.heap[1][16] top.tb.u1.heap[1][15] top.tb.u1.heap[1][14] top.tb.u1.heap[1][13] top.tb.u1.heap[1][12] top.tb.u1.heap[1][11] top.tb.u1.heap[1][10] top.tb.u1.heap[1][9] top.tb.u1.heap[1][8] top.tb.u1.heap[1][7] top.tb.u1.heap[1][6] top.tb.u1.heap[1][5] top.tb.u1.heap[1][4] top.tb.u1.heap[1][3] top.tb.u1.heap[1][2] top.tb.u1.heap[1][1] top.tb.u1.heap[1][0]
+#{top.tb.u1.heap[2][31:0]} top.tb.u1.heap[2][31] top.tb.u1.heap[2][30] top.tb.u1.heap[2][29] top.tb.u1.heap[2][28] top.tb.u1.heap[2][27] top.tb.u1.heap[2][26] top.tb.u1.heap[2][25] top.tb.u1.heap[2][24] top.tb.u1.heap[2][23] top.tb.u1.heap[2][22] top.tb.u1.heap[2][21] top.tb.u1.heap[2][20] top.tb.u1.heap[2][19] top.tb.u1.heap[2][18] top.tb.u1.heap[2][17] top.tb.u1.heap[2][16] top.tb.u1.heap[2][15] top.tb.u1.heap[2][14] top.tb.u1.heap[2][13] top.tb.u1.heap[2][12] top.tb.u1.heap[2][11] top.tb.u1.heap[2][10] top.tb.u1.heap[2][9] top.tb.u1.heap[2][8] top.tb.u1.heap[2][7] top.tb.u1.heap[2][6] top.tb.u1.heap[2][5] top.tb.u1.heap[2][4] top.tb.u1.heap[2][3] top.tb.u1.heap[2][2] top.tb.u1.heap[2][1] top.tb.u1.heap[2][0]
+@28
+top.tb.u1.res
+[pattern_trace] 1
+[pattern_trace] 0

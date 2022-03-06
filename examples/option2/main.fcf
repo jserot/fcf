@@ -1,0 +1,14 @@
+type 'a option =
+    None
+  | Some of 'a
+;
+
+let silly (a:int option) = 
+  let f (x) =
+  | x~None -> return 0 
+  | x~Some 0 -> f (None)
+  | x~Some n -> f (Some (n-1)) in
+  f (a)
+;
+
+silly(Some 2);

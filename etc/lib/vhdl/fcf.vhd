@@ -25,6 +25,7 @@ package fcf is
   function to_std_logic_vector(e: unsigned; s: natural) return std_logic_vector;
   function to_std_logic_vector(e: signed; s: natural) return std_logic_vector;
   function to_std_logic_vector(e: boolean; s: natural) return std_logic_vector;
+  function from_std_logic_vector(e: std_logic_vector; s: natural) return natural;
   function from_std_logic_vector(e: std_logic_vector; s: natural) return unsigned;
   function from_std_logic_vector(e: std_logic_vector; s: natural) return signed;
   function from_std_logic_vector(e: std_logic_vector; s: natural) return boolean;
@@ -208,6 +209,13 @@ package body fcf is
     -- return UNSIGNED(e(s-1 downto 0));
     -- return UNSIGNED(e(e'high downto e'high-s+1));
     return UNSIGNED(e(s-1 downto 0));  -- Changed in v2.6.2: in variants, fields are RIGHT justified
+  end;
+
+  function from_std_logic_vector(e: std_logic_vector; s:natural) return natural is
+  begin
+    -- return UNSIGNED(e(s-1 downto 0));
+    -- return UNSIGNED(e(e'high downto e'high-s+1));
+    return to_integer(UNSIGNED(e(s-1 downto 0)));  -- Changed in v2.6.2: in variants, fields are RIGHT justified
   end;
 
   function from_std_logic_vector(e: std_logic_vector; s:natural) return signed is
