@@ -9,9 +9,11 @@ CHANGES.html
 README.html
 HOWTO
 TODO
+examples/*/tb
 examples/*/*.dot
 examples/*/*.vhd
 examples/*/*.vcd
 examples/*/*.ghw
 examples/*/qsys/
 *.merlin
+!examples/ok/*.vhd
