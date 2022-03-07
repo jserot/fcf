@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-package fcf is
+package utils is
 
   function cond(e1: boolean; e2: signed; e3: signed) return signed;
   function cond(e1: boolean; e2: unsigned; e3: unsigned) return unsigned;
@@ -62,7 +62,7 @@ use ieee.numeric_std.all;
 
 -- use STD.textio.all;   -- FOR DEBUG ONLY
 
-package body fcf is
+package body utils is
 
   function cond(e1: boolean; e2: signed; e3: signed) return signed is
   begin

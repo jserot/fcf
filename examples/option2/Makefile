@@ -18,8 +18,7 @@ vhdl:
 #	$(FCFC) -vhdl -vhdl_testbench $(VHDL_OPTS) main.fcf
 #	$(FCFC) -vhdl $(VHDL_OPTS) main.fcf
 
-vhdl.run: values.vhd globals.vhd silly.vhd tb.vhd
-	$(GHDL) -a $(GHDLOPTS) values.vhd
+vhdl.run: globals.vhd silly.vhd tb.vhd
 	$(GHDL) -a $(GHDLOPTS) globals.vhd
 	$(GHDL) -a $(GHDLOPTS) silly.vhd
 	$(GHDL) -a $(GHDLOPTS) tb.vhd

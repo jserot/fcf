@@ -3,8 +3,9 @@ GHDLOPTS=-fno-color-diagnostics
 
 all: lib
 
-lib: fcf.vhd
-	$(GHDL) -a --work=fcf --workdir=. $(GHDLOPTS) fcf.vhd
+lib: utils.vhd values.vhd
+	$(GHDL) -a --work=fcf --workdir=. $(GHDLOPTS) utils.vhd
+	$(GHDL) -a --work=fcf --workdir=. $(GHDLOPTS) values.vhd
 
 clean:
 	\rm -f *.cf *.o

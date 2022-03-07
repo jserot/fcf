@@ -2,7 +2,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 library fcf;
-use fcf.fcf.all;
+use fcf.utils.all;
+use fcf.values.all;
 
 use work.int_option.all;
 
@@ -13,9 +14,9 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 library fcf;
-use fcf.fcf.all;
+use fcf.utils.all;
+use fcf.values.all;
 
-use work.values.all;
 use work.int_option.all;
 
 architecture struct of tb is

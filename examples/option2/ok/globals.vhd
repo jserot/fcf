@@ -2,9 +2,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 library fcf;
-use fcf.fcf.all;
-
-use work.values.all;
+use fcf.utils.all;
+use fcf.values.all;
 
 package int_option is
 
@@ -20,7 +19,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 library fcf;
-use fcf.fcf.all;
+use fcf.utils.all;
+use fcf.values.all;
 
 package body int_option is
 
