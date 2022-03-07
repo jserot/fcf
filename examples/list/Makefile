@@ -15,19 +15,21 @@ show:
 	$(FCFC) -show main.fcf
 
 vhdl: 
-	$(FCFC) -vhdl -vhdl_testbench $(VHDL_OPTS) main.fcf
+#	$(FCFC) -vhdl -vhdl_testbench $(VHDL_OPTS) main.fcf
 
-vhdl.run: fib.vhd tb.vhd
-	$(GHDL) -a $(GHDLOPTS) fib.vhd 
+vhdl.run: globals.vhd sum_list.vhd tb.vhd
+	$(GHDL) -a $(GHDLOPTS) globals.vhd 
+	$(GHDL) -a $(GHDLOPTS) sum_list.vhd 
 	$(GHDL) -a $(GHDLOPTS) tb.vhd
 	$(GHDL) -e $(GHDLOPTS) tb
-	$(GHDL) -r $(GHDLOPTS) tb --vcd=tb.vcd --stop-time=1000ns
+	$(GHDL) -r $(GHDLOPTS) tb --wave=tb.ghw --stop-time=200ns
 
-vhdl.view: tb.vcd
-	$(GTKWAVE) -f tb.vcd -a tb.sav> /tmp/gtkwave.log 2>&1
+vhdl.view: tb.ghw
+	$(GTKWAVE) -f tb.ghw -a tb.sav> /tmp/gtkwave.log 2>&1
 
 clean: 
 	\rm -f *~
-	\rm -f *.o *.dot *.vhd *.cf
+#	\rm -f *.o *.dot *.vhd *.cf
+	\rm -f *.o *.dot *.cf
 	\rm -f tb tb.vcd
 

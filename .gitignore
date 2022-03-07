@@ -16,4 +16,4 @@ examples/*/*.vcd
 examples/*/*.ghw
 examples/*/qsys/
 *.merlin
-!examples/ok/*.vhd
+!examples/*/ok/*.vhd

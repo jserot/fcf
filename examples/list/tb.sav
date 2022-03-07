@@ -1,26 +1,72 @@
 [*]
 [*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
-[*] Tue Feb  1 18:24:44 2022
+[*] Mon Mar  7 14:06:46 2022
 [*]
-[dumpfile] "/Users/jserot/Dev/ml/fcf/examples/fib/tb.vcd"
-[dumpfile_mtime] "Tue Feb  1 18:24:11 2022"
-[dumpfile_size] 3103
-[savefile] "/Users/jserot/Dev/ml/fcf/examples/fib/tb.sav"
-[timestart] 0
+[dumpfile] "/Users/jserot/Dev/ml/fcf/examples/list/tb.ghw"
+[dumpfile_mtime] "Mon Mar  7 14:02:42 2022"
+[dumpfile_size] 3222
+[savefile] "/Users/jserot/Dev/ml/fcf/examples/list/tb.sav"
+[timestart] 1800000
 [size] 1000 600
 [pos] -1 -1
-*-28.285917 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-24.941963 40000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.tb.
+[treeopen] top.tb.u1.
+[treeopen] top.tb.u1.heap.
 [sst_width] 193
-[signals_width] 150
+[signals_width] 210
 [sst_expanded] 1
 [sst_vpaned_height] 168
 @28
-clk
-rst
+top.tb.rst
+top.tb.clk
+top.tb.sum_list_hi_cnt
+top.tb.sum_list_lc
+top.tb.sum_list_start
+top.tb.sum_list_rdy
+@c00024
+#{top.tb.sum_list_hi_val[31:0]} top.tb.sum_list_hi_val[31] top.tb.sum_list_hi_val[30] top.tb.sum_list_hi_val[29] top.tb.sum_list_hi_val[28] top.tb.sum_list_hi_val[27] top.tb.sum_list_hi_val[26] top.tb.sum_list_hi_val[25] top.tb.sum_list_hi_val[24] top.tb.sum_list_hi_val[23] top.tb.sum_list_hi_val[22] top.tb.sum_list_hi_val[21] top.tb.sum_list_hi_val[20] top.tb.sum_list_hi_val[19] top.tb.sum_list_hi_val[18] top.tb.sum_list_hi_val[17] top.tb.sum_list_hi_val[16] top.tb.sum_list_hi_val[15] top.tb.sum_list_hi_val[14] top.tb.sum_list_hi_val[13] top.tb.sum_list_hi_val[12] top.tb.sum_list_hi_val[11] top.tb.sum_list_hi_val[10] top.tb.sum_list_hi_val[9] top.tb.sum_list_hi_val[8] top.tb.sum_list_hi_val[7] top.tb.sum_list_hi_val[6] top.tb.sum_list_hi_val[5] top.tb.sum_list_hi_val[4] top.tb.sum_list_hi_val[3] top.tb.sum_list_hi_val[2] top.tb.sum_list_hi_val[1] top.tb.sum_list_hi_val[0]
+@28
+top.tb.sum_list_hi_val[31]
+top.tb.sum_list_hi_val[30]
+top.tb.sum_list_hi_val[29]
+top.tb.sum_list_hi_val[28]
+top.tb.sum_list_hi_val[27]
+top.tb.sum_list_hi_val[26]
+top.tb.sum_list_hi_val[25]
+top.tb.sum_list_hi_val[24]
+top.tb.sum_list_hi_val[23]
+top.tb.sum_list_hi_val[22]
+top.tb.sum_list_hi_val[21]
+top.tb.sum_list_hi_val[20]
+top.tb.sum_list_hi_val[19]
+top.tb.sum_list_hi_val[18]
+top.tb.sum_list_hi_val[17]
+top.tb.sum_list_hi_val[16]
+top.tb.sum_list_hi_val[15]
+top.tb.sum_list_hi_val[14]
+top.tb.sum_list_hi_val[13]
+top.tb.sum_list_hi_val[12]
+top.tb.sum_list_hi_val[11]
+top.tb.sum_list_hi_val[10]
+top.tb.sum_list_hi_val[9]
+top.tb.sum_list_hi_val[8]
+top.tb.sum_list_hi_val[7]
+top.tb.sum_list_hi_val[6]
+top.tb.sum_list_hi_val[5]
+top.tb.sum_list_hi_val[4]
+top.tb.sum_list_hi_val[3]
+top.tb.sum_list_hi_val[2]
+top.tb.sum_list_hi_val[1]
+top.tb.sum_list_hi_val[0]
+@1401204
+-group_end
 @24
-fib_n[31:0]
-fib_rdy
-fib_res[31:0]
-fib_start
+#{top.tb.u1.heap[0][31:0]} top.tb.u1.heap[0][31] top.tb.u1.heap[0][30] top.tb.u1.heap[0][29] top.tb.u1.heap[0][28] top.tb.u1.heap[0][27] top.tb.u1.heap[0][26] top.tb.u1.heap[0][25] top.tb.u1.heap[0][24] top.tb.u1.heap[0][23] top.tb.u1.heap[0][22] top.tb.u1.heap[0][21] top.tb.u1.heap[0][20] top.tb.u1.heap[0][19] top.tb.u1.heap[0][18] top.tb.u1.heap[0][17] top.tb.u1.heap[0][16] top.tb.u1.heap[0][15] top.tb.u1.heap[0][14] top.tb.u1.heap[0][13] top.tb.u1.heap[0][12] top.tb.u1.heap[0][11] top.tb.u1.heap[0][10] top.tb.u1.heap[0][9] top.tb.u1.heap[0][8] top.tb.u1.heap[0][7] top.tb.u1.heap[0][6] top.tb.u1.heap[0][5] top.tb.u1.heap[0][4] top.tb.u1.heap[0][3] top.tb.u1.heap[0][2] top.tb.u1.heap[0][1] top.tb.u1.heap[0][0]
+#{top.tb.u1.heap[1][31:0]} top.tb.u1.heap[1][31] top.tb.u1.heap[1][30] top.tb.u1.heap[1][29] top.tb.u1.heap[1][28] top.tb.u1.heap[1][27] top.tb.u1.heap[1][26] top.tb.u1.heap[1][25] top.tb.u1.heap[1][24] top.tb.u1.heap[1][23] top.tb.u1.heap[1][22] top.tb.u1.heap[1][21] top.tb.u1.heap[1][20] top.tb.u1.heap[1][19] top.tb.u1.heap[1][18] top.tb.u1.heap[1][17] top.tb.u1.heap[1][16] top.tb.u1.heap[1][15] top.tb.u1.heap[1][14] top.tb.u1.heap[1][13] top.tb.u1.heap[1][12] top.tb.u1.heap[1][11] top.tb.u1.heap[1][10] top.tb.u1.heap[1][9] top.tb.u1.heap[1][8] top.tb.u1.heap[1][7] top.tb.u1.heap[1][6] top.tb.u1.heap[1][5] top.tb.u1.heap[1][4] top.tb.u1.heap[1][3] top.tb.u1.heap[1][2] top.tb.u1.heap[1][1] top.tb.u1.heap[1][0]
+#{top.tb.u1.heap[2][31:0]} top.tb.u1.heap[2][31] top.tb.u1.heap[2][30] top.tb.u1.heap[2][29] top.tb.u1.heap[2][28] top.tb.u1.heap[2][27] top.tb.u1.heap[2][26] top.tb.u1.heap[2][25] top.tb.u1.heap[2][24] top.tb.u1.heap[2][23] top.tb.u1.heap[2][22] top.tb.u1.heap[2][21] top.tb.u1.heap[2][20] top.tb.u1.heap[2][19] top.tb.u1.heap[2][18] top.tb.u1.heap[2][17] top.tb.u1.heap[2][16] top.tb.u1.heap[2][15] top.tb.u1.heap[2][14] top.tb.u1.heap[2][13] top.tb.u1.heap[2][12] top.tb.u1.heap[2][11] top.tb.u1.heap[2][10] top.tb.u1.heap[2][9] top.tb.u1.heap[2][8] top.tb.u1.heap[2][7] top.tb.u1.heap[2][6] top.tb.u1.heap[2][5] top.tb.u1.heap[2][4] top.tb.u1.heap[2][3] top.tb.u1.heap[2][2] top.tb.u1.heap[2][1] top.tb.u1.heap[2][0]
+@29
+top.tb.u1.h_ptr
 [pattern_trace] 1
 [pattern_trace] 0
