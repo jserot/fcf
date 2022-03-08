@@ -7,9 +7,9 @@ package values is
   -- Value representation :
   --
   -- + 31               0
-  -- +----------------+---+
-  -- |      ...       |tag|  tag=0 for immediate values, 1 for block ptrs (representing structured values)
-  -- +----------------+---+
+  -- +---+----------------+
+  -- |tag|   ...          |  tag=0 for immediate values, 1 for block ptrs (representing structured values)
+  -- +---+----------------+
   --
   -- Blocks in heap :
   -- +----------------+---+
@@ -24,7 +24,9 @@ package values is
 
   constant heap_size: natural := 16;  -- in words
 
-  subtype block_t is std_logic_vector(31 downto 0);
+  constant word_size: natural := 32;  -- blocks and values
+
+  subtype block_t is std_logic_vector(word_size-1 downto 0);
   type heap_t is array (0 to heap_size-1) of block_t;
 
   subtype heap_ptr is integer range 0 to heap_size;
@@ -32,7 +34,7 @@ package values is
   constant bk_tag_sz: natural := 4;
   constant max_ctors: natural := 2**bk_tag_sz;  -- to be checked by all variant type definitions 
 
-  subtype value is std_logic_vector(31 downto 0);
+  subtype value is std_logic_vector(word_size-1 downto 0);
   
   function is_imm(v: value) return boolean;
   function is_ptr(v: value) return boolean;
@@ -63,17 +65,17 @@ package body values is
   
   function is_imm(v: value) return boolean is
   begin
-    return v(0) = '0';  
+    return v(word_size-1) = '0';  
   end;
 
   function is_ptr(v: value) return boolean is
   begin
-    return v(0) = '1';  
+    return v(word_size-1) = '1';  
   end;
 
   function int_val(v: value) return integer is
   begin
-    return to_integer(signed(v(31 downto 1)));
+    return to_integer(signed(v(word_size-2 downto 0)));
   end;
 
   function bool_val(v: value) return boolean is
@@ -83,12 +85,12 @@ package body values is
 
   function ptr_val(v: value) return heap_ptr is
   begin
-    return to_integer(unsigned(v(31 downto 1)));
+    return to_integer(unsigned(v(word_size-2 downto 0)));
   end;
 
   function val_int(v: integer) return value is
   begin
-    return std_logic_vector(to_signed(v,31)) & '0';
+    return '0' & std_logic_vector(to_signed(v,31));
   end;
   
   function val_bool(v: boolean) return value is
@@ -98,12 +100,12 @@ package body values is
 
   function val_ptr(v: heap_ptr) return value is
   begin
-    return std_logic_vector(to_unsigned(v,31)) & '1';
+    return '1' & std_logic_vector(to_unsigned(v,31));
   end;
 
   function b_size(blk: block_t) return natural is
   begin
-    return to_integer(unsigned(blk(31 downto bk_tag_sz)));
+    return to_integer(unsigned(blk(word_size-1 downto bk_tag_sz)));
   end;
     
   function wo_size(heap: heap_t; v: value) return natural is
@@ -130,7 +132,7 @@ package body values is
   function mk_header(tag: natural; wo_size: natural) return block_t is
     variable b: block_t;
   begin
-    b(31 downto bk_tag_sz) := std_logic_vector(to_unsigned(wo_size,32-bk_tag_sz));
+    b(word_size-1 downto bk_tag_sz) := std_logic_vector(to_unsigned(wo_size,word_size-bk_tag_sz));
     b(bk_tag_sz-1 downto 0) := std_logic_vector(to_unsigned(tag,bk_tag_sz));
     return b;
   end;
