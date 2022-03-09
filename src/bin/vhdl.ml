@@ -12,15 +12,17 @@ type config = {
   mutable time_unit: string;
   mutable act_sem: act_semantics;
   mutable dump_cc_intf: bool;
-  mutable use_support_lib: bool;
   mutable support_library: string;
-  mutable support_package: string;
+  mutable support_packages: string list;
   mutable types_pkg_name: string;
   mutable consts_pkg_name: string;
   mutable with_testbench: bool;
   mutable tb_name: string;
   mutable int_size: int;
   mutable float_size: int;
+  mutable heap_size: int;
+  mutable heap_init_state: string;
+  mutable trace_heap: bool
   }
 
 and act_semantics =  (** Interpretation of actions associated to transitions *)
@@ -42,17 +44,181 @@ let cfg = {
   time_unit = "ns";
   act_sem = Synchronous;  (* Default *)
   dump_cc_intf = false;
-  use_support_lib = true;
   support_library = "fcf";
-  support_package = "fcf";
+  support_packages = ["utils"; "values"];
   types_pkg_name = "types";
   consts_pkg_name = "consts";
   with_testbench = false;
   tb_name = "tb";
   int_size = 32;
   float_size = 32;
+  heap_size = 16;  (* TO FIX *)
+  heap_init_state = "InitH";
+  trace_heap = true;
   }
 
+(* Types and values *)        
+
+type vhdl_type = 
+  | Unsigned of int
+  | Signed of int
+  | Integer of int_range option
+  | Std_logic
+  | Real
+  | NoType  (* for debug only *)
+  | Tuple of vhdl_type list (* for testbench arguments *)
+  | Array of int * vhdl_type
+  | Variant of variant_desc
+  | Litteral of string             
+
+and int_range = int * int (* lo, hi *)             
+
+and variant_desc = 
+   { vd_name: string;            (* full type name *)
+     vd_ctors: variant_ctor_desc list }    (* value ctors *)
+
+and variant_ctor_desc =
+  { vc_name: string;
+    vc_tag: int;                       (* 0, 1, ... *)
+    vc_arity: int;                     (* Number of args (0 for constant ctors) *)
+    vc_args: variant_ctor_arg list; }  (* Arguments  *)
+
+and variant_ctor_arg = 
+  { va_idx: int;  (* 1, 2, ... *)
+    va_typ: vhdl_type; }
+
+let type_name t = String.map (function ' ' -> '_' | c -> c) @@ Types.string_of_type t
+
+let rec vhdl_type_of t =
+  let open Types in
+  match real_type t with 
+  | TyBool -> Std_logic
+  | TyFloat -> Real
+  | TyInt (Const Unsigned, Const sz) -> Unsigned sz
+  | TyInt (Const Signed, Const sz) -> Signed sz
+  | TyInt (_, Const sz) -> Signed sz  (* [int<n>] is interpreted as [signed<n>] *)
+  | TyInt (_, _) -> Integer None
+  | TyProduct [] -> NoType                   
+  | TyProduct ts -> Tuple (List.map vhdl_type_of ts)
+  | TyArr (Const sz, t') when is_scalar_type t' -> Array (sz, vhdl_type_of t') 
+  | TyCon (name, ts) as t' -> Variant { vd_name=type_name t'; vd_ctors=[] }
+  | TyAdhoc s -> Litteral s
+  | t -> failwith ("VHDL backend: illegal type: " ^ Types.string_of_type t)
+
+and mk_variant_type_desc (* tp *) (t,tc) = 
+  let open Types in
+  match tc with
+    Variant_type ([], cdescs) ->
+     (* The set of type variables must be empty since we are dealing with fully instanciated type descriptions *)
+     Variant {
+         vd_name = type_name t;
+         vd_ctors = List.mapi mk_variant_ctor_desc cdescs }
+  | _ -> failwith "Vhdl.mk_variant_type_desc"  (* should not happen *)
+
+and mk_variant_ctor_desc i c =
+  let open Types in
+  let args = match c.cs_arity, c.cs_arg with
+    | 0, _  -> []
+    | 1, t -> [{ va_idx=1; va_typ=vhdl_type_of t}] 
+    | n, TyProduct ts when List.length ts = n -> List.mapi (fun i t -> {va_idx=i+1; va_typ=vhdl_type_of t}) ts
+    | _, _ -> failwith "Vhdl.mk_variant_ctor_desc" in
+   { vc_name = c.cs_name;
+     vc_tag = i;
+     vc_arity = c.cs_arity;
+     vc_args = args } 
+
+(* and mk_ctor_arg (idx,offset,acc) t = 
+ *   let t' = vhdl_type_of t in 
+ *   let sz = size_of_simple_vhdl_type t' in
+ *   idx+1,
+ *   offset+sz,
+ *   ({ va_idx = idx;
+ *     va_typ = t'
+ *     va_size = sz } :: acc) *)
+
+(* and size_of_simple_vhdl_type t = match t with
+ *   | Unsigned n -> n
+ *   | Signed n -> n
+ *   | Integer _ -> cfg.int_size
+ *   | Std_logic -> 1
+ *   | Real -> cfg.float_size
+ *   (\* | Array (sz,t') -> sz * size_of_vhdl_type t' *\)
+ *   | _ -> failwith "Vhdl.size_of_vhdl_type" *)
+
+type type_mark = TM_Full | TM_Abbr | TM_None [@@warning "-37"]
+
+let rec string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with 
+  | Unsigned n, TM_Full -> Printf.sprintf "unsigned(%d downto 0)" (n-1)
+  | Unsigned n, TM_Abbr -> Printf.sprintf "unsigned%d" n
+  | Unsigned _, TM_None -> "unsigned"
+  | Signed n, TM_Full -> Printf.sprintf "signed(%d downto 0)" (n-1)
+  | Signed n, TM_Abbr -> Printf.sprintf "signed%d" n
+  | Signed _, TM_None -> "signed"
+  | Integer (Some (lo,hi)), TM_Full -> Printf.sprintf "integer range %d to %d" lo hi
+  | Integer _, _ -> "integer"
+  | Std_logic, _ -> "std_logic"
+  | Real, _ -> "real"
+  | Array (sz,t'), _ -> string_of_vhdl_array_type (sz,t') 
+  | Variant vd, _ -> String.map (function ' ' -> '_' | c -> c) vd.vd_name
+  | Tuple ts, _ -> Misc.string_of_list (string_of_vhdl_type ~type_marks) "," ts
+  | Litteral s, _ -> s
+  | NoType, _ -> "<unknown>"
+
+and string_of_type ?(type_marks=TM_Full) t =
+  string_of_vhdl_type ~type_marks:type_marks (vhdl_type_of t)
+
+and string_of_vhdl_array_type (sz,t) = 
+  Printf.sprintf "%s_arr%d" (string_of_vhdl_array_subtype t) sz
+
+and string_of_vhdl_array_subtype t = match t with 
+  | Unsigned n -> "u" ^ string_of_int n
+  | Signed n -> "s" ^ string_of_int n
+  | Integer _ -> "int"
+  | Std_logic -> "sl"
+  | Real -> "r"
+  | _ -> failwith ("VHDL backend: illegal subtype: " ^ string_of_vhdl_type t)
+
+let value_injector t v = match t with
+  | Unsigned _
+  | Signed _
+  | Integer _ -> Printf.sprintf "val_int(%s)" v
+  | Std_logic -> Printf.sprintf "val_bool(%s)" v
+  | Variant _ -> v
+  | _ -> failwith ("Vhdl.value_injector: " ^ (string_of_vhdl_type t))
+
+let value_extractor t v = match t with
+  | Unsigned _
+  | Signed _
+  | Integer _ -> Printf.sprintf "int_val(%s)" v
+  | Std_logic -> Printf.sprintf "bool_val(%s)" v
+  | Variant _ -> v
+  | _ -> failwith ("Vhdl.value_extractor: " ^ (string_of_vhdl_type t))
+
+let default_value t = match t with
+  | Unsigned sz -> Printf.sprintf "to_unsigned(0,%d)" sz
+  | Signed sz -> Printf.sprintf "to_signed(0,%d)" sz
+  | Integer None -> "0"
+  | Integer (Some (lo,hi)) -> string_of_int lo
+  | Std_logic -> "'0'"
+  | Real -> "0.0"
+  | Variant _ -> "val_int(0)"
+  | _ -> failwith ("Vhdl.default_value: no default for type " ^ (string_of_vhdl_type t))
+
+let from_std_logic_vector (t:vhdl_type) v = match t with
+  | Unsigned n -> sprintf "unsigned(%s)" v
+  | Signed n -> sprintf "signed(%s)" v
+  | Integer _ -> sprintf "to_integer(signed(%s))" v 
+  | Std_logic -> "v(0)"
+  | _ -> failwith "Vhdl.from_std_logic_vector"
+
+let string_of_variant_ctor_desc vc = 
+  match vc.vc_arity with
+  | 0 -> vc.vc_name
+  | n -> vc.vc_name ^ "(" ^ Misc.string_of_list (fun va -> string_of_vhdl_type va.va_typ) "," vc.vc_args ^ ")"
+
+
+(* Models *)
+  
 type model = {
   v_name: string;
   v_states: string list;
@@ -62,6 +228,7 @@ type model = {
   v_bvars: (string * Types.t) list; (* Variables bound in the guards of state transitions *) 
   v_init: State.t * Action.t list;
   v_trans: (State.t * Transition.t list) list; (* Transitions, here indexed by source state *)
+  v_has_heap: bool;
   }
 
 module StateSet = Set.Make (struct type t = string let compare = compare end)
@@ -77,6 +244,27 @@ let lookup_ctor tp id =
   let open Typing in
   try List.assoc id tp.tp_ctors
   with Not_found -> failwith "Vhdl.lookup_ctor" (* should not happen *)
+
+let add_heap_init f = 
+  let hstate = cfg.heap_init_state in
+  let open Fsm in
+  let open Syntax in
+  let istate = fst f.m_itrans in 
+  { f with
+    m_states = f.m_states @ [hstate]; 
+    m_inps = f.m_inps
+             @ ["h_init", Types.TyBool; "hi_cnt", Types.TyAdhoc "integer range 0 to heap_size";
+                "hi_val", Types.TyAdhoc "block_t"];
+    m_vars = f.m_vars
+             @ ["heap", Types.TyAdhoc "heap_t";
+                "h_ptr", Types.TyAdhoc "heap_ptr"];
+    m_trans = f.m_trans (* TOFIX : also need to add L/C=0 conds to trans starting from istate *)
+              @ [ istate, [mk_binop_guard "=" (EVar "h_init") (EBool true)], [Assign ("rdy", mk_bool_expr (EBool false))], hstate;
+                  hstate, [mk_binop_guard "<" (EVar "h_ptr") (EVar "hi_cnt")],
+                          [Assign ("heap(h_ptr)", mk_expr (EVar "hi_val"));
+                           Assign ("h_ptr", mk_expr (EBinop ("+", mk_expr(EVar "h_ptr"), mk_expr (EInt 1))))], hstate;
+                  hstate, [mk_binop_guard "=" (EVar "h_ptr") (EVar "hi_cnt")], [Assign ("rdy", mk_bool_expr (EBool true))], istate];
+   }
 
 let build_model f = 
   let open Fsm in
@@ -99,203 +287,44 @@ let build_model f =
          List.fold_left collect_pat acc ps
       |  _ -> acc in
     List.fold_left collect_guard acc guards in
-  let mk_trans s = 
-    let ts = List.filter (fun (s',_,_,_) -> s=s') f.m_trans in
+  let bvars = List.fold_left collect_bvs [] f.m_trans in
+  let has_heap =
+    List.exists (fun (_,t) -> Types.is_variant_type t) (f.m_inps @ f.m_outps @ f.m_vars @ bvars) in
+    (* Currently, FSMs needing a heap are those manipulating variant types. WARNING: this may change.. *)
+  let f' = if has_heap then add_heap_init f else f in
+  let mk_trans has_heap istate s = 
+    let ts = List.filter (fun (s',_,_,_) -> s=s') f'.m_trans in
     state_id s,
-    List.map (fun (s,guard,acts,s') -> state_id s, guard, acts, state_id s') ts in
+    List.map
+      (fun (s,guard,acts,s') ->
+        state_id s,
+        guard,
+        acts,
+        state_id s')
+      ts in
   let src_states = 
     List.fold_left 
       (fun acc (src,_,_,_) -> StateSet.add src acc)
       StateSet.empty
-      f.m_trans
+      f'.m_trans
     |> StateSet.elements in
-  { v_name = f.m_name;
-    v_states = List.map state_id f.m_states;
-    v_inps = f.m_inps;
-    v_outps = f.m_outps;
-    v_vars = f.m_vars;
-    v_bvars = List.fold_left collect_bvs [] f.m_trans; 
-    v_init = state_id @@ fst f.m_itrans, snd f.m_itrans;
-    v_trans = List.map mk_trans src_states
+  let istate = state_id @@ fst f'.m_itrans in
+  { v_name = f'.m_name;
+    v_states = List.map state_id f'.m_states; 
+    v_inps = f'.m_inps;
+    v_outps = f'.m_outps;
+    v_vars = f'.m_vars;
+    v_bvars = bvars;
+    v_init = istate, snd f'.m_itrans;
+    v_trans = List.map (mk_trans has_heap istate) src_states;
+    v_has_heap = has_heap;
     }
-
-type vhdl_type = 
-  | Unsigned of int
-  | Signed of int
-  | Integer of int_range option
-  | Std_logic
-  | Real
-  | NoType  (* for debug only *)
-  | Tuple of vhdl_type list (* for testbench arguments *)
-  | Array of int * vhdl_type
-  | Variant of variant_desc
-
-and int_range = int * int (* lo, hi *)             
-
-and variant_desc = 
-   { vd_name: string;            (* full type name *)
-     vd_repr: vd_bits;           (* Bit level repr *)
-     vd_ctors: variant_ctor_desc list }    (* value ctors *)
-
-and vd_bits = 
-   { vr_size: int;               (* Total size in bits *)
-     vr_tag_size: int;           (* Size of the tag part [ceil(log2(nb_of_ctors))] *)
-     vr_data_size: int;          (* Size of the data part [max_i(size(ctor_i))] *)
-     vr_tag: bit_range; 
-     vr_data: bit_range }  
-
-and variant_ctor_desc =
-  { vc_name: string;
-    vc_tag: int;                       (* 1, 2, ... *)
-    vc_arity: int;                     (* Number of args (0 for constant ctors) *)
-    vc_size: int;                      (* Max size (in bits) of args *)   
-    vc_args: variant_ctor_arg list; }  (* Arguments  *)
-
-and variant_ctor_arg = 
-  { va_idx: int;  (* 1, 2, ... *)
-    va_typ: vhdl_type;
-    va_size: int;   (* Size in bits *)
-    mutable va_offset: int; (* Position in the bit level representation *)
-    }
-
-and bit_range = { hi: int; lo: int }
-
-let type_name t = String.map (function ' ' -> '_' | c -> c) @@ Types.string_of_type t
-
-let empty_vr = { vr_size=0; vr_tag_size=0; vr_data_size=0; vr_tag={hi=0;lo=0}; vr_data={hi=0;lo=0} }
-
-let rec vhdl_type_of t =
-  let open Types in
-  match real_type t with 
-  | TyBool -> Std_logic
-  | TyFloat -> Real
-  | TyInt (Const Unsigned, Const sz) -> Unsigned sz
-  | TyInt (Const Signed, Const sz) -> Signed sz
-  | TyInt (_, Const sz) -> Signed sz  (* [int<n>] is interpreted as [signed<n>] *)
-  | TyInt (_, _) -> Integer None
-  | TyProduct [] -> NoType                   
-  | TyProduct ts -> Tuple (List.map vhdl_type_of ts)
-  | TyArr (Const sz, t') when is_scalar_type t' -> Array (sz, vhdl_type_of t') 
-  | TyCon (name, ts) as t' ->
-     Variant { vd_name=type_name t' ; vd_repr=empty_vr; vd_ctors=[] }
-     (* This is hack. Variant descriptors will be built bt [mk_variant_type_desc].
-        Nested variants are not allowed. *)
-  | t -> failwith ("VHDL backend: illegal type: " ^ Types.string_of_type t)
-
-and mk_variant_type_desc (* tp *) (t,tc) = 
-  let open Types in
-  match tc with
-    Variant_type ([], cdescs) ->
-     (* The set of type variables must be empty since we are dealing with fully instanciated type descriptions *)
-     let ctors = List.mapi mk_variant_ctor_desc cdescs in
-     let tag_sz = int_of_float @@ ceil @@ log @@ float_of_int @@ List.length ctors in
-     let data_sz = List.fold_left max 0 @@ List.map (function c -> c.vc_size) ctors in
-     let sz = tag_sz + data_sz in
-     Variant {
-         vd_name = type_name t;
-         vd_repr= {
-          vr_size = sz;
-          vr_tag_size = tag_sz;
-          vr_data_size = data_sz;
-          vr_tag = {hi=sz-1; lo=sz-tag_sz};
-          vr_data = {hi=data_sz-1; lo=0} };
-          vd_ctors = ctors }
-  | _ -> failwith "Vhdl.mk_variant_type_desc"  (* should not happen *)
-
-and mk_variant_ctor_desc i c =
-  let open Types in
-  let args = match c.cs_arity, c.cs_arg with
-    | 0, _  -> []
-    | 1, t ->
-       let _,_,va = mk_ctor_arg (1,0,[]) t in
-       va
-    | n, TyProduct ts when List.length ts = n ->
-       let _,_,vas = List.fold_left mk_ctor_arg (1,0,[]) ts in
-       List.rev vas
-    | _, _ -> failwith "Vhdl.mk_variant_ctor_desc" in
-   { vc_name = c.cs_name;
-     vc_tag = i+1;
-     vc_arity = c.cs_arity;
-     vc_size = List.fold_left (fun acc va -> acc + va.va_size) 0 args;
-     vc_args = args } 
-
-and mk_ctor_arg (idx,offset,acc) t = 
-  let t' = vhdl_type_of t in 
-  let sz = size_of_simple_vhdl_type t' in
-  idx+1,
-  offset+sz,
-  ({ va_idx = idx;
-    va_typ = t';
-    va_offset = offset;
-    va_size = sz } :: acc)
-
-and size_of_simple_vhdl_type t = match t with
-  | Unsigned n -> n
-  | Signed n -> n
-  | Integer _ -> cfg.int_size
-  | Std_logic -> 1
-  | Real -> cfg.float_size
-  (* | Array (sz,t') -> sz * size_of_vhdl_type t' *)
-  | _ -> failwith "Vhdl.size_of_vhdl_type"
 
 let extract_ud_types tp acc (name,td) =
   let open Types in
   match td.ty_desc with
   | Variant_type (_,_) -> acc @ List.map (mk_variant_type_desc (* tp *)) td.ty_insts
   | _ -> acc
-
-type type_mark = TM_Full | TM_Abbr | TM_None [@@warning "-37"]
-
-let rec string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with 
-  | Unsigned n, TM_Full -> Printf.sprintf "unsigned(%d downto 0)" (n-1)
-  | Unsigned n, TM_Abbr -> Printf.sprintf "unsigned%d" n
-  | Unsigned _, TM_None -> "unsigned"
-  | Signed n, TM_Full -> Printf.sprintf "signed(%d downto 0)" (n-1)
-  | Signed n, TM_Abbr -> Printf.sprintf "signed%d" n
-  | Signed _, TM_None -> "signed"
-  | Integer (Some (lo,hi)), TM_Full -> Printf.sprintf "integer range %d to %d" lo hi
-  | Integer _, _ -> "integer"
-  | Std_logic, _ -> "std_logic"
-  | Real, _ -> "real"
-  | Array (sz,t'), _ -> string_of_vhdl_array_type (sz,t') 
-  | Variant vd, _ -> String.map (function ' ' -> '_' | c -> c) vd.vd_name
-  | Tuple ts, _ -> Misc.string_of_list (string_of_vhdl_type ~type_marks) "," ts
-  | NoType, _ -> "<unknown>"
-
-and string_of_type ?(type_marks=TM_Full) t =
-  string_of_vhdl_type ~type_marks:type_marks (vhdl_type_of t)
-
-and string_of_vhdl_array_type (sz,t) = 
-  Printf.sprintf "%s_arr%d" (string_of_vhdl_array_subtype t) sz
-
-and string_of_vhdl_array_subtype t = match t with 
-  | Unsigned n -> "u" ^ string_of_int n
-  | Signed n -> "s" ^ string_of_int n
-  | Integer _ -> "int"
-  | Std_logic -> "sl"
-  | Real -> "r"
-  | _ -> failwith ("VHDL backend: illegal subtype: " ^ string_of_vhdl_type t)
-
-let default_value t = match t with
-  | Unsigned sz -> Printf.sprintf "to_unsigned(0,%d)" sz
-  | Signed sz -> Printf.sprintf "to_signed(0,%d)" sz
-  | Integer None -> "0"
-  | Integer (Some (lo,hi)) -> string_of_int lo
-  | Std_logic -> "'0'"
-  | Real -> "0.0"
-  | _ -> failwith ("Vhdl.default_value: no default for type " ^ (string_of_vhdl_type t))
-
-let from_std_logic_vector (t:vhdl_type) v = match t with
-  | Unsigned n -> sprintf "unsigned(%s)" v
-  | Signed n -> sprintf "signed(%s)" v
-  | Integer _ -> sprintf "to_integer(signed(%s))" v 
-  | Std_logic -> "v(0)"
-  | _ -> failwith "Vhdl.from_std_logic_vector"
-
-let string_of_variant_ctor_desc vc = 
-  match vc.vc_arity with
-  | 0 -> vc.vc_name
-  | n -> vc.vc_name ^ "(" ^ Misc.string_of_list (fun va -> string_of_vhdl_type va.va_typ) "," vc.vc_args ^ ")"
 
 let string_of_op op =
   let undot op =
@@ -330,8 +359,8 @@ let rec string_of_expr e =
        end
     | Syntax.EArray es, _ -> Printf.sprintf "(%s)" (Misc.string_of_list string_of_expr "," es)
     | Syntax.EArrRd (a,idx), _ -> Printf.sprintf "%s(%s)" a (string_of level idx)
-    | Syntax.ECon0 c, Variant vd -> Printf.sprintf "%s_mk_%s(false)" vd.vd_name c
-    | Syntax.ECon1 (c,e'), Variant vd -> Printf.sprintf "%s_mk_%s(%s)" vd.vd_name c (string_of_expr e') 
+    (* | Syntax.ECon0 c, Variant vd -> Printf.sprintf "%s_mk_%s(heap,h_ptr,false)" vd.vd_name c
+     * | Syntax.ECon1 (c,e'), Variant vd -> Printf.sprintf "%s_mk_%s(heap,h_ptr,%s)" vd.vd_name c (string_of_expr e')  *)
     | Syntax.ETuple es, _ -> Misc.string_of_list string_of_expr "," es
     | _ -> Misc.fatal_error "Vhdl.string_of_expr"
   and string_of_shift level op e1 e2 =
@@ -348,13 +377,17 @@ let string_of_action m a =
   let string_of_act id expr = id ^ asn id ^ string_of_expr expr in
   match a with
   | Action.Assign (id, expr) ->
-     begin match expr.e_desc with
-     | ETuple es when id = Fsm.cfg.Fsm.res_id  -> (* Special case *)
+     begin match expr.e_desc, vhdl_type_of (expr.e_typ) with
+     | ETuple es, _ when id = Fsm.cfg.Fsm.res_id -> 
         Misc.string_of_list
           Fun.id
           "; " 
           (List.mapi (fun i e -> string_of_act (id ^ string_of_int (i+1)) e) es)
-     | _ ->
+     | ECon0 c, Variant vd ->
+        Printf.sprintf "%s_mk_%s(heap,h_ptr,false,%s)" vd.vd_name c id
+     | ECon1 (c,e'), Variant vd -> 
+        Printf.sprintf "%s_mk_%s(heap,h_ptr,%s,%s)" vd.vd_name c (string_of_expr e') id
+     | _, _ ->
         string_of_act id expr
      end
 
@@ -368,10 +401,10 @@ let scan_match expr pat =
     | Pat_bool v, _ -> string_of_expr (mk_expr (Syntax.EBinop("=", expr, mk_expr (EBool v)))), []
     | Pat_var v, t -> "true", [v,0,expr,pat,t]
     | Pat_constr0 c, t ->
-       Printf.sprintf "%s_match_%s(%s)" (string_of_type t) c (string_of_expr expr),
+       Printf.sprintf "%s_match_%s(heap, %s)" (string_of_type t) c (string_of_expr expr),
        []
     | Pat_constr1 (c, {p_desc=Pat_int v}), t ->
-       Printf.sprintf "%s_match_%s(%s,%s,%s)"
+       Printf.sprintf "%s_match_%s(heap, %s,%s,%s)"
          (string_of_type t)
          c
          (string_of_expr expr)
@@ -379,7 +412,7 @@ let scan_match expr pat =
          (string_of_int v),
        []
     | Pat_constr1 (c, {p_desc=Pat_var v; p_typ=t'}), t ->
-       Printf.sprintf "%s_match_%s(%s,%s,%s)"
+       Printf.sprintf "%s_match_%s(heap,%s,%s,%s)"
          (string_of_type t)
          c
          (string_of_expr expr)
@@ -408,7 +441,7 @@ let scan_match expr pat =
            | _ ->
               raise (Illegal_pattern pat) in
        let match_msk, match_vals, bound_vars = Misc.list_fold_lefti scan_pat ([],[],[]) ps in 
-       Printf.sprintf "%s_match_%s(%s,%s,%s)"
+       Printf.sprintf "%s_match_%s(heap,%s,%s,%s)"
          (string_of_type t)
          c
          (string_of_expr expr)
@@ -437,7 +470,7 @@ let dump_binding oc tab (var,i,exp,pat,ty) =
   | Pat_var _ ->
      Printf.fprintf oc "%s%s := %s;\n" tab var (string_of_expr exp) 
   | Pat_constr1 (c, _) ->
-     Printf.fprintf oc "%s%s := %s_get_%s_%d(%s);\n" tab var (string_of_type ty) c i (string_of_expr exp)
+     Printf.fprintf oc "%s%s := %s_get_%s_%d(heap, %s);\n" tab var (string_of_type ty) c i (string_of_expr exp)
   | _ -> failwith "Vhdl.dump_binding" (* should not happen *)
 
 let dump_transition oc tab src m (is_first,_) (_,guards,acts,dst) =
@@ -446,6 +479,7 @@ let dump_transition oc tab src m (is_first,_) (_,guards,acts,dst) =
   List.iter (dump_binding oc (tab ^ "  ")) binding_acts;
   List.iter (dump_action oc (tab ^ "  ") m) acts;
   if dst <> src then fprintf oc "%s  %s <= %s;\n" tab cfg.state_var dst;
+  if m.v_has_heap && cfg.trace_heap then fprintf oc "%s  dump_heap(heap,h_ptr);\n" tab;
   (false,true)
 
 let dump_sync_transitions oc src _ m ts =
@@ -484,6 +518,7 @@ let dump_module_arch oc m =
   fprintf oc "    if %s='1' then\n" cfg.reset_sig;
   fprintf oc "      %s <= %s;\n" cfg.state_var (fst m.v_init);
   fprintf oc "      rdy <= '1';\n";
+  if m.v_has_heap then fprintf oc "      h_ptr <= 0;\n";
   List.iter (dump_action oc "      " m) (snd m.v_init);
   fprintf oc "    elsif rising_edge(%s) then \n" cfg.clock_sig;
   begin match m.v_trans with
@@ -501,6 +536,8 @@ let dump_module_arch oc m =
 let dump_module_intf kind oc m = 
   let modname = m.v_name in
   fprintf oc "%s %s %s\n" kind modname (if kind = "entity" then "is" else "");
+  if m.v_has_heap then 
+    fprintf oc "  generic (heap_size: natural := %d);\n" cfg.heap_size;
   fprintf oc "  port(\n";
   List.iter (fun (id,ty) -> fprintf oc "        %s: in %s;\n" id (string_of_type ty)) m.v_inps;
   List.iter (fun (id,ty) -> fprintf oc "        %s: out %s;\n" id (string_of_type ty)) m.v_outps;
@@ -512,12 +549,10 @@ let dump_libraries oc =
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;\n";
   fprintf oc "use ieee.numeric_std.all;\n";
-  if cfg.use_support_lib then begin
-    fprintf oc "library %s;\n" cfg.support_library;
-    fprintf oc "use %s.%s.all;\n" cfg.support_library cfg.support_package
-    end
-  else
-    fprintf oc "use work.%s.all;\n" cfg.support_package;
+  fprintf oc "library %s;\n" cfg.support_library;
+  List.iter 
+    (fun p -> fprintf oc "use %s.%s.all;\n" cfg.support_library p) 
+    cfg.support_packages;
   fprintf oc "\n"
 
 let dump_model ~pkgs fname m =
@@ -567,14 +602,27 @@ let dump_variant_package oc pkgs t =
       let injectors = 
         List.map
           (fun vc ->
-              if vc.vc_arity > 0 then vc, sprintf "  function %s_mk_%s (%s) return %s" name vc.vc_name (arg_list vc) name
-              else vc, sprintf "  function %s_mk_%s (unused: boolean) return %s" name vc.vc_name name)
+            if vc.vc_arity > 0 then
+              vc,
+              sprintf "procedure %s_mk_%s(signal heap: inout heap_t; signal h_ptr: inout heap_ptr; %s; signal result: out value)"
+                name
+                vc.vc_name
+                (arg_list vc)
+            else
+              vc,
+              sprintf "procedure %s_mk_%s (signal heap: inout heap_t; signal h_ptr: inout heap_ptr; unused: boolean; signal result: out value)"
+                name
+                vc.vc_name)
           ctors in
       let extractors = 
         List.concat_map
           (fun vc ->
             List.map 
-              (fun va -> vc, va, sprintf "  function %s_get_%s_%d(v: %s) return %s" name vc.vc_name va.va_idx name (string_of_vhdl_type va.va_typ))
+              (fun va ->
+                vc,
+                va,
+                sprintf "function %s_get_%s_%d(signal heap: heap_t; v: value) return %s"
+                  name vc.vc_name va.va_idx (string_of_vhdl_type va.va_typ))
               vc.vc_args)
         ctors in
       let inspectors = 
@@ -582,63 +630,71 @@ let dump_variant_package oc pkgs t =
           (fun vc ->
             if vc.vc_arity > 0 then 
               vc,
-              sprintf "  function %s_match_%s(v: %s; args: std_logic_vector(1 to %d); %s) return boolean"
-                    name vc.vc_name name vc.vc_arity (arg_list vc)
+              sprintf "function %s_match_%s(signal heap: heap_t; v: value; args: std_logic_vector(1 to %d); %s) return boolean"
+                name
+                vc.vc_name
+                vc.vc_arity
+                (arg_list vc)
             else
               vc,
-              sprintf "  function %s_match_%s(v: %s) return boolean" name vc.vc_name name)
+              sprintf "function %s_match_%s(signal heap: heap_t; v: value) return boolean"
+                name
+                vc.vc_name )
           ctors in
       fprintf oc "package %s is\n" name;
-      fprintf oc "  type %s_tag is (%s);\n" name (Misc.string_of_list (fun vc -> vc.vc_name) "," ctors);
-      fprintf oc "  type %s is record\n" name;
-      fprintf oc "    tag: %s_tag;\n" name;
-      fprintf oc "    data: std_logic_vector(0 to %d);\n" (vd.vd_repr.vr_data_size-1);
-        (* For each ctor, args will be concatenated from left to right in [data] field.
-           I.e., [arg1] will be at [data(0 to arg1.sz-1)], [arg2] at [data(arg2.offset to arg2.offset+arg2.sz-1)], etc... *)
-      fprintf oc "  end record;\n";
-      List.iter (fun (vc,s) -> fprintf oc "%s;\n" s) injectors;
-      List.iter (fun (vc,va,s) -> fprintf oc "%s;\n" s) extractors;
-      List.iter (fun (vc,s) -> fprintf oc "%s;\n" s) inspectors;
+      fprintf oc "  subtype %s is value;\n" name;
+      List.iter (fun (vc,s) -> fprintf oc "  %s;\n" s) injectors;
+      List.iter (fun (vc,va,s) -> fprintf oc "  %s;\n" s) extractors;
+      List.iter (fun (vc,s) -> fprintf oc "  %s;\n" s) inspectors;
       fprintf oc "end package;\n\n";
       dump_libraries oc;
       fprintf oc "\n";
       fprintf oc "package body %s is\n" name;
       List.iter
         (fun (vc,intf) ->
-          fprintf oc "%s is\n" intf;
-          fprintf oc "    variable r: %s;\n" name;
+          fprintf oc "  %s is\n" intf;
           fprintf oc "  begin\n";
-          fprintf oc "    r.tag := %s;\n" vc.vc_name;
-          if vc.vc_arity > 0 then 
-            List.iter 
-              (fun va ->
-                let lo = va.va_offset in
-                let hi = va.va_offset+va.va_size-1 in
-                fprintf oc "    r.data(%d to %d) := to_std_logic_vector(arg%d,%d);\n" lo hi va.va_idx va.va_size)
+          if vc.vc_arity > 0 then begin
+            fprintf oc "    heap(h_ptr) <= mk_header(%d, %d);\n" vc.vc_tag vc.vc_arity;
+            List.iteri 
+              (fun i va ->
+                let arg = "arg" ^ string_of_int (i+1) in
+                fprintf oc "    heap(h_ptr+%d) <= %s;\n" (i+1) (value_injector va.va_typ arg))
               vc.vc_args;
-          fprintf oc "    return r;\n";
-          fprintf oc "  end function;\n")
+            fprintf oc "    h_ptr <= h_ptr+%d;\n" (vc.vc_arity+1);
+            fprintf oc "    result <= val_ptr(h_ptr);\n"
+            end
+          else
+            fprintf oc "    result <= val_int(%d);\n" vc.vc_tag;
+          fprintf oc "  end procedure;\n")
         injectors;
       List.iter
         (fun (vc,va,intf) ->
-          fprintf oc "%s is\n" intf;
+          fprintf oc "  %s is\n" intf;
           fprintf oc "  begin\n";
-          let v = sprintf "v.data(%d to %d)" va.va_offset (va.va_offset+va.va_size-1) in
-          fprintf oc "    return %s;\n" (from_std_logic_vector va.va_typ v);
+          fprintf oc "    return %s;\n" (value_extractor va.va_typ (Printf.sprintf "field(heap,v,%d)" (va.va_idx-1)));
           fprintf oc "  end function;\n")
         extractors;
       List.iter
         (fun (vc,intf) ->
-          fprintf oc "%s is\n" intf;
-          fprintf oc "    variable r: boolean;\n";
-          fprintf oc "  begin\n";
-          fprintf oc "    r := v.tag = %s;\n" vc.vc_name;
-          List.iter 
-            (fun va ->
-              fprintf oc "    r := r and (args(%d) = '0' or %s_get_%s_%d(v) = arg%d);\n" va.va_idx name vc.vc_name va.va_idx va.va_idx)
-            vc.vc_args;
-          fprintf oc "    return r;\n";
-          fprintf oc "  end function;\n")
+          fprintf oc "  %s is\n" intf;
+          if vc.vc_arity > 0 then begin
+            fprintf oc "    variable b: block_t;\n";
+            fprintf oc "    variable r: boolean;\n";
+            fprintf oc "  begin\n";
+            fprintf oc "    r := tag_val(heap,v) = %d;\n" vc.vc_tag;
+            List.iter 
+              (fun va ->
+                fprintf oc "    r := r and (args(%d) = '0' or %s_get_%s_%d(heap,v) = arg%d);\n" va.va_idx name vc.vc_name va.va_idx va.va_idx)
+              vc.vc_args;
+            fprintf oc "    return r;\n";
+            fprintf oc "  end function;\n"
+            end
+          else begin
+            fprintf oc "  begin\n";
+            fprintf oc "    return is_imm(v) and int_val(v) = %d;\n" vc.vc_tag;
+            fprintf oc "  end function;\n"
+            end)
         inspectors;
       fprintf oc "end package body;\n";
       fprintf oc "\n";

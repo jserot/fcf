@@ -25,7 +25,7 @@ let options = [
   "-dot", Arg.Unit (fun _ -> mode := Dot), "generate dot representation";
   "-show", Arg.Unit (fun _ -> mode := Show), "generate and view dot representation";
   "-vhdl", Arg.Unit (fun _ -> mode := Vhdl), "generate VHDL code";
-  "-vhdl_sopc", Arg.String (fun d -> sopc_dir := d; Vhdl.cfg.use_support_lib <- false),
+  "-vhdl_sopc", Arg.String (fun d -> sopc_dir := d; (*Vhdl.cfg.use_support_lib <- false*)),
     "generate SOPC files to be used by QSys and Quartus in the specified dir (default: don't)";
   "-vhdl_testbench", Arg.Unit (fun _ -> Vhdl.cfg.with_testbench <- true), "generate VHDL testbench (default: false)";
 ]

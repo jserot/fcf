@@ -138,9 +138,10 @@ type program = {
 
 (* Helpers *)
 
-let mk_expr ty e = { e_desc = e; e_loc = Location.no_location; e_typ = ty }
+let mk_expr ?(ty=Types.no_type) e = { e_desc = e; e_loc = Location.no_location; e_typ = ty }
 let mk_bool_expr e = { e_desc = e; e_loc = Location.no_location; e_typ = TyBool }
 let mk_cond_guard e = { g_desc = Cond e; g_loc = Location.no_location }
+let mk_binop_guard op e1 e2 = mk_cond_guard @@ mk_bool_expr @@ EBinop(op, mk_expr e1, mk_expr e2)
 
 (* Printing *)
 
@@ -173,3 +174,4 @@ and string_of_pdesc p = match p with
 let string_of_guard g = match g.g_desc with
 | Cond e -> string_of_expr e
 | Match (e,p) -> string_of_expr e ^ "~" ^ string_of_pattern p
+

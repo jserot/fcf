@@ -8,6 +8,7 @@ type t =
   | TyArr of size attr * t
   | TyCon of string * t list
   | TyUnit
+  | TyAdhoc of string (* this is a hack to allow backend-specific types to be specified at AST level *)
 
 and 'a attr =
   | Const of 'a
@@ -116,6 +117,10 @@ let is_scalar_type ty = match real_type ty with
 let is_const_type ty = match real_type ty with
 | TyArr (_,t) -> is_scalar_type t
 | _ -> is_scalar_type ty
+
+let is_variant_type ty = match real_type ty with
+| TyCon (_,_) -> true
+| _ -> false
 
 let rec is_ground_type ?(strict=false) ty = 
   match real_type ty with
@@ -378,6 +383,7 @@ let rec string_of_type t = match real_type t with
   | TyCon (c,ts) ->  "(" ^ Misc.string_of_list string_of_type "," ts ^ ") " ^ c
   | (TyVar v) as t -> "'" ^ name_of_type_var t
   | TyArr (sz, t') -> string_of_type t' ^ " array" ^ string_of_size sz
+  | TyAdhoc s -> "<" ^ s ^ ">"
 
 let string_of_type_scheme ts = 
   reset_type_var_names ();

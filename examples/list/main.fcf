@@ -1,23 +1,23 @@
 type 'a list = Nil | Cons of 'a * 'a list; 
 
-let sum_list (l:int list) = 
+let sum_list (a:int list) = 
   let f (l, acc) =
   | l~Nil -> return acc 
   | l~Cons(v,ll) -> f (ll, acc+v) in
-  f (l,0)
+  f (a,0)
 ;
 
-let and_list (l:bool list) = 
-  let f (l, acc) =
-  | l~Nil -> return acc
-  | l~Cons(v,ll) -> f (ll, acc&&v) in
-  f (l,true)
-;
+-- let and_list (l:bool list) = 
+--   let f (l, acc) =
+--   | l~Nil -> return acc
+--   | l~Cons(v,ll) -> f (ll, acc&&v) in
+--   f (l,true)
+-- ;
 
 sum_list(Nil);
-sum_list(Cons(1,Nil));
-sum_list(Cons(1,Cons(2,Nil)));
-sum_list(Cons(1,Cons(2,Cons(3,Nil))));
+-- sum_list(Cons(1,Nil));
+-- sum_list(Cons(1,Cons(2,Nil)));
+-- sum_list(Cons(1,Cons(2,Cons(3,Nil))));
 
 -- and_list(Nil);
 -- and_list(Cons(true,Nil));

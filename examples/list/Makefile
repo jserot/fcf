@@ -16,6 +16,7 @@ show:
 
 vhdl: 
 #	$(FCFC) -vhdl -vhdl_testbench $(VHDL_OPTS) main.fcf
+	$(FCFC) -vhdl $(VHDL_OPTS) main.fcf
 
 vhdl.run: globals.vhd sum_list.vhd tb.vhd
 	$(GHDL) -a $(GHDLOPTS) globals.vhd 
