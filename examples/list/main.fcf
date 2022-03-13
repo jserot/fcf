@@ -14,10 +14,10 @@ let sum_list (a:int list) =
 --   f (l,true)
 -- ;
 
-sum_list(Nil);
+-- sum_list(Nil);
 -- sum_list(Cons(1,Nil));
 -- sum_list(Cons(1,Cons(2,Nil)));
--- sum_list(Cons(1,Cons(2,Cons(3,Nil))));
+sum_list(Cons(1,Cons(2,Cons(3,Nil))));
 
 -- and_list(Nil);
 -- and_list(Cons(true,Nil));

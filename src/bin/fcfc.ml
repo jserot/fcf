@@ -28,6 +28,8 @@ let options = [
   "-vhdl_sopc", Arg.String (fun d -> sopc_dir := d; (*Vhdl.cfg.use_support_lib <- false*)),
     "generate SOPC files to be used by QSys and Quartus in the specified dir (default: don't)";
   "-vhdl_testbench", Arg.Unit (fun _ -> Vhdl.cfg.with_testbench <- true), "generate VHDL testbench (default: false)";
+  "-vhdl_heap_size", Arg.Int (fun s -> Vhdl.cfg.heap_size <- s), "set size of local VHDL heaps (default: 16)";
+  "-vhdl_trace_heap", Arg.Unit (fun _ -> Vhdl.cfg.trace_heap <- true), "trace heap contents (default: false)";
 ]
 
 let parse fname = 
@@ -78,9 +80,9 @@ let compile name =
        (fun (n,f) -> f.fd_desc |> Fsm.from_ast |> Dot.view |> ignore)
        p.p_fsms
   | Vhdl ->
-     let used_packages = dump_vhdl_globals tp p in
+     let used_packages, ud_types = dump_vhdl_globals tp p in
      let models = List.map (dump_vhdl_fsm ~pkgs:used_packages) p.p_fsms in
-     if Vhdl.cfg.with_testbench then Vhdl.write_testbench ~dir:"." ~fname:"tb.vhd" ~pkgs:used_packages models p.p_insts
+     if Vhdl.cfg.with_testbench then Vhdl.write_testbench ~dir:"." ~fname:"tb.vhd" ~pkgs:used_packages ~variants:ud_types models p.p_insts
   | Nothing -> ()
 
 let main () =

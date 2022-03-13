@@ -175,3 +175,6 @@ let string_of_guard g = match g.g_desc with
 | Cond e -> string_of_expr e
 | Match (e,p) -> string_of_expr e ^ "~" ^ string_of_pattern p
 
+let string_of_appl_desc (fsm_id,exprs)  = fsm_id ^ "(" ^ Misc.string_of_list string_of_expr "," exprs ^ ")"
+                                        
+let string_of_appl a = string_of_appl_desc a.ap_desc

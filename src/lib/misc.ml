@@ -62,6 +62,12 @@ let list_fold_lefti f acc l =
     | x::xs -> fold (i+1) (f i acc x) xs in
   fold 0 acc l 
 
+let list_map_fold f z l =
+  let rec h (acc,acc') l = match l with
+    | [] -> List.rev acc, acc'
+    | x::xs -> let y,acc'' = f acc' x in h (y::acc,acc'') xs in
+  h ([],z) l
+
 let cond_concat c l l' = if c then l @ l' else l
 let cond_append c l e = cond_concat c l [e]
 let cond_prepend c l e = if c then e::l else l
