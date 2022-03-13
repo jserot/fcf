@@ -96,6 +96,7 @@ with
   | Typing.Unbound_value(loc,id) -> Error.unbound_value id loc
   | Typing.Wrong_type(site,loc,ty1,ty2) -> Error.wrong_type site loc ty1 ty2
   | Typing.Circular_type(site,loc,ty1,ty2) -> Error.circular_type site loc ty1 ty2
+  | Vhdl.Heap_full fsm -> Error.vhdl_heap_full fsm
   | End_of_file -> exit 0
   | Misc.Error -> exit 1
   | Sys.Break -> flush stderr; exit 5

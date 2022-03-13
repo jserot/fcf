@@ -40,3 +40,7 @@ let circular_type site ty1 ty2 loc =
     (Types.string_of_type ty1)
     (Types.string_of_type ty2);
   flush stderr
+
+let vhdl_heap_full loc =
+  eprintf "Cannot allocate all data for VHDL instance of FSM %s: please use option [-vhdl_heap_size] to increase heap size\n" loc;
+  flush stderr

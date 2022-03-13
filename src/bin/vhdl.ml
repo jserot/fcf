@@ -32,6 +32,7 @@ and act_semantics =  (** Interpretation of actions associated to transitions *)
 exception Error of string * string  (* where, msg *)
 exception Duplicate_pattern of string * Fsm.t  (* when a pattern variable is used several times with different types across guards *)
 exception Illegal_pattern of Syntax.pattern 
+exception Heap_full of string (* where *)
 
 let cfg = {
   state_var = "state";
@@ -161,16 +162,17 @@ let lookup_ctor tp id =
 
 let add_heap_init_signals f = 
   let hstate = cfg.heap_init_state in
+  let heap_size = cfg.heap_size in 
   let open Fsm in
   let open Syntax in
   let istate = fst f.m_itrans in 
   { f with
     m_states = f.m_states @ [hstate]; 
     m_inps = f.m_inps
-             @ ["h_init", Types.TyBool; "hi_cnt", Types.TyAdhoc "integer range 0 to heap_size";
+             @ ["h_init", Types.TyBool; "hi_cnt", Types.TyAdhoc ("integer range 0 to " ^ string_of_int (heap_size-1));
                 "hi_val", Types.TyAdhoc "block_t"];
     m_vars = f.m_vars
-             @ ["heap", Types.TyAdhoc "heap_t";
+             @ ["heap", Types.TyAdhoc "local_heap";
                 "h_ptr", Types.TyAdhoc "heap_ptr"];
     m_trans = f.m_trans (* TOFIX : also need to add L/C=0 conds to trans starting from istate *)
               @ [ istate, [mk_binop_guard "=" (EVar "h_init") (EBool true)], [Assign ("rdy", mk_bool_expr (EBool false))], hstate;
@@ -204,7 +206,7 @@ let build_model f =
   let bvars = List.fold_left collect_bvs [] f.m_trans in
   let has_heap =
     List.exists (fun (_,t) -> Types.is_variant_type t) (f.m_inps @ f.m_outps @ f.m_vars @ bvars) in
-    (* Currently, FSMs needing a heap are those manipulating variant types. WARNING: this may change.. *)
+    (* Currently, FSMs needing a heap are only those manipulating variant types. WARNING: this may change.. *)
   let f' = if has_heap then add_heap_init_signals f else f in
   let mk_trans has_heap istate s = 
     let ts = List.filter (fun (s',_,_,_) -> s=s') f'.m_trans in
@@ -269,6 +271,8 @@ let rec string_of_expr e =
        begin match op, ty with
        | "*", Signed _
        | "*", Unsigned _ -> "mul(" ^ s1 ^ "," ^ s2 ^ ")"
+       | "&&", _ -> s1 ^ " and " ^ s2
+       | "||", _ -> s1 ^ " or " ^ s2
        | _, _ -> paren level (s1 ^ string_of_op op ^ s2)
        end
     | Syntax.EArray es, _ -> Printf.sprintf "(%s)" (Misc.string_of_list string_of_expr "," es)
@@ -414,6 +418,7 @@ let dump_module_arch oc m =
   let modname = m.v_name in
   fprintf oc "architecture RTL of %s is\n" modname;
   fprintf oc "  type t_%s is ( %s );\n" cfg.state_var (Misc.string_of_list Fun.id ", " m.v_states);
+  fprintf oc "  subtype local_heap is heap_t (0 to heap_size-1);\n";
   fprintf oc "  signal %s: t_state;\n" cfg.state_var;
   if cfg.act_sem = Synchronous then 
     List.iter
@@ -555,6 +560,7 @@ let dump_variant_package oc pkgs t =
                 name
                 vc.vc_name )
           ctors in
+      dump_libraries oc;
       fprintf oc "package %s is\n" name;
       fprintf oc "  subtype %s is value;\n" name;
       List.iter (fun (vc,s) -> fprintf oc "  %s;\n" s) injectors;
@@ -632,7 +638,7 @@ let write_globals ?(dir="") ~fname tp p =
     p.Syntax.p_consts in
   let ud_types = List.fold_left (extract_ud_types tp) [] tp.tp_types in
   let oc = open_out fname in
-  dump_libraries oc;
+  (* dump_libraries oc; *)
   if arr_types <> [] then begin
       fprintf oc "package %s is\n" cfg.types_pkg_name;
       List.iter (dump_type_decl oc) arr_types;
@@ -676,8 +682,11 @@ let dump_init_signals oc m =
   Printf.fprintf oc "  %s <= '0';\n" (sig_name m "start");
   if m.v_has_heap then Printf.fprintf oc "  %s <= '0';\n" (sig_name m "h_init")
 
+let dump_inst_outp oc m (o,ty) = 
+  let name = sig_name m o in
+  fprintf oc "  assert false report \"%s=\" & %s severity note;\n" name (to_string_fn (Vhdl_types.vhdl_type_of ty) name)
+
 let dump_inst_sim oc m vs = 
-  (* fprintf oc "  --  %s(%s)\n" f (Misc.string_of_list Syntax.string_of_expr "," vs); *)
   fprintf oc "  -- Start computation\n";
   try
   List.iter2
@@ -689,6 +698,7 @@ let dump_inst_sim oc m vs =
   fprintf oc "  wait for %d %s;\n" cfg.start_duration cfg.time_unit;
   fprintf oc "  %s <= '0';\n" (sig_name m "start");
   fprintf oc "  wait until %s = '1';\n" (sig_name m "rdy");
+  List.iter (dump_inst_outp oc m) @@ List.filter (fun (n,_) -> n <> "rdy") m.v_outps;
   fprintf oc "  wait for %d %s;\n" cfg.sim_interval cfg.time_unit
 
 let dump_reset_process oc = 
@@ -731,15 +741,14 @@ let dump_heap_init_seq oc m =
   fprintf oc "  end loop;\n";
   fprintf oc "  wait until %s = '1';\n" (sig_name m "rdy")
 
-let dump_inst_outp oc m (o,ty) = 
-  let name = sig_name m o in
-  fprintf oc "  assert false report \"%s=\" & %s severity note;\n" name (to_string_fn (Vhdl_types.vhdl_type_of ty) name)
-
-let dump_sim_process oc variants fsms ({ Syntax.ap_desc = fsm, args } as inst) = 
-  fprintf oc "process -- %s\n" (Syntax.string_of_appl inst);
+let dump_sim_process oc variants fsms (fsm,insts) = 
+  fprintf oc "process -- %s\n" fsm;
   let m = List.assoc fsm fsms in
   let heap = Vhdl_heap.make cfg.heap_size in
-  let arg_vals, heap_sz = Misc.list_map_fold (Vhdl_heap.alloc variants heap) 0 args in
+  let alloc_fsm_args heap_addr {Syntax.ap_desc=f,args} =
+    try Misc.list_map_fold (Vhdl_heap.alloc variants heap) heap_addr args
+    with Vhdl_heap.Heap_full -> raise (Heap_full fsm) in
+  let arg_vals, heap_sz = Misc.list_map_fold alloc_fsm_args 0 insts in
   if heap_sz > 0 then dump_heap_init_data oc heap heap_sz;
   fprintf oc "begin\n";
   dump_init_signals oc m;
@@ -750,13 +759,21 @@ let dump_sim_process oc variants fsms ({ Syntax.ap_desc = fsm, args } as inst) =
     end
   else
     fprintf oc "  wait for %d %s;\n" cfg.clock_period cfg.time_unit;
-  (* List.iter (dump_inst_sim oc fsms) insts; *)
-  dump_inst_sim oc m arg_vals;
-  List.iter (dump_inst_outp oc m) @@ List.filter (fun (n,_) -> n <> "rdy") m.v_outps;
+  List.iter (dump_inst_sim oc m) arg_vals;
   fprintf oc "  assert false report \"end of simulation\" severity note;\n";
   fprintf oc "  wait;\n";
   fprintf oc "end process;\n\n"
 
+let sort_fsm_insts insts = 
+  let r = (ref [] : (string * (Syntax.appl list ref)) list ref) in
+  List.iter
+    (fun ({ Syntax.ap_desc=f,args } as inst) ->
+      match List.assoc_opt f !r with
+      | Some l -> l := inst::!l
+      | None -> r := (f,ref [inst]) :: !r)
+    insts;
+  List.map (fun (f,appls) -> f, List.rev !appls) !r
+             
 let write_testbench ~dir ~fname ~pkgs ~variants named_fsms insts = 
   let oc = open_out fname in
   let fsms = List.map snd named_fsms in
@@ -779,8 +796,9 @@ let write_testbench ~dir ~fname ~pkgs ~variants named_fsms insts =
   dump_clock_process oc;
   fprintf oc "\n";
   List.iteri (fun i f -> dump_fsm_inst oc ("U" ^ string_of_int (i+1)) f) fsms;
-  fprintf oc "\n\n";
-  List.iter (dump_sim_process oc variants named_fsms) insts;
+  fprintf oc "\n";
+  let sorted_insts = sort_fsm_insts insts in
+  List.iter (dump_sim_process oc variants named_fsms) sorted_insts;
   fprintf oc "end architecture;\n";
   printf "Wrote file %s\n" fname;
   close_out oc

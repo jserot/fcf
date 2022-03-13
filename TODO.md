@@ -1,3 +1,11 @@
-- support of _recursive_ algebraic data types (ex: `type 'a list = Nil | Cons of 'a * 'a list`) at the
-  VHDL backend level (needs some sort of heap allocation)
+- allow state parameters to shadow FSM args. Currently, a declaration like
+```
+let foo (x:t) = 
+  let f (x,...) =
+  | ...
+  f (x,...)
+;
+```
+gives an error
+
 - fix `fcf-mode.el`

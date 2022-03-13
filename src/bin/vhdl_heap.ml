@@ -19,7 +19,8 @@ type word =
 
 type t = word Array.t
          
-
+exception Heap_full
+        
 let make sz = Array.make sz Empty
 
 let rec alloc variants heap h_ptr (e:Syntax.expr) =
@@ -34,19 +35,22 @@ let rec alloc variants heap h_ptr (e:Syntax.expr) =
      let vc = lookup_variant_ctor c vd'.vd_ctors in 
      Imm (Int vc.vc_tag), h_ptr  (* no alloc: nullary ctors are represented by their tag *)
   | ECon1 (c,args), Variant vd -> 
-     let args' = begin match args.Syntax.e_desc with Syntax.ETuple es -> es | _ -> [args] end in
-     let vd' = lookup_variant_desc vd.vd_name variants in
-     let vc = lookup_variant_ctor c vd'.vd_ctors in 
-     heap.(h_ptr) <- Header (vc.vc_tag, vc.vc_arity);
-     let h_ptr' = 
-       Misc.list_fold_lefti  
-         (fun i h_ptr' arg ->
-           let v, h_ptr'' = alloc variants heap (h_ptr+vc.vc_arity+1) arg in 
-           heap.(h_ptr+i+1) <- Value v;
-           h_ptr'')
-         h_ptr
-       args' in
-     Ptr h_ptr, h_ptr'
+     (try
+       let args' = begin match args.Syntax.e_desc with Syntax.ETuple es -> es | _ -> [args] end in
+       let vd' = lookup_variant_desc vd.vd_name variants in
+       let vc = lookup_variant_ctor c vd'.vd_ctors in 
+       heap.(h_ptr) <- Header (vc.vc_tag, vc.vc_arity);
+       let h_ptr' = 
+         Misc.list_fold_lefti  
+           (fun i h_ptr' arg ->
+             let v, h_ptr'' = alloc variants heap (h_ptr+vc.vc_arity+1) arg in 
+             heap.(h_ptr+i+1) <- Value v;
+             h_ptr'')
+           h_ptr
+           args' in
+       Ptr h_ptr, h_ptr'
+     with
+       Invalid_argument _ -> raise Heap_full)
   | _, _ -> failwith ("Heap.alloc: illegal value: " ^ Syntax.string_of_expr e ^ ": " ^ Types.string_of_type e.e_typ)
 
 (* let rec decode_list_value v = match v with

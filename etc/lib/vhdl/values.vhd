@@ -22,14 +22,16 @@ package values is
   -- |        v_sz        | 
   -- +--------------------+
 
-  constant heap_size: natural := 16;  -- in words
+  -- constant heap_size: natural := 16;  -- in words
 
   constant word_size: natural := 32;  -- blocks and values
 
   subtype block_t is std_logic_vector(word_size-1 downto 0);
-  type heap_t is array (0 to heap_size-1) of block_t;
+  type heap_t is array (natural range <>) of block_t;
+  -- type heap_t is array (0 to heap_size-1) of block_t;
 
-  subtype heap_ptr is integer range 0 to heap_size;
+  subtype heap_ptr is integer;
+  -- subtype heap_ptr is integer range 0 to heap_size;
 
   constant bk_tag_sz: natural := 4;
   constant max_ctors: natural := 2**bk_tag_sz;  -- to be checked by all variant type definitions 
@@ -41,10 +43,14 @@ package values is
 
   function int_val(v: value) return integer;
   function bool_val(v: value) return boolean;
+  function bool_val(v: value) return std_logic;
   function ptr_val(v: value) return heap_ptr;
 
   function val_int(v: integer) return value;
+  function val_int(v: unsigned) return value;
+  function val_int(v: signed) return value;
   function val_bool(v: boolean) return value;
+  function val_bool(v: std_logic) return value;
   function val_ptr(v: heap_ptr) return value;
 
   function wo_size(heap: heap_t; v: value) return natural;
@@ -83,6 +89,11 @@ package body values is
     return int_val(v) /= 0; 
   end;
 
+  function bool_val(v: value) return std_logic is
+  begin
+    if int_val(v) /= 0 then return '1'; else return '0'; end if;
+  end;
+
   function ptr_val(v: value) return heap_ptr is
   begin
     return to_integer(unsigned(v(word_size-2 downto 0)));
@@ -93,9 +104,24 @@ package body values is
     return '0' & std_logic_vector(to_signed(v,31));
   end;
   
+  function val_int(v: unsigned) return value is
+  begin
+    return '0' & std_logic_vector(resize(v,31));
+  end;
+  
+  function val_int(v: signed) return value is
+  begin
+    return '0' & std_logic_vector(resize(v,31));
+  end;
+  
   function val_bool(v: boolean) return value is
   begin
     if v then return val_int(1); else return val_int(0); end if;
+  end;
+
+  function val_bool(v: std_logic) return value is
+  begin
+    if v='1' then return val_int(1); else return val_int(0); end if;
   end;
 
   function val_ptr(v: heap_ptr) return value is
