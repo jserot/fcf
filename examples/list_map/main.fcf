@@ -1,0 +1,13 @@
+type 'a list = Nil | Cons of 'a * 'a list; 
+
+let inc_list (a:int list) = 
+  let f (l,acc) =
+  | l~Nil -> return acc 
+  | l~Cons(v,ll) -> f (ll, Cons (v+1,acc)) in
+  f (a,Nil)
+;
+
+inc_list(Nil);
+inc_list(Cons(1,Nil));
+inc_list(Cons(1,Cons(2,Nil)));
+inc_list(Cons(1,Cons(2,Cons(3,Nil))));
