@@ -304,7 +304,7 @@ let string_of_action m a =
      | ECon0 c, Variant vd ->
         Printf.sprintf "%s_mk_%s(heap,h_ptr,false,%s)" vd.vd_name c id
      | ECon1 (c,e'), Variant vd -> 
-        Printf.sprintf "%s_mk_%s(heap,h_ptr,%s,%s)" vd.vd_name c (string_of_expr e') id
+        Printf.sprintf "%s_mk_%s(heap,h_ptr,heap_size,%s,%s)" vd.vd_name c (string_of_expr e') id
      | _, _ ->
         string_of_act id expr
      end
@@ -418,7 +418,8 @@ let dump_module_arch oc m =
   let modname = m.v_name in
   fprintf oc "architecture RTL of %s is\n" modname;
   fprintf oc "  type t_%s is ( %s );\n" cfg.state_var (Misc.string_of_list Fun.id ", " m.v_states);
-  fprintf oc "  subtype local_heap is heap_t (0 to heap_size-1);\n";
+  if m.v_has_heap then 
+    fprintf oc "  subtype local_heap is heap_t (0 to heap_size-1);\n";
   fprintf oc "  signal %s: t_state;\n" cfg.state_var;
   if cfg.act_sem = Synchronous then 
     List.iter
@@ -523,7 +524,7 @@ let dump_variant_package oc pkgs t =
           (fun vc ->
             if vc.vc_arity > 0 then
               vc,
-              sprintf "procedure %s_mk_%s(signal heap: inout heap_t; signal h_ptr: inout heap_ptr; %s; signal result: out value)"
+              sprintf "procedure %s_mk_%s(signal heap: inout heap_t; signal h_ptr: inout heap_ptr; h_size: in integer; %s; signal result: out value)"
                 name
                 vc.vc_name
                 (arg_list vc)
@@ -575,6 +576,8 @@ let dump_variant_package oc pkgs t =
           fprintf oc "  %s is\n" intf;
           fprintf oc "  begin\n";
           if vc.vc_arity > 0 then begin
+            fprintf oc "    assert h_ptr+%d<h_size report \"%s_mk_%s: cannot allocate, heap is full !\" severity failure;\n"
+              vc.vc_arity name vc.vc_name;
             fprintf oc "    heap(h_ptr) <= mk_header(%d, %d);\n" vc.vc_tag vc.vc_arity;
             List.iteri 
               (fun i va ->

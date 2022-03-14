@@ -1,5 +1,5 @@
-A (silly) example illustrating computations on values with (here non recursive) algebraic data types.
-The `silly` FCF computes the following recursive function :
+Another (silly) example illustrating computations on values with polymorphic variants.
+The `silly` FCF here computes the following recursive function :
 ```
   f(None) = 0
   f(Single 0) = None

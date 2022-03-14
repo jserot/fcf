@@ -15,6 +15,12 @@ examples/*/*.vhd
 examples/*/*.vcd
 examples/*/*.ghw
 examples/*/qsys/
+examples/*/tb
+examples/*/*/*.dot
+examples/*/*/*.vhd
+examples/*/*/*.vcd
+examples/*/*/*.ghw
+examples/*/*/qsys/
 *.merlin
 !examples/*/ok/*.vhd
 !examples/*/ok2/*.vhd

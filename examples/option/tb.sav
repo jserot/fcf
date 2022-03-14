@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
-[*] Thu Feb 24 13:16:48 2022
+[*] Mon Mar 14 09:22:33 2022
 [*]
 [dumpfile] "/Users/jserot/Dev/ml/fcf/examples/option/tb.ghw"
-[dumpfile_mtime] "Thu Feb 24 13:13:48 2022"
-[dumpfile_size] 1630
+[dumpfile_mtime] "Mon Mar 14 09:22:16 2022"
+[dumpfile_size] 3291
 [savefile] "/Users/jserot/Dev/ml/fcf/examples/option/tb.sav"
 [timestart] 0
 [size] 1000 600
-[pos] -1 -1
-*-25.941963 58900000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] 224 24
+*-25.201746 46700000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [treeopen] top.tb.
 [treeopen] top.tb.silly_a.
@@ -22,13 +22,14 @@
 @28
 top.tb.u1.clk
 top.tb.u1.rst
-top.tb.u1.start
+top.tb.u1.h_init
 top.tb.u1.rdy
-top.tb.u1.state
-top.tb.u1.res
-@29
-top.tb.u1.x.tag
+top.tb.u1.start
 @22
-#{top.tb.u1.x.data[0:63]} top.tb.u1.x.data[0] top.tb.u1.x.data[1] top.tb.u1.x.data[2] top.tb.u1.x.data[3] top.tb.u1.x.data[4] top.tb.u1.x.data[5] top.tb.u1.x.data[6] top.tb.u1.x.data[7] top.tb.u1.x.data[8] top.tb.u1.x.data[9] top.tb.u1.x.data[10] top.tb.u1.x.data[11] top.tb.u1.x.data[12] top.tb.u1.x.data[13] top.tb.u1.x.data[14] top.tb.u1.x.data[15] top.tb.u1.x.data[16] top.tb.u1.x.data[17] top.tb.u1.x.data[18] top.tb.u1.x.data[19] top.tb.u1.x.data[20] top.tb.u1.x.data[21] top.tb.u1.x.data[22] top.tb.u1.x.data[23] top.tb.u1.x.data[24] top.tb.u1.x.data[25] top.tb.u1.x.data[26] top.tb.u1.x.data[27] top.tb.u1.x.data[28] top.tb.u1.x.data[29] top.tb.u1.x.data[30] top.tb.u1.x.data[31] top.tb.u1.x.data[32] top.tb.u1.x.data[33] top.tb.u1.x.data[34] top.tb.u1.x.data[35] top.tb.u1.x.data[36] top.tb.u1.x.data[37] top.tb.u1.x.data[38] top.tb.u1.x.data[39] top.tb.u1.x.data[40] top.tb.u1.x.data[41] top.tb.u1.x.data[42] top.tb.u1.x.data[43] top.tb.u1.x.data[44] top.tb.u1.x.data[45] top.tb.u1.x.data[46] top.tb.u1.x.data[47] top.tb.u1.x.data[48] top.tb.u1.x.data[49] top.tb.u1.x.data[50] top.tb.u1.x.data[51] top.tb.u1.x.data[52] top.tb.u1.x.data[53] top.tb.u1.x.data[54] top.tb.u1.x.data[55] top.tb.u1.x.data[56] top.tb.u1.x.data[57] top.tb.u1.x.data[58] top.tb.u1.x.data[59] top.tb.u1.x.data[60] top.tb.u1.x.data[61] top.tb.u1.x.data[62] top.tb.u1.x.data[63]
+#{top.tb.u1.a[31:0]} top.tb.u1.a[31] top.tb.u1.a[30] top.tb.u1.a[29] top.tb.u1.a[28] top.tb.u1.a[27] top.tb.u1.a[26] top.tb.u1.a[25] top.tb.u1.a[24] top.tb.u1.a[23] top.tb.u1.a[22] top.tb.u1.a[21] top.tb.u1.a[20] top.tb.u1.a[19] top.tb.u1.a[18] top.tb.u1.a[17] top.tb.u1.a[16] top.tb.u1.a[15] top.tb.u1.a[14] top.tb.u1.a[13] top.tb.u1.a[12] top.tb.u1.a[11] top.tb.u1.a[10] top.tb.u1.a[9] top.tb.u1.a[8] top.tb.u1.a[7] top.tb.u1.a[6] top.tb.u1.a[5] top.tb.u1.a[4] top.tb.u1.a[3] top.tb.u1.a[2] top.tb.u1.a[1] top.tb.u1.a[0]
+@23
+#{top.tb.u1.x[31:0]} top.tb.u1.x[31] top.tb.u1.x[30] top.tb.u1.x[29] top.tb.u1.x[28] top.tb.u1.x[27] top.tb.u1.x[26] top.tb.u1.x[25] top.tb.u1.x[24] top.tb.u1.x[23] top.tb.u1.x[22] top.tb.u1.x[21] top.tb.u1.x[20] top.tb.u1.x[19] top.tb.u1.x[18] top.tb.u1.x[17] top.tb.u1.x[16] top.tb.u1.x[15] top.tb.u1.x[14] top.tb.u1.x[13] top.tb.u1.x[12] top.tb.u1.x[11] top.tb.u1.x[10] top.tb.u1.x[9] top.tb.u1.x[8] top.tb.u1.x[7] top.tb.u1.x[6] top.tb.u1.x[5] top.tb.u1.x[4] top.tb.u1.x[3] top.tb.u1.x[2] top.tb.u1.x[1] top.tb.u1.x[0]
+@28
+top.tb.u1.res
 [pattern_trace] 1
 [pattern_trace] 0

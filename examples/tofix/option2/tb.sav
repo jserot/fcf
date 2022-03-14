@@ -1,0 +1,34 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Thu Feb 24 13:16:48 2022
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/fcf/examples/option/tb.ghw"
+[dumpfile_mtime] "Thu Feb 24 13:13:48 2022"
+[dumpfile_size] 1630
+[savefile] "/Users/jserot/Dev/ml/fcf/examples/option/tb.sav"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-25.941963 58900000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.tb.
+[treeopen] top.tb.silly_a.
+[treeopen] top.tb.u1.
+[treeopen] top.tb.u1.x.
+[sst_width] 193
+[signals_width] 159
+[sst_expanded] 1
+[sst_vpaned_height] 168
+@28
+top.tb.u1.clk
+top.tb.u1.rst
+top.tb.u1.start
+top.tb.u1.rdy
+top.tb.u1.state
+top.tb.u1.res
+@29
+top.tb.u1.x.tag
+@22
+#{top.tb.u1.x.data[0:63]} top.tb.u1.x.data[0] top.tb.u1.x.data[1] top.tb.u1.x.data[2] top.tb.u1.x.data[3] top.tb.u1.x.data[4] top.tb.u1.x.data[5] top.tb.u1.x.data[6] top.tb.u1.x.data[7] top.tb.u1.x.data[8] top.tb.u1.x.data[9] top.tb.u1.x.data[10] top.tb.u1.x.data[11] top.tb.u1.x.data[12] top.tb.u1.x.data[13] top.tb.u1.x.data[14] top.tb.u1.x.data[15] top.tb.u1.x.data[16] top.tb.u1.x.data[17] top.tb.u1.x.data[18] top.tb.u1.x.data[19] top.tb.u1.x.data[20] top.tb.u1.x.data[21] top.tb.u1.x.data[22] top.tb.u1.x.data[23] top.tb.u1.x.data[24] top.tb.u1.x.data[25] top.tb.u1.x.data[26] top.tb.u1.x.data[27] top.tb.u1.x.data[28] top.tb.u1.x.data[29] top.tb.u1.x.data[30] top.tb.u1.x.data[31] top.tb.u1.x.data[32] top.tb.u1.x.data[33] top.tb.u1.x.data[34] top.tb.u1.x.data[35] top.tb.u1.x.data[36] top.tb.u1.x.data[37] top.tb.u1.x.data[38] top.tb.u1.x.data[39] top.tb.u1.x.data[40] top.tb.u1.x.data[41] top.tb.u1.x.data[42] top.tb.u1.x.data[43] top.tb.u1.x.data[44] top.tb.u1.x.data[45] top.tb.u1.x.data[46] top.tb.u1.x.data[47] top.tb.u1.x.data[48] top.tb.u1.x.data[49] top.tb.u1.x.data[50] top.tb.u1.x.data[51] top.tb.u1.x.data[52] top.tb.u1.x.data[53] top.tb.u1.x.data[54] top.tb.u1.x.data[55] top.tb.u1.x.data[56] top.tb.u1.x.data[57] top.tb.u1.x.data[58] top.tb.u1.x.data[59] top.tb.u1.x.data[60] top.tb.u1.x.data[61] top.tb.u1.x.data[62] top.tb.u1.x.data[63]
+[pattern_trace] 1
+[pattern_trace] 0

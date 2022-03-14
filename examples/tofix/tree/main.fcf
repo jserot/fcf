@@ -2,7 +2,7 @@ type 'a stack = Empty | Cons of 'a * 'a stack;
 type 'a tree = Nil | Node of 'a * 'a tree * 'a tree; 
 
 let sum_tree (t:int tree) = 
-  let f (t, st, acc) =
+  let f (t, (st:int tree stack), acc) =
   | t~Nil, st~Empty -> return acc
   | t~Nil, st~Cons(r,rs) -> f (r, rs, acc)
   | t~Node(v,l,r) -> f (l, Cons(r,st), acc+v) in
