@@ -171,6 +171,8 @@ let add_heap_init_signals f =
     m_inps = f.m_inps
              @ ["h_init", Types.TyBool; "hi_cnt", Types.TyAdhoc ("integer range 0 to " ^ string_of_int (heap_size-1));
                 "hi_val", Types.TyAdhoc "block_t"];
+    m_outps = f.m_outps
+             @ ["hp_ptr", Types.type_int()];
     m_vars = f.m_vars
              @ ["heap", Types.TyAdhoc "local_heap";
                 "h_ptr", Types.TyAdhoc "heap_ptr"];
@@ -451,6 +453,7 @@ let dump_module_arch oc m =
   end;
   fprintf oc "    end if;\n";
   fprintf oc "  end process;\n";
+  if m.v_has_heap then fprintf oc "  hp_ptr <= h_ptr;\n";
   fprintf oc "end architecture;\n"
 
 let dump_module_intf kind oc m = 
