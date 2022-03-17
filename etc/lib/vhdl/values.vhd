@@ -47,6 +47,7 @@ package values is
   function ptr_val(v: value) return heap_ptr;
 
   function val_int(v: integer) return value;
+  function val_int(v: integer) return integer;
   function val_int(v: unsigned) return value;
   function val_int(v: signed) return value;
   function val_bool(v: boolean) return value;
@@ -102,6 +103,11 @@ package body values is
   function val_int(v: integer) return value is
   begin
     return '0' & std_logic_vector(to_signed(v,31));
+  end;
+
+  function val_int(v: integer) return integer is
+  begin
+    return v;
   end;
   
   function val_int(v: unsigned) return value is

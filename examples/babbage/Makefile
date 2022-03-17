@@ -6,15 +6,21 @@ GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
 VHDL_OPTS=
 
 run: 
-	$(FCFC) -run -trace main.fcf
+	$(FCFC) -run main.fcf
 
-dot: 
+dot: dot.code dot.view
+
+dot.code: 
 	$(FCFC) -dot main.fcf
 
-show: 
+dot.view: 
 	$(FCFC) -show main.fcf
 
-vhdl: 
+dot: dot.code dot.view
+
+vhdl: vhdl.code vhdl.run
+
+vhdl.code: 
 	$(FCFC) -vhdl -vhdl_testbench $(VHDL_OPTS) main.fcf
 
 vhdl.run: eval.vhd tb.vhd

@@ -1,4 +1,4 @@
-let fact (n:unsigned<8>) =
+let fact (n:int) =
   let compute (acc,k) = 
   | k<=n -> compute (acc*k,k+1)
   | k>n -> return acc in

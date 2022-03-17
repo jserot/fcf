@@ -6,14 +6,18 @@ GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
 run: 
 	$(FCFC) -run  main.fcf
 
-dot: 
+dot: dot.code dot.view
+
+dot.code: 
 	$(FCFC) -dot main.fcf
 
-show: 
+dot.view: 
 	$(FCFC) -show main.fcf
 
-vhdl: 
-	$(FCFC) -vhdl -vhdl_numeric_std -vhdl_testbench main.fcf
+vhdl: vhdl.code vhdl.run
+
+vhdl.code: 
+	$(FCFC) -vhdl -vhdl_testbench main.fcf
 
 vhdl.check:
 	$(GHDL) -a $(GHDLOPTS) globals.vhd

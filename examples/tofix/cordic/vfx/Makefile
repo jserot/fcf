@@ -8,13 +8,17 @@ SOPC_DIR=./sopc_demo
 run: 
 	$(FCFC) -run -trace -array_print_length 1 main.fcf
 
-dot: 
+dot: dot.code dot.view
+
+dot.code: 
 	$(FCFC) -dot main.fcf
 
-show: 
+dot.view: 
 	$(FCFC) -show main.fcf
 
-vhdl: 
+vhdl: vhdl.code vhdl.run
+
+vhdl.code: 
 	$(FCFC) -dump_typed -vhdl -vhdl_testbench main.fcf
 
 vhdl.check:

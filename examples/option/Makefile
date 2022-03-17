@@ -8,13 +8,17 @@ VHDL_OPTS=
 run: 
 	$(FCFC) -run -trace main.fcf
 
-dot: 
-	$(FCFC) -dot -dump_typed main.fcf
+dot: dot.code dot.view
 
-show: 
+dot.code: 
+	$(FCFC) -dot main.fcf
+
+dot.show: 
 	$(FCFC) -show main.fcf
 
-vhdl: 
+vhdl: vhdl.code vhdl.run
+
+vhdl.code: 
 	$(FCFC) -vhdl -vhdl_testbench $(VHDL_OPTS) main.fcf
 
 vhdl.run: globals.vhd silly.vhd tb.vhd

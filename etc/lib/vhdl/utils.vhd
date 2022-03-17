@@ -54,6 +54,8 @@ package utils is
   function std_logic_vector_to_string(v : std_logic_vector) return string;
   function std_logic_to_string(v : std_logic) return string;
   function integer_to_string(v : integer) return string;
+  function signed_to_string(v : signed) return string;
+  function unsigned_to_string(v : unsigned) return string;
 
   -- procedure dump_slv(name: string; v: std_logic_vector); -- for debug only
 
@@ -366,6 +368,16 @@ package body utils is
   function integer_to_string(v : integer) return string is
   begin
     return integer'image(v);
+  end function;
+
+  function signed_to_string(v : signed) return string is
+  begin
+    return integer_to_string(to_integer(v));
+  end function;
+
+  function unsigned_to_string(v : unsigned) return string is
+  begin
+    return integer_to_string(to_integer(v));
   end function;
 
   -- procedure dump_slv(name: string; v: std_logic_vector) is

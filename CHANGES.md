@@ -1,6 +1,6 @@
 # v0.3 - Feb XX, 2022
 
-- support for algebraic data types (see for ex. `examples/{list,tree}`)
+- support for algebraic data types (see for ex. `examples/{option,option2,list,tree}`)
 
 # v0.2 - Jan 20, 2022
 

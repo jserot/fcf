@@ -6,14 +6,18 @@ GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
 run: 
 	$(FCFC) -run -trace main.fcf
 
-dot: 
-	$(FCFC) -dot main.fcf
+dot: dot.code dot.view
 
-show: 
-	$(FCFC) -show main.fcf
+dot.code: 
+	$(FCFC) -dot -dump_typed main.fcf
 
-vhdl: 
-	$(FCFC) -dump_typed -vhdl -vhdl_testbench main.fcf
+dot.view: 
+	$(FCFC) -show -dump_typed main.fcf
+
+vhdl: vhdl.code vhdl.run
+
+vhdl.code: 
+	$(FCFC) -vhdl -vhdl_testbench main.fcf
 
 vhdl.check:
 	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics is_even.vhd

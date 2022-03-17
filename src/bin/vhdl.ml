@@ -613,14 +613,16 @@ let write_globals ?(dir="") ~fname tp p =
     p.Syntax.p_consts in
   let ud_types = List.fold_left (extract_ud_types tp) [] tp.tp_types in
   let oc = open_out fname in
-  (* dump_libraries oc; *)
   if arr_types <> [] then begin
+      dump_libraries oc;
       fprintf oc "package %s is\n" cfg.types_pkg_name;
       List.iter (dump_type_decl oc) arr_types;
       fprintf oc "end package;\n\n";
       used_packages := cfg.types_pkg_name :: !used_packages;
       end ;
   if typed_consts <> [] then begin
+      dump_libraries oc;
+      if arr_types <> [] then fprintf oc "use work.%s.all;\n" cfg.types_pkg_name;
       fprintf oc "package %s is\n" cfg.consts_pkg_name;
       List.iter (dump_const_decl oc ~with_val:false) typed_consts;
       fprintf oc "end package;\n\n";
@@ -669,7 +671,7 @@ let dump_inst_outp oc m (o,ty) =
   | ty' ->
      fprintf oc "  assert false report \"%s=\" & %s_to_string(%s) severity note;\n"
        name
-       (Vhdl_types.string_of_vhdl_type ty')
+       (Vhdl_types.string_of_vhdl_type ~type_marks:TM_None ty')
        name;
   if cfg.trace_heap then
     fprintf oc "  dump_heap(%s_heap, %s_hptr);\n" m.v_name m.v_name
