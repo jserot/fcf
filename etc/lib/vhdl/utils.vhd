@@ -49,10 +49,13 @@ package utils is
   function to_integer(e: boolean) return integer;
   function to_integer(e: character) return integer;
 
-  procedure notify_ev(signal s: out std_logic; duration: time);
+  -- procedure notify_ev(signal s: out std_logic; duration: time);
   
-  function to_string(v : std_logic_vector) return string;  -- for debug only
-  procedure dump_slv(name: string; v: std_logic_vector); -- for debug only
+  function std_logic_vector_to_string(v : std_logic_vector) return string;
+  function std_logic_to_string(v : std_logic) return string;
+  function integer_to_string(v : integer) return string;
+
+  -- procedure dump_slv(name: string; v: std_logic_vector); -- for debug only
 
 end package;
 
@@ -331,16 +334,14 @@ package body utils is
       return character'pos(e);
   end;
 
-  procedure notify_ev(signal s: out std_logic; duration: time) is
-  begin
-     s <= '1'; 
-     wait for duration;
-     s <= '0'; 
-  end;
+  -- procedure notify_ev(signal s: out std_logic; duration: time) is
+  -- begin
+  --    s <= '1'; 
+  --    wait for duration;
+  --    s <= '0'; 
+  -- end;
 
-  -- Debug aux fns 
-
-  function to_string(v : std_logic_vector) return string is
+  function std_logic_vector_to_string(v : std_logic_vector) return string is
     variable s : string(1 to v'length) := (others => 'x');
     variable c : string(1 to 3);
     variable j : integer := 1;
@@ -351,11 +352,25 @@ package body utils is
         j := j+1;
       end loop;
     return s;
-  end to_string;
+  end function;
 
-  procedure dump_slv(name: string; v: std_logic_vector) is
+  function std_logic_to_string(v : std_logic) return string is
   begin
-    report name & "[" & integer'image(v'high) & ":" & integer'image(v'low) & "]=" & to_string(v);
-  end;
+    case v is
+      when '0' => return "0";
+      when '1' => return "1";
+      when others => return "?";
+    end case;
+  end function;
+
+  function integer_to_string(v : integer) return string is
+  begin
+    return integer'image(v);
+  end function;
+
+  -- procedure dump_slv(name: string; v: std_logic_vector) is
+  -- begin
+  --   report name & "[" & integer'image(v'high) & ":" & integer'image(v'low) & "]=" & to_string(v);
+  -- end;
 
 end package body;

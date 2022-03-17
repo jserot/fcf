@@ -1,0 +1,16 @@
+type 'a list = Nil | Cons of 'a * 'a list; 
+
+let inc_list (a:int list) = 
+  let mapf (l,acc) =
+  | l~Nil -> revf(acc,Nil)
+  | l~Cons(v,ll) -> mapf (ll, Cons (v+1,acc))
+  and revf (l:int list,acc:int list) =
+  | l~Nil -> return acc
+  | l~Cons(v,ll) -> revf (ll, Cons (v,acc)) in
+  mapf (a,Nil)
+;
+
+inc_list(Nil);
+inc_list(Cons(1,Nil));
+inc_list(Cons(1,Cons(2,Nil)));
+inc_list(Cons(1,Cons(2,Cons(3,Nil))));

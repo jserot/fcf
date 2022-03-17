@@ -11,7 +11,7 @@ run:
 dot: dot.code dot.view
 
 dot.code: 
-	$(FCFC) -dot main.fcf
+	$(FCFC) -dot -dump_typed main.fcf
 
 dot.view: 
 	$(FCFC) -show main.fcf
@@ -19,15 +19,14 @@ dot.view:
 vhdl: vhdl.code vhdl.run
 
 vhdl.code: 
-	$(FCFC) -vhdl -vhdl_testbench -vhdl_heap_size 32 $(VHDL_OPTS) main.fcf
+	$(FCFC) -vhdl -vhdl_testbench -vhdl_heap_size 64 $(VHDL_OPTS) main.fcf
 
-vhdl.run: globals.vhd sum_list.vhd and_list.vhd tb.vhd
+vhdl.run: globals.vhd inc_list.vhd tb.vhd
 	$(GHDL) -a $(GHDLOPTS) globals.vhd 
-	$(GHDL) -a $(GHDLOPTS) sum_list.vhd 
-	$(GHDL) -a $(GHDLOPTS) and_list.vhd 
+	$(GHDL) -a $(GHDLOPTS) inc_list.vhd 
 	$(GHDL) -a $(GHDLOPTS) tb.vhd
 	$(GHDL) -e $(GHDLOPTS) tb
-	$(GHDL) -r $(GHDLOPTS) tb --wave=tb.ghw --stop-time=500ns
+	$(GHDL) -r $(GHDLOPTS) tb --wave=tb.ghw --stop-time=600ns
 
 vhdl.view: tb.ghw
 	$(GTKWAVE) -f tb.ghw -a tb.sav> /tmp/gtkwave.log 2>&1

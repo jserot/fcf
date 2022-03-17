@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
-[*] Thu Mar 17 14:26:03 2022
+[*] Thu Mar 17 14:24:49 2022
 [*]
-[dumpfile] "/Users/jserot/Dev/ml/fcf/examples/list/list_rev/tb.ghw"
-[dumpfile_mtime] "Thu Mar 17 14:09:10 2022"
-[dumpfile_size] 21311
-[savefile] "/Users/jserot/Dev/ml/fcf/examples/list/list_rev/tb.sav"
+[dumpfile] "/Users/jserot/Dev/ml/fcf/examples/list/list_map2/tb.ghw"
+[dumpfile_mtime] "Thu Mar 17 14:22:45 2022"
+[dumpfile_size] 26370
+[savefile] "/Users/jserot/Dev/ml/fcf/examples/list/list_map2/tb.sav"
 [timestart] 0
 [size] 1000 600
 [pos] 138 64
-*-26.702059 58000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-27.702059 58000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [treeopen] top.tb.
 [treeopen] top.tb.u1.

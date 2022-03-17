@@ -659,12 +659,18 @@ let dump_init_signals oc m =
 
 let dump_inst_outp oc m (o,ty) = 
   let name = sig_name m o in
-  let ty' = Vhdl_types.vhdl_type_of ty in
-  fprintf oc "  assert false report \"%s=\" & %s_to_string(%s_h_heap,%s) severity note;\n"
-    name
-    (Vhdl_types.string_of_vhdl_type ty')
-    m.v_name
-    name;
+  match Vhdl_types.vhdl_type_of ty with
+  | Variant _ as ty' ->
+     fprintf oc "  assert false report \"%s=\" & %s_to_string(%s_h_heap,%s) severity note;\n"
+       name
+       (Vhdl_types.string_of_vhdl_type ty')
+       m.v_name
+       name
+  | ty' ->
+     fprintf oc "  assert false report \"%s=\" & %s_to_string(%s) severity note;\n"
+       name
+       (Vhdl_types.string_of_vhdl_type ty')
+       name;
   if cfg.trace_heap then
     fprintf oc "  dump_heap(%s_heap, %s_hptr);\n" m.v_name m.v_name
 
