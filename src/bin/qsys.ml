@@ -88,7 +88,7 @@ let dump_cc_arch oc m =
   fprintf oc "  signal start : std_logic;\n";
   fprintf oc "  signal rdy : std_logic;\n";
   List.iter
-    (fun (id,ty) -> fprintf oc "  signal %s: %s;\n" id (Vhdl.string_of_type ~type_marks:TM_Full ty))
+    (fun (id,ty) -> fprintf oc "  signal %s: %s;\n" id (Vhdl_types.string_of_type ~type_marks:TM_Full ty))
     (inps @ outps);
   fprintf oc "  type write_state_t is (Idle, StartAsserted);\n";
   fprintf oc "  signal write_state: write_state_t;\n";

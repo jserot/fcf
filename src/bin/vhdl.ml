@@ -46,7 +46,7 @@ let cfg = {
   act_sem = Synchronous;  (* Default *)
   dump_cc_intf = false;
   support_library = "fcf";
-  support_packages = ["utils"; "values"];
+  support_packages = ["fcf.utils"; "fcf.values"];
   types_pkg_name = "types";
   consts_pkg_name = "consts";
   with_testbench = false;
@@ -59,77 +59,6 @@ let cfg = {
   }
 
 open Vhdl_types
-
-type type_mark = TM_Full | TM_Abbr | TM_None [@@warning "-37"]
-
-let rec string_of_vhdl_type ?(type_marks=TM_Full) t = match t, type_marks with 
-  | Unsigned n, TM_Full -> Printf.sprintf "unsigned(%d downto 0)" (n-1)
-  | Unsigned n, TM_Abbr -> Printf.sprintf "unsigned%d" n
-  | Unsigned _, TM_None -> "unsigned"
-  | Signed n, TM_Full -> Printf.sprintf "signed(%d downto 0)" (n-1)
-  | Signed n, TM_Abbr -> Printf.sprintf "signed%d" n
-  | Signed _, TM_None -> "signed"
-  | Integer (Some (lo,hi)), TM_Full -> Printf.sprintf "integer range %d to %d" lo hi
-  | Integer _, _ -> "integer"
-  | Std_logic, _ -> "std_logic"
-  | Real, _ -> "real"
-  | Array (sz,t'), _ -> string_of_vhdl_array_type (sz,t') 
-  | Variant vd, _ -> String.map (function ' ' -> '_' | c -> c) vd.vd_name
-  | Tuple ts, _ -> Misc.string_of_list (string_of_vhdl_type ~type_marks) "," ts
-  | Litteral s, _ -> s
-  | NoType, _ -> "<unknown>"
-
-and string_of_type ?(type_marks=TM_Full) t =
-  string_of_vhdl_type ~type_marks:type_marks (vhdl_type_of t)
-
-and string_of_vhdl_array_type (sz,t) = 
-  Printf.sprintf "%s_arr%d" (string_of_vhdl_array_subtype t) sz
-
-and string_of_vhdl_array_subtype t = match t with 
-  | Unsigned n -> "u" ^ string_of_int n
-  | Signed n -> "s" ^ string_of_int n
-  | Integer _ -> "int"
-  | Std_logic -> "sl"
-  | Real -> "r"
-  | _ -> failwith ("VHDL backend: illegal subtype: " ^ string_of_vhdl_type t)
-
-let value_injector t v = match t with
-  | Unsigned _
-  | Signed _
-  | Integer _ -> Printf.sprintf "val_int(%s)" v
-  | Std_logic -> Printf.sprintf "val_bool(%s)" v
-  | Variant _ -> v
-  | _ -> failwith ("Vhdl.value_injector: " ^ (string_of_vhdl_type t))
-
-let value_extractor t v = match t with
-  | Unsigned _
-  | Signed _
-  | Integer _ -> Printf.sprintf "int_val(%s)" v
-  | Std_logic -> Printf.sprintf "bool_val(%s)" v
-  | Variant _ -> v
-  | _ -> failwith ("Vhdl.value_extractor: " ^ (string_of_vhdl_type t))
-
-let default_value t = match t with
-  | Unsigned sz -> Printf.sprintf "to_unsigned(0,%d)" sz
-  | Signed sz -> Printf.sprintf "to_signed(0,%d)" sz
-  | Integer None -> "0"
-  | Integer (Some (lo,hi)) -> string_of_int lo
-  | Std_logic -> "'0'"
-  | Real -> "0.0"
-  | Variant _ -> "val_int(0)"
-  | _ -> failwith ("Vhdl.default_value: no default for type " ^ (string_of_vhdl_type t))
-
-let from_std_logic_vector (t:vhdl_type) v = match t with
-  | Unsigned n -> sprintf "unsigned(%s)" v
-  | Signed n -> sprintf "signed(%s)" v
-  | Integer _ -> sprintf "to_integer(signed(%s))" v 
-  | Std_logic -> "v(0)"
-  | _ -> failwith "Vhdl.from_std_logic_vector"
-
-let string_of_variant_ctor_desc vc = 
-  match vc.vc_arity with
-  | 0 -> vc.vc_name
-  | n -> vc.vc_name ^ "(" ^ Misc.string_of_list (fun va -> string_of_vhdl_type va.va_typ) "," vc.vc_args ^ ")"
 
 
 (* Models *)
@@ -163,25 +92,26 @@ let lookup_ctor tp id =
 let add_heap_init_signals f = 
   let hstate = cfg.heap_init_state in
   let heap_size = cfg.heap_size in 
+  let name s = f.Fsm.m_name ^ "_" ^ s in
   let open Fsm in
   let open Syntax in
   let istate = fst f.m_itrans in 
   { f with
     m_states = f.m_states @ [hstate]; 
     m_inps = f.m_inps
-             @ ["h_init", Types.TyBool; "hi_cnt", Types.TyAdhoc ("integer range 0 to " ^ string_of_int (heap_size-1));
-                "hi_val", Types.TyAdhoc "block_t"];
+             @ ["h_init", Types.TyBool; "h_icnt", Types.TyAdhoc ("integer range 0 to " ^ string_of_int (heap_size-1));
+                "h_ival", Types.TyAdhoc "block_t"];
     m_outps = f.m_outps
-             @ ["hp_ptr", Types.type_int()];
+             @ ["h_heap", Types.TyAdhoc (name "heap_t"); "h_hptr", Types.TyAdhoc (name "hptr_t") ];
     m_vars = f.m_vars
-             @ ["heap", Types.TyAdhoc "local_heap";
-                "h_ptr", Types.TyAdhoc "heap_ptr"];
+             @ ["heap", Types.TyAdhoc (name "heap_t");
+                "h_ptr", Types.TyAdhoc (name "hptr_t")];
     m_trans = f.m_trans (* TOFIX : also need to add L/C=0 conds to trans starting from istate *)
               @ [ istate, [mk_binop_guard "=" (EVar "h_init") (EBool true)], [Assign ("rdy", mk_bool_expr (EBool false))], hstate;
-                  hstate, [mk_binop_guard "<" (EVar "h_ptr") (EVar "hi_cnt")],
-                          [Assign ("heap(h_ptr)", mk_expr (EVar "hi_val"));
+                  hstate, [mk_binop_guard "<" (EVar "h_ptr") (EVar "h_icnt")],
+                          [Assign ("heap(h_ptr)", mk_expr (EVar "h_ival"));
                            Assign ("h_ptr", mk_expr (EBinop ("+", mk_expr(EVar "h_ptr"), mk_expr (EInt 1))))], hstate;
-                  hstate, [mk_binop_guard "=" (EVar "h_ptr") (EVar "hi_cnt")], [Assign ("rdy", mk_bool_expr (EBool true))], istate];
+                  hstate, [mk_binop_guard "=" (EVar "h_ptr") (EVar "h_icnt")], [Assign ("rdy", mk_bool_expr (EBool true))], istate];
    }
 
 let build_model f = 
@@ -420,8 +350,8 @@ let dump_module_arch oc m =
   let modname = m.v_name in
   fprintf oc "architecture RTL of %s is\n" modname;
   fprintf oc "  type t_%s is ( %s );\n" cfg.state_var (Misc.string_of_list Fun.id ", " m.v_states);
-  if m.v_has_heap then 
-    fprintf oc "  subtype local_heap is heap_t (0 to heap_size-1);\n";
+  (* if m.v_has_heap then 
+   *   fprintf oc "  subtype local_heap is heap_t (0 to heap_size-1);\n"; *)
   fprintf oc "  signal %s: t_state;\n" cfg.state_var;
   if cfg.act_sem = Synchronous then 
     List.iter
@@ -453,8 +383,20 @@ let dump_module_arch oc m =
   end;
   fprintf oc "    end if;\n";
   fprintf oc "  end process;\n";
-  if m.v_has_heap then fprintf oc "  hp_ptr <= h_ptr;\n";
+  if m.v_has_heap then begin
+    fprintf oc "  h_hptr <= h_ptr;\n";
+    fprintf oc "  h_heap <= heap;\n";
+    end;
   fprintf oc "end architecture;\n"
+
+let dump_module_types_package oc m = 
+  let pack_name = m.v_name ^ "_types" in
+  fprintf oc "package %s is\n" pack_name;
+  fprintf oc "  constant %s_heap_size: natural := %d;\n" m.v_name cfg.heap_size;
+  fprintf oc "  subtype %s_heap_t is heap_t (0 to %s_heap_size-1);\n" m.v_name m.v_name;
+  fprintf oc "  subtype %s_hptr_t is integer range 0 to %s_heap_size-1;\n" m.v_name m.v_name;
+  fprintf oc "end package;\n\n";
+  cfg.support_packages <- cfg.support_packages @ ["work." ^ pack_name]
 
 let dump_module_intf kind oc m = 
   let modname = m.v_name in
@@ -473,9 +415,7 @@ let dump_libraries oc =
   fprintf oc "use ieee.std_logic_1164.all;\n";
   fprintf oc "use ieee.numeric_std.all;\n";
   fprintf oc "library %s;\n" cfg.support_library;
-  List.iter 
-    (fun p -> fprintf oc "use %s.%s.all;\n" cfg.support_library p) 
-    cfg.support_packages;
+  List.iter (fun p -> fprintf oc "use %s.all;\n" p) cfg.support_packages;
   fprintf oc "\n"
 
 let dump_model ~pkgs fname m =
@@ -483,6 +423,11 @@ let dump_model ~pkgs fname m =
   dump_libraries oc;
   List.iter (fprintf oc "use work.%s.all;\n") pkgs;
   fprintf oc "\n";
+  if m.v_has_heap then begin
+    dump_module_types_package oc m;
+    dump_libraries oc;
+    List.iter (fprintf oc "use work.%s.all;\n") pkgs;
+    end;
   dump_module_intf "entity" oc m;
   fprintf oc "\n";
   dump_module_arch oc m;
@@ -564,12 +509,14 @@ let dump_variant_package oc pkgs t =
                 name
                 vc.vc_name )
           ctors in
+      let printer = sprintf "function %s_to_string(signal heap: heap_t; v: value) return string" name in
       dump_libraries oc;
       fprintf oc "package %s is\n" name;
       fprintf oc "  subtype %s is value;\n" name;
       List.iter (fun (vc,s) -> fprintf oc "  %s;\n" s) injectors;
       List.iter (fun (vc,va,s) -> fprintf oc "  %s;\n" s) extractors;
       List.iter (fun (vc,s) -> fprintf oc "  %s;\n" s) inspectors;
+      fprintf oc "  %s;\n" printer;
       fprintf oc "end package;\n\n";
       dump_libraries oc;
       fprintf oc "\n";
@@ -622,6 +569,28 @@ let dump_variant_package oc pkgs t =
             fprintf oc "  end function;\n"
             end)
         inspectors;
+      fprintf oc "  %s is\n" printer;
+      fprintf oc "  begin\n";
+      List.iter
+          (fun vc ->
+            if vc.vc_arity > 0 then begin
+              fprintf oc "    elsif %s_match_%s(heap, v, \"%s\", %s) then\n"
+                name
+                vc.vc_name
+                (String.make vc.vc_arity '0')
+                (Misc.string_of_list (fun va -> Vhdl_types.default_value va.va_typ) "," vc.vc_args);
+              fprintf oc "      return \"%s(\" & %s & \")\";\n"
+                vc.vc_name
+                (Misc.string_of_list
+                   (fun va -> to_string_fn va.va_typ (sprintf "%s_get_%s_%d(heap,v)" name vc.vc_name va.va_idx))
+                   " & \", \" & "
+                   vc.vc_args)
+              end
+            else
+              fprintf oc "    if %s_match_%s(heap,v) then return \"%s\";\n" name vc.vc_name vc.vc_name)
+          ctors;
+      fprintf oc "    end if;\n";
+      fprintf oc "  end function;\n";
       fprintf oc "end package body;\n";
       fprintf oc "\n";
       name::pkgs
@@ -690,7 +659,14 @@ let dump_init_signals oc m =
 
 let dump_inst_outp oc m (o,ty) = 
   let name = sig_name m o in
-  fprintf oc "  assert false report \"%s=\" & %s severity note;\n" name (to_string_fn (Vhdl_types.vhdl_type_of ty) name)
+  let ty' = Vhdl_types.vhdl_type_of ty in
+  fprintf oc "  assert false report \"%s=\" & %s_to_string(%s_h_heap,%s) severity note;\n"
+    name
+    (Vhdl_types.string_of_vhdl_type ty')
+    m.v_name
+    name;
+  if cfg.trace_heap then
+    fprintf oc "  dump_heap(%s_heap, %s_hptr);\n" m.v_name m.v_name
 
 let dump_inst_sim oc m vs = 
   fprintf oc "  -- Start computation\n";
@@ -704,7 +680,7 @@ let dump_inst_sim oc m vs =
   fprintf oc "  wait for %d %s;\n" cfg.start_duration cfg.time_unit;
   fprintf oc "  %s <= '0';\n" (sig_name m "start");
   fprintf oc "  wait until %s = '1';\n" (sig_name m "rdy");
-  List.iter (dump_inst_outp oc m) @@ List.filter (fun (n,_) -> n <> "rdy") m.v_outps;
+  List.iter (dump_inst_outp oc m) @@ List.filter (fun (n,_) -> not (List.mem n ["rdy";"h_heap";"h_hptr"])) m.v_outps;
   fprintf oc "  wait for %d %s;\n" cfg.sim_interval cfg.time_unit
 
 let dump_reset_process oc = 
@@ -738,11 +714,11 @@ let dump_heap_init_seq oc m =
   fprintf oc "  -- Heap init sequence\n";
   fprintf oc "  wait for %d %s;\n" (cfg.clock_period/2) cfg.time_unit;
   fprintf oc "  %s <= '1';\n" (sig_name m "h_init");
-  fprintf oc "  %s <= heap_init'length;\n" (sig_name m "hi_cnt");
+  fprintf oc "  %s <= heap_init'length;\n" (sig_name m "h_icnt");
   fprintf oc "  wait for %d %s;\n" cfg.clock_period cfg.time_unit;
   fprintf oc "  %s <= '0';\n" (sig_name m "h_init");
   fprintf oc "  for i in heap_init'range loop\n";
-  fprintf oc "    %s <= heap_init(i);\n" (sig_name m "hi_val");
+  fprintf oc "    %s <= heap_init(i);\n" (sig_name m "h_ival");
   fprintf oc "    wait for %d %s;\n" cfg.clock_period cfg.time_unit;
   fprintf oc "  end loop;\n";
   fprintf oc "  wait until %s = '1';\n" (sig_name m "rdy")
