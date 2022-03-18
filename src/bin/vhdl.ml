@@ -460,7 +460,8 @@ let write_fsm ?(dir="") ~pkgs ~prefix f =
 let dump_variant_package oc pkgs t =
   match t with 
   | Variant vd -> 
-      let name = String.map (function ' ' -> '_' | c -> c) vd.vd_name in
+      (* let name = String.map (function ' ' -> '_' | c -> c) vd.vd_name in *)
+      let name = vd.vd_name in
       let ctors = vd.vd_ctors in
       let arg_list vc  =
         Misc.string_of_list

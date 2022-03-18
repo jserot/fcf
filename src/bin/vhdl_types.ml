@@ -43,7 +43,8 @@ let lookup_variant_ctor c ctors =
     | vc::rest -> if c = vc.vc_name then vc else lookup rest in
   lookup ctors
     
-let type_name t = String.map (function ' ' -> '_' | c -> c) @@ Types.string_of_type t
+(* let type_name t = String.map (function ' ' -> '_' | c -> c) @@ Types.string_of_type t *)
+let type_name t = Types.string_of_type t
 
 let rec vhdl_type_of t =
   let open Types in

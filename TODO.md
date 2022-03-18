@@ -13,7 +13,7 @@ gives an error
 
 - rebuild heap before each computation (instead of building it once for all at init time)
 
-- add a type coercion operator (ex: `(x as t)`)
+- add a type coercion operator (ex: `(x as t)` or `x:t`)
 
 - fix results in `cordic/vfx` (overflow ? sign-ness ?)
 
