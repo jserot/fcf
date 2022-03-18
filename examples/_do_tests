@@ -1,0 +1,22 @@
+#!/bin/bash
+
+nt=0
+ns=0
+
+for d in [a-z]*
+do
+  if [ -e $d/Makefile ]; then 
+      (( nt = nt + 1 ))
+      ./_do_test $1 $d
+      (( ns = ns + $? ))
+  else
+      for sd in $d/[a-z]*
+      do
+          (( nt = nt + 1 ))
+          ./_do_test $1 $sd
+          (( ns = ns + $? ))
+      done
+  fi
+done
+
+echo "***" $ns"/"$nt "test(s) OK"

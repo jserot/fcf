@@ -18,5 +18,3 @@ gives an error
 - fix results in `cordic/vfx` (overflow ? sign-ness ?)
 
 - fix `fcf-mode.el`
-
-- script for regression testing
