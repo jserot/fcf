@@ -1,3 +1,5 @@
+(* VHDL types and values *)
+
 open Fcf
 
 type vhdl_type = 
@@ -139,6 +141,14 @@ let value_injector t v = match t with
   | Variant _ -> v
   | _ -> failwith ("Vhdl.value_injector: " ^ (string_of_vhdl_type t))
 
+(* let value_injector' t v = match t, v with
+ *   | Unsigned sz -> Printf.sprintf "to_unsigned(%s,%d)" v sz
+ *   | Signed sz -> Printf.sprintf "to_signed(%s,%d)" v sz
+ *   | Integer _ -> Printf.sprintf "val_int(%s)" v
+ *   | Std_logic -> Printf.sprintf "val_bool(%s)" v
+ *   | Variant _ -> v
+ *   | _ -> failwith ("Vhdl.value_injector: " ^ (string_of_vhdl_type t)) *)
+
 let value_extractor t v = match t with
   | Unsigned _
   | Signed _
@@ -171,3 +181,10 @@ let string_of_variant_ctor_desc vc =
   | 0 -> vc.vc_name
   | n -> vc.vc_name ^ "(" ^ Misc.string_of_list (fun va -> string_of_vhdl_type va.va_typ) "," vc.vc_args ^ ")"
 
+let to_string_fn t s = match t with
+  | Unsigned n -> Printf.sprintf "integer'image(integer(%s))" s
+  | Signed n -> Printf.sprintf "integer'image(integer(%s))" s
+  | Integer _ -> Printf.sprintf "integer'image(%s)" s
+  | Std_logic -> Printf.sprintf "std_logic'image(%s)" s
+  | Variant vd -> Printf.sprintf "%s_to_string(heap,%s)" vd.vd_name s             
+  | _ -> "???"

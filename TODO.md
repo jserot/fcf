@@ -13,4 +13,10 @@ gives an error
 
 - rebuild heap before each computation (instead of building it once for all at init time)
 
+- add a type coercion operator (ex: `(x as t)`)
+
+- fix results in `cordic/vfx` (overflow ? sign-ness ?)
+
 - fix `fcf-mode.el`
+
+- script for regression testing

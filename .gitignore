@@ -15,7 +15,7 @@ examples/*/*.vhd
 examples/*/*.vcd
 examples/*/*.ghw
 examples/*/qsys/
-examples/*/tb
+examples/*/*/tb
 examples/*/*/*.dot
 examples/*/*/*.vhd
 examples/*/*/*.vcd

@@ -49,23 +49,18 @@ package utils is
   function to_integer(e: boolean) return integer;
   function to_integer(e: character) return integer;
 
-  -- procedure notify_ev(signal s: out std_logic; duration: time);
-  
   function std_logic_vector_to_string(v : std_logic_vector) return string;
   function std_logic_to_string(v : std_logic) return string;
   function integer_to_string(v : integer) return string;
   function signed_to_string(v : signed) return string;
   function unsigned_to_string(v : unsigned) return string;
-
-  -- procedure dump_slv(name: string; v: std_logic_vector); -- for debug only
+  function real_to_string(v : real) return string;
 
 end package;
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-
--- use STD.textio.all;   -- FOR DEBUG ONLY
 
 package body utils is
 
@@ -211,29 +206,22 @@ package body utils is
 
   function from_std_logic_vector(e: std_logic_vector; s:natural) return unsigned is
   begin
-    -- return UNSIGNED(e(s-1 downto 0));
-    -- return UNSIGNED(e(e'high downto e'high-s+1));
-    return UNSIGNED(e(s-1 downto 0));  -- Changed in v2.6.2: in variants, fields are RIGHT justified
+    return UNSIGNED(e(s-1 downto 0));  
   end;
 
   function from_std_logic_vector(e: std_logic_vector; s:natural) return natural is
   begin
-    -- return UNSIGNED(e(s-1 downto 0));
-    -- return UNSIGNED(e(e'high downto e'high-s+1));
-    return to_integer(UNSIGNED(e(s-1 downto 0)));  -- Changed in v2.6.2: in variants, fields are RIGHT justified
+    return to_integer(UNSIGNED(e(s-1 downto 0))); 
   end;
 
   function from_std_logic_vector(e: std_logic_vector; s:natural) return signed is
   begin
-    -- return SIGNED(e(s-1 downto 0));
-    -- return SIGNED(e(e'high downto e'high-s+1));
-    return SIGNED(e(s-1 downto 0));  -- Changed in v2.6.2: in variants, fields are RIGHT justified
+    return SIGNED(e(s-1 downto 0)); 
   end;
 
   function from_std_logic_vector(e: std_logic_vector; s:natural) return boolean is
   begin
-    -- if e(e'high downto e'high) = "1" then
-    if e(0 downto 0) = "1" then  -- Changed in v2.6.2: in variants, fields are RIGHT justified
+    if e(0 downto 0) = "1" then
       return true;
     else
       return false;
@@ -242,8 +230,7 @@ package body utils is
 
   function from_std_logic_vector(e: std_logic_vector; s:natural) return std_logic_vector is
   begin
-    return (e(s-1 downto 0));  -- Changed in v2.6.2: in variants, fields are RIGHT justified
-    -- return e(e'high downto e'high-s+1);
+    return (e(s-1 downto 0)); 
   end;
 
   function to_bool(e: integer) return boolean is
@@ -336,13 +323,6 @@ package body utils is
       return character'pos(e);
   end;
 
-  -- procedure notify_ev(signal s: out std_logic; duration: time) is
-  -- begin
-  --    s <= '1'; 
-  --    wait for duration;
-  --    s <= '0'; 
-  -- end;
-
   function std_logic_vector_to_string(v : std_logic_vector) return string is
     variable s : string(1 to v'length) := (others => 'x');
     variable c : string(1 to 3);
@@ -380,9 +360,9 @@ package body utils is
     return integer_to_string(to_integer(v));
   end function;
 
-  -- procedure dump_slv(name: string; v: std_logic_vector) is
-  -- begin
-  --   report name & "[" & integer'image(v'high) & ":" & integer'image(v'low) & "]=" & to_string(v);
-  -- end;
+  function real_to_string(v : real) return string is
+  begin
+    return real'image(v);
+  end function;
 
 end package body;

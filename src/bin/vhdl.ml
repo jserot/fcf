@@ -678,9 +678,19 @@ let dump_inst_outp oc m (o,ty) =
 
 let dump_inst_sim oc m vs = 
   fprintf oc "  -- Start computation\n";
+  let open Vhdl_heap in
+  let inject_value t v = match v, vhdl_type_of t with
+    | Imm (Int v'), Unsigned sz -> sprintf "to_unsigned(%d,%d)" v' sz 
+    | Imm (Int v'), Signed sz -> sprintf "to_signed(%d,%d)" v' sz 
+    | Imm (Int v'), Integer _ -> sprintf "%d" v'
+    | Imm (Bool v'), Std_logic -> sprintf "'%d'" (if v' then 1 else 0)
+    | Imm (Float v'), Real -> sprintf "%f" v'
+    | Imm (Int c), Variant _ -> sprintf "val_int(%d)" c (* value ctors *)
+    | Ptr p, _ -> sprintf "val_ptr(%d)" p
+    | _, _ -> failwith "Vhdl.dump_inst_sim.inject_value" in
   try
   List.iter2
-    (fun (name,ty) v -> fprintf oc "  %s <= %s;\n" (sig_name m name) (Vhdl_heap.string_of_value v))
+    (fun (name,ty) v -> fprintf oc "  %s <= %s;\n" (sig_name m name) (inject_value ty v))
     m.v_inps
     vs;
   with Invalid_argument _ -> ();

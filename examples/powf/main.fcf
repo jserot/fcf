@@ -1,0 +1,8 @@
+let pow (x:float, n:int) =
+  let compute (acc,k) = 
+  | k<=n -> compute (acc*.x,k+1)
+  | k>n -> return acc in
+  compute (1.0,1)
+;
+
+pow(2.0,3);
