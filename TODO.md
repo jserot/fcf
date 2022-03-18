@@ -18,3 +18,5 @@ gives an error
 - fix results in `cordic/vfx` (overflow ? sign-ness ?)
 
 - fix `fcf-mode.el`
+
+- update README with list example(s)
