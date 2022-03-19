@@ -1,3 +1,5 @@
+## Language
+
 - allow state parameters to shadow FSM args. Currently, a declaration like
 ```
 let foo (x:t) = 
@@ -8,15 +10,21 @@ let foo (x:t) =
 ```
 gives an error
 
+- add a type coercion operator (`x:unsigned<8> ... (x as int)`)
+
+## Typing
+
 - fix monophormisation bug; see `examples/list/list_rev` : it shouldn't be necessary (?) to add type
   signatures to the parameters of state `f` 
 
+## VHDL backend
+
 - rebuild heap before each computation (instead of building it once for all at init time)
 
-- add a type coercion operator (ex: `(x as t)` or `x:t`)
+## Examples
 
 - fix results in `cordic/vfx` (overflow ? sign-ness ?)
 
-- fix `fcf-mode.el`
+## Etc
 
-- update README with list example(s)
+- fix `fcf-mode.el`

@@ -1,6 +1,7 @@
-# v0.3 - Feb XX, 2022
+# v0.3 - Mar 19, 2022
 
-- support for algebraic data types (see for ex. `examples/{option,option2,list,tree}`)
+- support for algebraic data types down to the VHDL backend (see for
+  ex. `examples/{option,option2,list}`)
 
 # v0.2 - Jan 20, 2022
 
