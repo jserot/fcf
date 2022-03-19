@@ -1,15 +1,15 @@
-type 'a stack = Empty | Cons of 'a * 'a stack; 
 type 'a tree = Nil | Node of 'a * 'a tree * 'a tree; 
+type 'a stack = Empty | Cons of 'a * 'a stack; 
 
-let sum_tree (t:int tree) = 
-  let f (t, (st:int tree stack), acc) =
+let sum_tree (a:int tree) = 
+  let f (t, st:int tree stack, acc) =
   | t~Nil, st~Empty -> return acc
   | t~Nil, st~Cons(r,rs) -> f (r, rs, acc)
   | t~Node(v,l,r) -> f (l, Cons(r,st), acc+v) in
-  f (t,Empty,0)
+  f (a,Empty,0)
 ;
 
-sum_tree(Nil);
-sum_tree(Node(1,Nil,Nil));
+-- sum_tree(Nil);
+-- sum_tree(Node(1,Nil,Nil));
 sum_tree(Node(1,Node(2,Nil,Nil),Node(3,Nil,Nil)));
-sum_tree(Node(1,Node(2,Nil,Nil),Node(3,Node(4,Nil,Nil),Node(5,Nil,Nil))));
+-- sum_tree(Node(1,Node(2,Nil,Nil),Node(3,Node(4,Nil,Nil),Node(5,Nil,Nil))));

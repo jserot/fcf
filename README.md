@@ -67,6 +67,42 @@ The corresponding diagram is
 
 ![](https://github.com/jserot/fcf/blob/master/doc/figs/even.png "")
 
+FCF comes with facilities to declare and manipulate _algebraic data types_ (ADTs, aka _variants_) with a
+powerful _pattern matching_ mechanism allowing transitions to inspect values of such types.
+
+The following FSM description in FCF, for example, computes the sum of all elements of a list of
+integers.
+
+```
+type 'a list = Nil | Cons of 'a * 'a list; 
+
+let sum_list (a:int list) = 
+  let f (l, acc) =
+  | l~Nil -> return acc 
+  | l~Cons(v,ll) -> f (ll, acc+v) in
+  f (a,0)
+;
+```
+
+The declaration of the `list` type follows the `OCaml` syntax : a list is either the empty list ,
+`Nil`, or a `Cons` of value and a list, so that, for example, the list `[1;2;3]` is, classicaly,
+represented by the value `Cons(1,Cons(2,Cons(3,Nil)))`.  Note that the `list` type is actually
+polymorphic and can be used to declare lists of any type of values. The `sum_list` FSM has only one
+state, `f`, with two parameters. The first parameter, `l` correspond to the input list. The second,
+`acc`, is the accumulator used to compute the sum.  The two transitions of the `f` state _pattern
+match_ against the `l` parameter using the following syntax
+
+```
+<expr>~<pattern>
+```
+
+If `l` is `Nil` (_i.e._ if the list is empty) then current value of the accumulator `acc` is
+returned. Otherwise, the head `v` of the list is added to the accumulator and the state ``f` is
+applied to the tail `ll` of the list. 
+
+Other examples using ADTs can be found in the
+[`examples`](https://github.com/jserot/fcf/tree/master/examples) directory
+
 Using
 -----
   
