@@ -195,8 +195,8 @@ let rec string_of_expr e =
     | Syntax.EBool b, _ -> if b then "'1'" else "'0'"
     | Syntax.EFloat n, _ -> string_of_float n
     | Syntax.EVar n, _ ->  n
-    | Syntax.EBinop (">>",e1,e2), ty -> string_of_shift level "shift_left" e1 e2 (* Special cases *)
-    | Syntax.EBinop ("<<",e1,e2), ty -> string_of_shift level "shift_right" e1 e2
+    | Syntax.EBinop (">>",e1,e2), ty -> string_of_shift level "shift_right" e1 e2 (* Special cases *)
+    | Syntax.EBinop ("<<",e1,e2), ty -> string_of_shift level "shift_left" e1 e2
     | Syntax.EBinop (op,e1,e2), ty -> 
        let s1 = string_of (level+1) e1 
        and s2 = string_of (level+1) e2 in 

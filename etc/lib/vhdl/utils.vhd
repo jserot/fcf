@@ -352,7 +352,7 @@ package body utils is
 
   function signed_to_string(v : signed) return string is
   begin
-    return integer_to_string(to_integer(v));
+    return integer'image(to_integer(v));
   end function;
 
   function unsigned_to_string(v : unsigned) return string is

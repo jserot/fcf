@@ -20,7 +20,3 @@ gives an error
 ## VHDL backend
 
 - rebuild heap before each computation (instead of building it once for all at init time)
-
-## Examples
-
-- fix results in `cordic/vfx` (overflow ? sign-ness ?)
