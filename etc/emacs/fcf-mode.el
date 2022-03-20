@@ -1,5 +1,6 @@
 ;;; fcf-mode.el --- simple major mode for editing FCF code (.fcf). -*- coding: utf-8; lexical-binding: t; -*-
 ;; Inspired by http://ergoemacs.org/emacs/elisp_syntax_coloring.html
+;; For doc : https://www.emacswiki.org/emacs/EmacsSyntaxTable
 
 (require 'cc-langs)
 
@@ -31,6 +32,7 @@
   (let ((table (make-syntax-table)))
     (c-populate-syntax-table table)
     (modify-syntax-entry ?- ". 12b" table)
+    (modify-syntax-entry ?' "." table)  ;; "'" is for denoting type variables, not for enclosing char constants
     table)
   "Syntax table for `fcf-mode'.")
 

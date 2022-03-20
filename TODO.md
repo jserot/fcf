@@ -24,7 +24,3 @@ gives an error
 ## Examples
 
 - fix results in `cordic/vfx` (overflow ? sign-ness ?)
-
-## Etc
-
-- fix `fcf-mode.el`
