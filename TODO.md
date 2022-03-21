@@ -8,7 +8,7 @@ let foo (x:t) =
   f (x,...)
 ;
 ```
-gives an error
+gives an error with the VHDL backend
 
 - add a type coercion operator (`x:unsigned<8> ... (x as int)`)
 
@@ -16,7 +16,3 @@ gives an error
 
 - fix monophormisation bug; see `examples/list/list_rev` : it shouldn't be necessary (?) to add type
   signatures to the parameters of state `f` 
-
-## MISC
-
-- code cleaning
