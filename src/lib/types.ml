@@ -379,8 +379,6 @@ let rec string_of_type t = match real_type t with
   | TyArrow (t1, t2) -> string_of_type t1 ^ " -> " ^ string_of_type t2
   | TyProduct ts -> "(" ^ Misc.string_of_list string_of_type " * " ts ^ ")"
   | TyCon (c,[]) -> c
-  (* | TyCon (c,[t]) -> string_of_type t ^ " " ^ c
-   * | TyCon (c,ts) ->  "(" ^ Misc.string_of_list string_of_type "," ts ^ ") " ^ c *)
   | TyCon (c,ts) ->  Misc.string_of_list string_of_type "_" ts ^ "_" ^ c
   | (TyVar v) as t -> "'" ^ name_of_type_var t
   | TyArr (sz, t') -> string_of_type t' ^ " array" ^ string_of_size sz

@@ -354,8 +354,6 @@ let dump_module_arch oc m =
   let modname = m.v_name in
   fprintf oc "architecture RTL of %s is\n" modname;
   fprintf oc "  type t_%s is ( %s );\n" cfg.state_var (Misc.string_of_list Fun.id ", " m.v_states);
-  (* if m.v_has_heap then 
-   *   fprintf oc "  subtype local_heap is heap_t (0 to heap_size-1);\n"; *)
   fprintf oc "  signal %s: t_state;\n" cfg.state_var;
   if cfg.act_sem = Synchronous then 
     List.iter
@@ -464,7 +462,6 @@ let write_fsm ?(dir="") ~pkgs ~prefix f =
 let dump_variant_package oc pkgs t =
   match t with 
   | Variant vd -> 
-      (* let name = String.map (function ' ' -> '_' | c -> c) vd.vd_name in *)
       let name = vd.vd_name in
       let ctors = vd.vd_ctors in
       let arg_list vc  =

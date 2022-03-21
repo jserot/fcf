@@ -43,7 +43,6 @@ let lookup_variant_ctor c ctors =
     | vc::rest -> if c = vc.vc_name then vc else lookup rest in
   lookup ctors
     
-(* let type_name t = String.map (function ' ' -> '_' | c -> c) @@ Types.string_of_type t *)
 let type_name t = Types.string_of_type t
 
 let rec vhdl_type_of t =
@@ -83,15 +82,6 @@ and mk_variant_ctor_desc i c =
      vc_tag = i;
      vc_arity = c.cs_arity;
      vc_args = args } 
-
-(* and mk_ctor_arg (idx,offset,acc) t = 
- *   let t' = vhdl_type_of t in 
- *   let sz = size_of_simple_vhdl_type t' in
- *   idx+1,
- *   offset+sz,
- *   ({ va_idx = idx;
- *     va_typ = t'
- *     va_size = sz } :: acc) *)
 
 let to_string_fn t s = match t with
   | Unsigned n -> Printf.sprintf "integer'image(integer(%s))" s
@@ -141,14 +131,6 @@ let value_injector t v = match t with
   | Std_logic -> Printf.sprintf "val_bool(%s)" v
   | Variant _ -> v
   | _ -> failwith ("Vhdl.value_injector: " ^ (string_of_vhdl_type t))
-
-(* let value_injector' t v = match t, v with
- *   | Unsigned sz -> Printf.sprintf "to_unsigned(%s,%d)" v sz
- *   | Signed sz -> Printf.sprintf "to_signed(%s,%d)" v sz
- *   | Integer _ -> Printf.sprintf "val_int(%s)" v
- *   | Std_logic -> Printf.sprintf "val_bool(%s)" v
- *   | Variant _ -> v
- *   | _ -> failwith ("Vhdl.value_injector: " ^ (string_of_vhdl_type t)) *)
 
 let value_extractor t v = match t with
   | Unsigned _
