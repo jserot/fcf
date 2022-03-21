@@ -1,10 +1,10 @@
 let is_even(n) =
-  let even(m,cnt) = 
-  | m>0 -> odd(m-1,cnt+1)
-  | m<=0 -> return (true,cnt)
-  and odd(m,cnt) = 
-  | m>0 -> even(m-1,cnt+1)
-  | m<=0 -> return (false,cnt) in
+  let even(n,cnt) = 
+  | n>0 -> odd(n-1,cnt+1)
+  | n<=0 -> return (true,cnt)
+  and odd(n,cnt) = 
+  | n>0 -> even(n-1,cnt+1)
+  | n<=0 -> return (false,cnt) in
   even(n,0)  
 ;
 

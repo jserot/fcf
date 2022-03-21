@@ -26,7 +26,7 @@ vhdl.run: globals.vhd rev_list.vhd tb.vhd
 	$(GHDL) -a $(GHDLOPTS) rev_list.vhd 
 	$(GHDL) -a $(GHDLOPTS) tb.vhd
 	$(GHDL) -e $(GHDLOPTS) tb
-	$(GHDL) -r $(GHDLOPTS) tb --wave=tb.ghw --stop-time=600ns
+	$(GHDL) -r $(GHDLOPTS) tb --wave=tb.ghw --stop-time=700ns
 
 vhdl.view: tb.ghw
 	$(GTKWAVE) -f tb.ghw -a tb.sav> /tmp/gtkwave.log 2>&1

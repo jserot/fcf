@@ -136,6 +136,48 @@ type program = {
     p_insts: appl list;
   }
 
+
+(* Renaming *)
+
+let rec rename_trans_vars f t = { t with t_desc = rename_trans_desc_vars f t.t_desc }
+
+and rename_trans_desc_vars f (guards,cont) = List.map (rename_guard_vars f) guards, rename_cont_vars f cont
+
+and rename_guard_vars f g = { g with g_desc = rename_guard_desc_vars f g.g_desc }
+
+and rename_guard_desc_vars f g = match g with 
+| Cond e -> Cond (rename_expr_vars f e)
+| Match (e,p) -> Match (rename_expr_vars f e, rename_pattern_vars f p)
+
+and rename_expr_vars f e = { e with e_desc = rename_expr_desc_vars f e.e_desc }
+
+and rename_expr_desc_vars f e = match e with 
+  | EVar v -> EVar (f v)
+  | ETuple es -> ETuple (List.map (rename_expr_vars f) es)
+  | EBinop (op, e1, e2) -> EBinop (op, rename_expr_vars f e1, rename_expr_vars f e2)
+  | EArray vs -> EArray (List.map (rename_expr_vars f) vs)
+  | EArrRd (a,i) -> EArrRd (a, rename_expr_vars f i)
+  | ECon1 (c,e) -> ECon1 (c, rename_expr_vars f e)
+  | e -> e
+
+and rename_pattern_vars f p = { p with p_desc = rename_pattern_desc_vars f p.p_desc }
+
+and rename_pattern_desc_vars f p = match p with 
+  | Pat_var v -> Pat_var (f v)
+  | Pat_tuple ps -> Pat_tuple (List.map (rename_pattern_vars f) ps)
+  | Pat_constr1 (c,p) -> Pat_constr1 (c, rename_pattern_vars f p)
+  | p -> p
+ 
+and rename_cont_vars f c = { c with ct_desc = rename_cont_desc_vars f c.ct_desc }
+
+and rename_cont_desc_vars f c = match c with 
+  | Next a -> Next (rename_appl_vars f a)
+  | Return e -> Return (rename_expr_vars f e)
+
+and rename_appl_vars f a = { a with ap_desc = rename_appl_desc_vars f a.ap_desc }
+
+and rename_appl_desc_vars f (a,exprs) = a, List.map (rename_expr_vars f) exprs
+
 (* Helpers *)
 
 let mk_expr ?(ty=Types.no_type) e = { e_desc = e; e_loc = Location.no_location; e_typ = ty }

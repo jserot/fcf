@@ -9,7 +9,7 @@ run:
 dot: dot.code dot.view
 
 dot.code: 
-	$(FCFC) -dot -dump_typed main.fcf
+	$(FCFC) -dot -dump_fsm main.fcf
 
 dot.view: 
 	$(FCFC) -show -dump_typed main.fcf

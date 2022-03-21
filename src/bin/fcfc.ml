@@ -42,7 +42,7 @@ let parse fname =
   Parser.program Lexer.main !Location.input_lexbuf 
 
 let dump_vhdl_fsm ~pkgs (n,f) =
-  let m = f.fd_desc |> Fsm.from_ast in
+  let m = Fsm.from_ast ~rename_svars:true f.fd_desc in
   if !sopc_dir <> "" then 
     begin
       Utils.check_dir ~strict:true !sopc_dir;

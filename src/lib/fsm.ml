@@ -26,6 +26,15 @@ let state_env state_defns =
 let states_of f = match f.f_desc with
   | state_defns, _ -> List.map fst @@ state_env state_defns
 
+let rename_state_vars f = 
+  let rename_state_defn ({ sd_desc=name,params,transitions; sd_params=params' } as sd) =
+    let rename id = if List.mem_assoc id params then name ^ "_" ^ id else id in
+    { sd with sd_desc = (name,
+                        List.map (fun (id,te) -> rename id, te) params,
+                        List.map (Syntax.rename_trans_vars rename) transitions);
+              sd_params = List.map (fun (id,t) -> rename id, t) params' } in
+  { f with f_desc = List.map rename_state_defn (fst f.f_desc), snd f.f_desc }
+  
 let vars_of f = match f.f_desc with
   | state_defns, _ -> 
      let add acc params = 
@@ -64,7 +73,8 @@ let rtrans_of f = match f.f_desc with
        []
        senv
 
-let from_ast f =
+let from_ast ?(rename_svars=false) f' =
+  let f = if rename_svars then rename_state_vars f' else f' in 
   let ty_args, ty_res = Types.fn_types @@ Types.type_instance f.f_typ in
   { m_name = f.f_name;
     m_states = "idle" :: states_of f;

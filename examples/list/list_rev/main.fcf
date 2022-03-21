@@ -1,10 +1,10 @@
 type 'a list = Nil | Cons of 'a * 'a list; 
 
-let rev_list (a:int list) = 
+let rev_list (l:int list) = 
   let f (l:int list,acc:int list) =
   | l~Nil -> return acc 
   | l~Cons(v,ll) -> f (ll, Cons (v,acc)) in
-  f (a,Nil)
+  f (l,Nil)
 ;
 
 rev_list(Nil);
