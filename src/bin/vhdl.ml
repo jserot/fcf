@@ -22,7 +22,8 @@ type config = {
   mutable float_size: int;
   mutable heap_size: int;
   mutable heap_init_state: string;
-  mutable trace_heap: bool
+  mutable trace_heap: bool;
+  mutable print_heap_size: bool
   }
 
 and act_semantics =  (** Interpretation of actions associated to transitions *)
@@ -56,6 +57,7 @@ let cfg = {
   heap_size = 16;  (* TO FIX *)
   heap_init_state = "InitH";
   trace_heap = false;
+  print_heap_size = false
   }
 
 open Vhdl_types
@@ -107,7 +109,9 @@ let add_heap_init_signals f =
              @ ["heap", Types.TyAdhoc (name "heap_t");
                 "h_ptr", Types.TyAdhoc (name "hptr_t")];
     m_trans = f.m_trans (* TOFIX : also need to add L/C=0 conds to trans starting from istate *)
-              @ [ istate, [mk_binop_guard "=" (EVar "h_init") (EBool true)], [Assign ("rdy", mk_bool_expr (EBool false))], hstate;
+              @ [ istate, [mk_binop_guard "=" (EVar "h_init") (EBool true)],
+                          [Assign ("rdy", mk_bool_expr (EBool false));
+                           Assign ("h_ptr", mk_expr (EInt 0))], hstate;
                   hstate, [mk_binop_guard "<" (EVar "h_ptr") (EVar "h_icnt")],
                           [Assign ("heap(h_ptr)", mk_expr (EVar "h_ival"));
                            Assign ("h_ptr", mk_expr (EBinop ("+", mk_expr(EVar "h_ptr"), mk_expr (EInt 1))))], hstate;
@@ -673,12 +677,10 @@ let dump_inst_outp oc m (o,ty) =
      fprintf oc "  assert false report \"%s=\" & %s_to_string(%s) severity note;\n"
        name
        (Vhdl_types.string_of_vhdl_type ~type_marks:TM_None ty')
-       name;
-  if cfg.trace_heap then
-    fprintf oc "  dump_heap(%s_heap, %s_hptr);\n" m.v_name m.v_name
+       name
 
 let dump_inst_sim oc m vs = 
-  fprintf oc "  -- Start computation\n";
+  fprintf oc "  -- -- start computation\n";
   let open Vhdl_heap in
   let inject_value t v = match v, vhdl_type_of t with
     | Imm (Int v'), Unsigned sz -> sprintf "to_unsigned(%d,%d)" v' sz 
@@ -700,6 +702,12 @@ let dump_inst_sim oc m vs =
   fprintf oc "  %s <= '0';\n" (sig_name m "start");
   fprintf oc "  wait until %s = '1';\n" (sig_name m "rdy");
   List.iter (dump_inst_outp oc m) @@ List.filter (fun (n,_) -> not (List.mem n ["rdy";"h_heap";"h_hptr"])) m.v_outps;
+  if cfg.print_heap_size then
+     fprintf oc "  assert false report \"%s_final_heap_size=\" & integer'image(%s_h_hptr) severity note;\n"
+       m.v_name 
+       m.v_name ;
+  if cfg.trace_heap then
+    fprintf oc "  dump_heap(%s_heap, %s_hptr);\n" m.v_name m.v_name;
   fprintf oc "  wait for %d %s;\n" cfg.sim_interval cfg.time_unit
 
 let dump_reset_process oc = 
@@ -721,23 +729,23 @@ let dump_clock_process oc =
   fprintf oc "  wait for %d %s;\n" (cfg.clock_period/2) cfg.time_unit;
   fprintf oc "end process;\n"
 
-let dump_heap_init_data oc heap size =
-  fprintf oc "  type heap_init_t is array (natural range <>) of std_logic_vector(31 downto 0);\n";
-  fprintf oc "  constant heap_init: heap_init_t := (\n";
+let dump_heap_init_data oc i heap =
+  fprintf oc "  constant heap_init_%d: heap_init_t := (\n" i;
+  let size = Array.length heap in
   for i=0 to size-1 do
     fprintf oc "    %s%s -- %d\n" (Vhdl_heap.string_of_word heap.(i)) (if i<size-1 then "," else "") i 
   done;
   fprintf oc "  );\n"
 
-let dump_heap_init_seq oc m =
-  fprintf oc "  -- Heap init sequence\n";
+let dump_heap_init_seq oc i m =
+  fprintf oc "  -- -- heap init sequence\n";
   fprintf oc "  wait for %d %s;\n" (cfg.clock_period/2) cfg.time_unit;
   fprintf oc "  %s <= '1';\n" (sig_name m "h_init");
-  fprintf oc "  %s <= heap_init'length;\n" (sig_name m "h_icnt");
+  fprintf oc "  %s <= heap_init_%d'length;\n" (sig_name m "h_icnt") i;
   fprintf oc "  wait for %d %s;\n" cfg.clock_period cfg.time_unit;
   fprintf oc "  %s <= '0';\n" (sig_name m "h_init");
-  fprintf oc "  for i in heap_init'range loop\n";
-  fprintf oc "    %s <= heap_init(i);\n" (sig_name m "h_ival");
+  fprintf oc "  for i in heap_init_%d'range loop\n" i;
+  fprintf oc "    %s <= heap_init_%d(i);\n" (sig_name m "h_ival") i;
   fprintf oc "    wait for %d %s;\n" cfg.clock_period cfg.time_unit;
   fprintf oc "  end loop;\n";
   fprintf oc "  wait until %s = '1';\n" (sig_name m "rdy")
@@ -745,22 +753,35 @@ let dump_heap_init_seq oc m =
 let dump_sim_process oc variants fsms (fsm,insts) = 
   fprintf oc "process -- %s\n" fsm;
   let m = List.assoc fsm fsms in
-  let heap = Vhdl_heap.make cfg.heap_size in
-  let alloc_fsm_args heap_addr {Syntax.ap_desc=f,args} =
-    try Misc.list_map_fold (Vhdl_heap.alloc variants heap) heap_addr args
-    with Vhdl_heap.Heap_full -> raise (Heap_full fsm) in
-  let arg_vals, heap_sz = Misc.list_map_fold alloc_fsm_args 0 insts in
-  if heap_sz > 0 then dump_heap_init_data oc heap heap_sz;
+  let appls =
+    List.mapi
+      (fun i ({Syntax.ap_desc=f,args} as appl) ->
+        let heap = Vhdl_heap.make cfg.heap_size in
+        let arg_vals, heap_size = 
+          try Misc.list_map_fold (Vhdl_heap.alloc variants heap) 0 args
+          with Vhdl_heap.Heap_full -> raise (Heap_full (Syntax.string_of_appl appl)) in
+        i+1, Syntax.string_of_appl appl, arg_vals, Array.sub heap 0 heap_size)
+      insts in
+  if List.exists (fun (i,lbl,arg_vals,init_heap) -> Array.length init_heap > 0) appls then
+    fprintf oc "  type heap_init_t is array (natural range <>) of std_logic_vector(31 downto 0);\n";
+  List.iter
+    (fun (i,lbl,arg_vals,init_heap) -> 
+      if Array.length init_heap > 0 then dump_heap_init_data oc i init_heap)
+    appls;
   fprintf oc "begin\n";
   dump_init_signals oc m;
-  if heap_sz > 0 then begin 
-    dump_heap_init_seq oc m;
-    fprintf oc "  wait for %d %s;\n" (cfg.clock_period*3/2) cfg.time_unit;
-    fprintf oc "  %s <= '0';\n" (sig_name m "h_init");
-    end
-  else
-    fprintf oc "  wait for %d %s;\n" cfg.clock_period cfg.time_unit;
-  List.iter (dump_inst_sim oc m) arg_vals;
+  List.iter
+    (fun (i,lbl,arg_vals,init_heap) -> 
+      fprintf oc "  -- %s\n" lbl;
+      if Array.length init_heap > 0 then begin
+        dump_heap_init_seq oc i m;
+        fprintf oc "  wait for %d %s;\n" (cfg.clock_period*3/2) cfg.time_unit;
+        fprintf oc "  %s <= '0';\n" (sig_name m "h_init");
+        end
+      else
+        fprintf oc "  wait for %d %s;\n" cfg.clock_period cfg.time_unit;
+      dump_inst_sim oc m arg_vals)
+    appls;
   fprintf oc "  assert false report \"end of simulation\" severity note;\n";
   fprintf oc "  wait;\n";
   fprintf oc "end process;\n\n"

@@ -17,6 +17,6 @@ gives an error
 - fix monophormisation bug; see `examples/list/list_rev` : it shouldn't be necessary (?) to add type
   signatures to the parameters of state `f` 
 
-## VHDL backend
+## MISC
 
-- rebuild heap before each computation (instead of building it once for all at init time)
+- code cleaning

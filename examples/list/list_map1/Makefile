@@ -19,7 +19,7 @@ dot.view:
 vhdl: vhdl.code vhdl.run
 
 vhdl.code: 
-	$(FCFC) -vhdl -vhdl_testbench -vhdl_heap_size 64 $(VHDL_OPTS) main.fcf
+	$(FCFC) -vhdl -vhdl_testbench -vhdl_heap_size 64 -vhdl_print_heap_size $(VHDL_OPTS) main.fcf
 
 vhdl.run: globals.vhd inc_list.vhd tb.vhd
 	$(GHDL) -a $(GHDLOPTS) globals.vhd 

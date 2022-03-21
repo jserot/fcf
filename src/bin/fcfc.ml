@@ -29,6 +29,7 @@ let options = [
     "generate SOPC files to be used by QSys and Quartus in the specified dir (default: don't)";
   "-vhdl_testbench", Arg.Unit (fun _ -> Vhdl.cfg.with_testbench <- true), "generate VHDL testbench (default: false)";
   "-vhdl_heap_size", Arg.Int (fun s -> Vhdl.cfg.heap_size <- s), "set size of local VHDL heaps (default: 16)";
+  "-vhdl_print_heap_size", Arg.Unit (fun _ -> Vhdl.cfg.print_heap_size <- true), "print final heap size after each computation (default: false)";
   "-vhdl_trace_heap", Arg.Unit (fun _ -> Vhdl.cfg.trace_heap <- true), "trace heap contents (default: false)";
 ]
 
