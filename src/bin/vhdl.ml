@@ -704,7 +704,7 @@ let dump_inst_sim oc m vs =
        m.v_name 
        m.v_name ;
   if cfg.trace_heap then
-    fprintf oc "  dump_heap(%s_heap, %s_hptr);\n" m.v_name m.v_name;
+    fprintf oc "  dump_heap(%s_h_heap, %s_h_hptr);\n" m.v_name m.v_name;
   fprintf oc "  wait for %d %s;\n" cfg.sim_interval cfg.time_unit
 
 let dump_reset_process oc = 
