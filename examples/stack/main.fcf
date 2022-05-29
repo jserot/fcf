@@ -1,0 +1,13 @@
+type 'a stack = Empty | Cons of 'a * 'a stack; 
+
+let sum (n:int) = 
+  let push (st:int stack, n) =
+  | n=0 -> pop (st,0)
+  | n>0 -> push (Cons(n,st), n-1)
+  and pop (st:int stack, acc) =
+  | st~Empty -> return acc
+  | st~Cons(hd,tl) -> pop (tl, acc+hd) in
+  push (Empty,n)
+;
+
+sum(3);
