@@ -412,12 +412,14 @@ let dump_module_intf kind oc m =
   fprintf oc "        %s: in std_logic\n);\n" cfg.reset_sig;
   fprintf oc "end %s;\n" kind
 
-let dump_libraries oc =
+let dump_libraries ?(extra_pkgs=[]) oc =
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;\n";
   fprintf oc "use ieee.numeric_std.all;\n";
   fprintf oc "library %s;\n" cfg.support_library;
-  List.iter (fun p -> fprintf oc "use %s.all;\n" p) cfg.support_packages;
+  List.iter
+    (fun p -> fprintf oc "use %s.all;\n" p)
+    (cfg.support_packages @ List.map (fun p -> "work." ^ p) extra_pkgs);
   fprintf oc "\n"
 
 let dump_model ~pkgs fname m =
@@ -512,7 +514,9 @@ let dump_variant_package oc pkgs t =
                 vc.vc_name )
           ctors in
       let printer = sprintf "function %s_to_string(signal heap: heap_t; v: value) return string" name in
-      dump_libraries oc;
+      dump_libraries ~extra_pkgs:pkgs oc;
+        (* TOFIX: this makes each user-defined type depend on _every_ type previously type.
+           A clever approach would associate to each type a list of types on which it depends ! *)
       fprintf oc "package %s is\n" name;
       fprintf oc "  subtype %s is value;\n" name;
       List.iter (fun (vc,s) -> fprintf oc "  %s;\n" s) injectors;
@@ -520,7 +524,9 @@ let dump_variant_package oc pkgs t =
       List.iter (fun (vc,s) -> fprintf oc "  %s;\n" s) inspectors;
       fprintf oc "  %s;\n" printer;
       fprintf oc "end package;\n\n";
-      dump_libraries oc;
+      dump_libraries ~extra_pkgs:pkgs oc;
+        (* TOFIX: this makes each user-defined type depend on _every_ type previously type.
+           A clever approach would associate to each type a list of types on which it depends ! *)
       fprintf oc "\n";
       fprintf oc "package body %s is\n" name;
       List.iter
