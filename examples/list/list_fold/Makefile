@@ -35,5 +35,5 @@ vhdl.view: tb.ghw
 clean: 
 	\rm -f *~
 	\rm -f *.o *.dot *.vhd *.cf
-	\rm -f tb tb.vcd
+	\rm -f tb tb.vcd tb.ghw
 
