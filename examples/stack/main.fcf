@@ -10,4 +10,4 @@ let sum (n:int) =
   push (Empty,n)
 ;
 
-sum(3);
+sum(5);
