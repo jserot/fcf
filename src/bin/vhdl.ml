@@ -316,7 +316,16 @@ let rec scan_guards gs = match gs with
       let conds, bindings' = scan_guards rest in
       cond::conds, bindings @ bindings'
 
-let dump_action oc tab m a = fprintf oc "%s%s;\n" tab (string_of_action m a)
+let dump_action oc tab m a =
+  fprintf oc "%s%s;\n" tab (string_of_action m a);
+  match m.v_has_heap, cfg.trace_heap, a with
+  | true, true, Action.Assign (id, expr) ->
+     begin match expr.e_desc, vhdl_type_of (expr.e_typ) with
+     | ECon1 (c,e'), Variant vd ->
+        fprintf oc "%sassert false report \"** heap allocation trigered by: %s\" severity note;\n" tab (Action.to_string a)
+     | _ -> ()
+     end
+  | _ -> ()
 
 let dump_binding oc tab (var,i,exp,pat,ty) =
   let open Syntax in 
@@ -333,7 +342,7 @@ let dump_transition oc tab src m (is_first,_) (_,guards,acts,dst) =
   List.iter (dump_binding oc (tab ^ "  ")) binding_acts;
   List.iter (dump_action oc (tab ^ "  ") m) acts;
   if dst <> src then fprintf oc "%s  %s <= %s;\n" tab cfg.state_var dst;
-  if m.v_has_heap && cfg.trace_heap then fprintf oc "%s  dump_heap(heap,h_ptr);\n" tab;
+  (* if m.v_has_heap && cfg.trace_heap then fprintf oc "%s  dump_heap(heap,h_ptr);\n" tab; *)
   (false,true)
 
 let dump_sync_transitions oc src _ m ts =
@@ -543,7 +552,8 @@ let dump_variant_package oc pkgs t =
                 fprintf oc "    heap(h_ptr+%d) <= %s;\n" (i+1) (value_injector va.va_typ arg))
               vc.vc_args;
             fprintf oc "    h_ptr <= h_ptr+%d;\n" (vc.vc_arity+1);
-            fprintf oc "    result <= val_ptr(h_ptr);\n"
+            fprintf oc "    result <= val_ptr(h_ptr);\n";
+            if cfg.trace_heap then fprintf oc "  dump_heap(heap,h_ptr);\n"
             end
           else
             fprintf oc "    result <= val_int(%d);\n" vc.vc_tag;
@@ -780,6 +790,12 @@ let dump_sim_process oc variants fsms (fsm,insts) =
         dump_heap_init_seq oc i m;
         fprintf oc "  wait for %d %s;\n" (cfg.clock_period*3/2) cfg.time_unit;
         fprintf oc "  %s <= '0';\n" (sig_name m "h_init");
+        if cfg.print_heap_size then
+          fprintf oc "  assert false report \"%s_init_heap_size=\" & integer'image(%s_h_hptr) severity note;\n"
+            m.v_name 
+            m.v_name;
+        if m.v_has_heap && cfg.trace_heap then
+          fprintf oc "  dump_heap(%s_h_heap, %s_h_hptr);\n" m.v_name m.v_name;
         end
       else
         fprintf oc "  wait for %d %s;\n" cfg.clock_period cfg.time_unit;
