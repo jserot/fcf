@@ -5,7 +5,8 @@ GHDLOPTS=-P../../etc/lib/vhdl -fno-color-diagnostics
 GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
 VHDL_OPTS=-vhdl_heap_size 64 -vhdl_trace_heap -vhdl_print_heap_size
 
-run: 
+
+brun: 
 	$(FCFC) -run -trace main.fcf
 
 dot: dot.code dot.view

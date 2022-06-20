@@ -23,13 +23,22 @@ type config = {
   mutable heap_size: int;
   mutable heap_init_state: string;
   mutable trace_heap: bool;
-  mutable print_heap_size: bool
+  mutable print_heap_size: bool;
+  mutable target: target_kind;
+  mutable top: string
   }
+
+and target_kind =
+  | Flat
+  | Quartus of string (* target dir *)
+  | Sopc of string (* target dir *)
 
 and act_semantics =  (** Interpretation of actions associated to transitions *)
   | Sequential        (** sequential (ex: [x:=x+1,y:=x] with [x=1] gives [x=2,y=2]) *)
   | Synchronous       (** synchronous (ex: [x:=x+1,y=x] with [x=1] gives [x=2,y=1]) *)
 
+  
+  
 exception Error of string * string  (* where, msg *)
 exception Duplicate_pattern of string * Fsm.t  (* when a pattern variable is used several times with different types across guards *)
 exception Illegal_pattern of Syntax.pattern 
@@ -57,11 +66,21 @@ let cfg = {
   heap_size = 16;  (* TO FIX *)
   heap_init_state = "InitH";
   trace_heap = false;
-  print_heap_size = false
+  print_heap_size = false;
+  target = Flat;
+  top = ""
   }
 
-open Vhdl_types
+let set_quartus_target d =
+  cfg.target <- Quartus d;
+  cfg.support_library <- "work";
+  cfg.support_packages <- ["work.utils"; "work.values"]
 
+let set_sopc_target d =
+  cfg.target <- Sopc d
+  (* TO FIX ? directories and package names *)
+
+open Vhdl_types
 
 (* Models *)
   
@@ -531,7 +550,7 @@ let dump_variant_package oc pkgs t =
       List.iter (fun (vc,s) -> fprintf oc "  %s;\n" s) injectors;
       List.iter (fun (vc,va,s) -> fprintf oc "  %s;\n" s) extractors;
       List.iter (fun (vc,s) -> fprintf oc "  %s;\n" s) inspectors;
-      fprintf oc "  %s;\n" printer;
+      if cfg.target = Flat then fprintf oc "  %s;\n" printer;
       fprintf oc "end package;\n\n";
       dump_libraries ~extra_pkgs:pkgs oc;
         (* TOFIX: this makes each user-defined type depend on _every_ type previously type.
@@ -587,9 +606,10 @@ let dump_variant_package oc pkgs t =
             fprintf oc "  end function;\n"
             end)
         inspectors;
-      fprintf oc "  %s is\n" printer;
-      fprintf oc "  begin\n";
-      List.iter
+      if cfg.target = Flat then begin
+        fprintf oc "  %s is\n" printer;
+        fprintf oc "  begin\n";
+        List.iter
           (fun vc ->
             if vc.vc_arity > 0 then begin
               fprintf oc "    elsif %s_match_%s(heap, v, \"%s\", %s) then\n"
@@ -607,15 +627,16 @@ let dump_variant_package oc pkgs t =
             else
               fprintf oc "    if %s_match_%s(heap,v) then return \"%s\";\n" name vc.vc_name vc.vc_name)
           ctors;
-      fprintf oc "    end if;\n";
-      fprintf oc "  end function;\n";
+        fprintf oc "    end if;\n";
+        fprintf oc "  end function;\n";
+        end;
       fprintf oc "end package body;\n";
       fprintf oc "\n";
       name::pkgs
   | _ -> 
      pkgs
     
-let write_globals ?(dir="") ~fname tp p = 
+let write_globals ?(dir=".") ~fname tp p = 
   let used_packages = ref ([]: string list) in
   let typed_consts, arr_types = 
     List.fold_left
@@ -630,7 +651,8 @@ let write_globals ?(dir="") ~fname tp p =
     ([],[])
     p.Syntax.p_consts in
   let ud_types = List.fold_left (extract_ud_types tp) [] tp.tp_types in
-  let oc = open_out fname in
+  let p = dir ^ Filename.dir_sep ^ fname in
+  let oc = open_out p in
   if arr_types <> [] then begin
       dump_libraries oc;
       fprintf oc "package %s is\n" cfg.types_pkg_name;
@@ -652,7 +674,7 @@ let write_globals ?(dir="") ~fname tp p =
       end ;
   let other_packages = List.fold_left (dump_variant_package oc) [] ud_types in
   used_packages := !used_packages @ other_packages;
-  printf "Wrote file %s\n" fname;
+  printf "Wrote file %s\n" p;
   close_out oc;
   !used_packages,
   ud_types
@@ -843,3 +865,4 @@ let write_testbench ~dir ~fname ~pkgs ~variants named_fsms insts =
   fprintf oc "end architecture;\n";
   printf "Wrote file %s\n" fname;
   close_out oc
+

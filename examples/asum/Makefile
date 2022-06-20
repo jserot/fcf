@@ -17,7 +17,10 @@ dot.view:
 vhdl: vhdl.code vhdl.run
 
 vhdl.code: 
-	$(FCFC) -vhdl -vhdl_testbench main.fcf
+	$(FCFC) -vhdl -vhdl_testbench $(VHDL_OPTS) main.fcf
+
+vhdl.quartus: 
+	$(FCFC) -vhdl -vhdl_quartus /Users/jserot/Desktop/SF2/vhdl/fcf/asum main.fcf
 
 vhdl.check:
 	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics globals.vhd

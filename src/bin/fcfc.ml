@@ -13,7 +13,6 @@ let mode = ref Nothing
 let dump_typed = ref false
 let dump_tenv = ref false
 let dump_fsm = ref false
-let sopc_dir = ref ""
 
 let options = [
   "-run", Arg.Unit (fun _ -> mode := Run), "run program";
@@ -25,8 +24,9 @@ let options = [
   "-dot", Arg.Unit (fun _ -> mode := Dot), "generate dot representation";
   "-show", Arg.Unit (fun _ -> mode := Show), "generate and view dot representation";
   "-vhdl", Arg.Unit (fun _ -> mode := Vhdl), "generate VHDL code";
-  "-vhdl_sopc", Arg.String (fun d -> sopc_dir := d; (*Vhdl.cfg.use_support_lib <- false*)),
-    "generate SOPC files to be used by QSys and Quartus in the specified dir (default: don't)";
+  "-vhdl_quartus", Arg.String Vhdl.set_quartus_target, "generate Quartus project ready for synthesis in the specified dir (default: don't)";
+  "-vhdl_top", Arg.String (fun s -> Vhdl.cfg.top <- s), "set VHDL toplevel name (for Quartus projects) (default: first FSM name)";
+  "-vhdl_sopc", Arg.String Vhdl.set_sopc_target, "generate SOPC files to be used by QSys and Quartus in the specified dir (default: don't)";
   "-vhdl_testbench", Arg.Unit (fun _ -> Vhdl.cfg.with_testbench <- true), "generate VHDL testbench (default: false)";
   "-vhdl_heap_size", Arg.Int (fun s -> Vhdl.cfg.heap_size <- s), "set size of local VHDL heaps (default: 16)";
   "-vhdl_print_heap_size", Arg.Unit (fun _ -> Vhdl.cfg.print_heap_size <- true), "print final heap size after each computation (default: false)";
@@ -43,26 +43,27 @@ let parse fname =
 
 let dump_vhdl_fsm ~pkgs (n,f) =
   let m = Fsm.from_ast ~rename_svars:true f.fd_desc in
-  if !sopc_dir <> "" then 
-    begin
-      Utils.check_dir ~strict:true !sopc_dir;
-      let m' = Vhdl.write_fsm ~dir:(Utils.subdir !sopc_dir "ip") ~pkgs ~prefix:n m in
-      Qsys.write ~dir:!sopc_dir ~prefix:n ~src_file:(!source_file) m;
+  match Vhdl.cfg.target with
+  | Vhdl.Flat ->
+     Vhdl.write_fsm ~dir:"." ~pkgs ~prefix:n m
+  | Vhdl.Quartus dir ->
+      Vhdl.write_fsm ~dir:dir ~pkgs ~prefix:n m
+  | Vhdl.Sopc dir ->
+      let m' = Vhdl.write_fsm ~dir:(Utils.subdir dir "ip") ~pkgs ~prefix:n m in
+      Qsys.write ~dir:dir ~prefix:n ~src_file:(!source_file) m;
       m'
-    end
-  else
-    Vhdl.write_fsm ~dir:"." ~pkgs ~prefix:n m
 
 let dump_vhdl_globals typed_pgm pgm =
-  if !sopc_dir <> "" then 
-    begin
-      Utils.check_dir ~strict:true !sopc_dir;
-      Vhdl.write_globals ~dir:(Utils.subdir !sopc_dir "ip") ~fname:"globals.vhd" typed_pgm pgm
-    end
-  else
-    Vhdl.write_globals ~dir:"." ~fname:"globals.vhd" typed_pgm pgm
+  match Vhdl.cfg.target with
+  | Vhdl.Flat ->
+     Vhdl.write_globals ~dir:"." ~fname:"globals.vhd" typed_pgm pgm
+  | Vhdl.Quartus dir ->
+     Vhdl.write_globals ~dir:dir ~fname:"globals.vhd" typed_pgm pgm
+  | Vhdl.Sopc dir ->
+      Utils.check_dir ~strict:true dir;
+      Vhdl.write_globals ~dir:(Utils.subdir dir "ip") ~fname:"globals.vhd" typed_pgm pgm
 
-let compile name =
+let compile () =
   if !dump_tenv then Typing.dump_typing_environment (snd Builtins.typing_env);
   let p = parse !source_file in
   let tp = Typing.type_program Builtins.typing_env p in
@@ -81,9 +82,35 @@ let compile name =
        (fun (n,f) -> f.fd_desc |> Fsm.from_ast |> Dot.view |> ignore)
        p.p_fsms
   | Vhdl ->
+     begin match Vhdl.cfg.target with
+     | Vhdl.Flat -> ()
+     | Vhdl.Quartus dir -> 
+         Vhdl.cfg.with_testbench <- false;  (* Override flags since they are meaningful in this case *)
+         Vhdl.cfg.trace_heap <- false; 
+         Vhdl.cfg.print_heap_size <- false;
+         Utils.check_dir ~strict:false dir  (* Subdir will be created if necessary *)
+     | Vhdl.Sopc dir -> 
+         Vhdl.cfg.with_testbench <- false;  (* Override flags since they are meaningful in this case *)
+         Vhdl.cfg.trace_heap <- false; 
+         Vhdl.cfg.print_heap_size <- false;
+         Utils.check_dir ~strict:true dir   (* Subdir must exist in this case *)
+     end;
      let used_packages, ud_types = dump_vhdl_globals tp p in
      let models = List.map (dump_vhdl_fsm ~pkgs:used_packages) p.p_fsms in
-     if Vhdl.cfg.with_testbench then Vhdl.write_testbench ~dir:"." ~fname:"tb.vhd" ~pkgs:used_packages ~variants:ud_types models p.p_insts
+     if Vhdl.cfg.with_testbench && Vhdl.cfg.target = Vhdl.Flat then
+       Vhdl.write_testbench ~dir:"." ~fname:"tb.vhd" ~pkgs:used_packages ~variants:ud_types models p.p_insts;
+     begin match Vhdl.cfg.target with
+     | Vhdl.Quartus dir ->
+        let mnames = List.map fst models @ ["globals"; "utils"; "values"]  in
+        let top =
+          begin match Vhdl.cfg.top with
+          | "" -> List.hd mnames
+          | t -> t 
+          end in
+        Quartus.write_qsf ~dir:dir top mnames;
+        Quartus.write_qpf ~dir:dir top 
+     | _ -> ()
+     end
   | Nothing -> ()
 
 let main () =
