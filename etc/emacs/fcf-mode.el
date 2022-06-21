@@ -7,10 +7,10 @@
 (setq fcf-font-lock-keywords
       (let* (
             ;; define several category of keywords
-            (x-keywords '("type" "let" "in" "and" "const"))
+            (x-keywords '("type" "let" "in" "and" "const" "var"))
             (x-types '("int" "signed" "unsigned" "bool" "float" "array"))
             (x-constants '("true" "false"))
-            (x-functions '("return" ))
+            (x-functions '("return" "do" "then"))
 
             ;; generate regex string for each category of keywords
             (x-keywords-regexp (regexp-opt x-keywords 'words))

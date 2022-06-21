@@ -11,7 +11,7 @@ type t = {
   m_states: State.t list;
   m_inps: (string * Types.t) list;
   m_outps: (string * Types.t) list;
-  m_vars: (string * Types.t) list;
+  m_vars: (string * (Types.t * Syntax.expr option)) list;
   m_trans: Transition.t list;
   m_itrans: State.t * Action.t list;
   }
@@ -33,13 +33,14 @@ let rename_state_vars f =
                         List.map (fun (id,te) -> rename id, te) params,
                         List.map (Syntax.rename_trans_vars rename) transitions);
               sd_params = List.map (fun (id,t) -> rename id, t) params' } in
-  { f with f_desc = List.map rename_state_defn (fst f.f_desc), snd f.f_desc }
+  let states, appl = f.f_desc in 
+  { f with f_desc = List.map rename_state_defn states, appl }
   
-let vars_of f = match f.f_desc with
+let vars_of_states fd = match fd with
   | state_defns, _ -> 
      let add acc params = 
        List.fold_left 
-         (fun acc (id,ty) -> if List.mem_assoc id acc then acc else (id,ty)::acc)
+         (fun acc (id,ty) -> if List.mem_assoc id acc then acc else (id,(ty,None))::acc)
          acc
          params in
      List.fold_left
@@ -49,21 +50,43 @@ let vars_of f = match f.f_desc with
 
 let state_assignations senv s exprs = 
   let params,transitions = List.assoc s senv in
-  List.map2 (fun (p,_) e -> Action.Assign (p, e)) params exprs
+  List.map2 (fun (p,_) e -> Action.Assign (Syntax.LVar p, e)) params exprs
+
+let var_initialisations vars =
+  List.fold_left 
+    (fun acc { v_desc=id,_,iv; v_typ=ty } ->
+        match iv with 
+        | None -> acc
+        | Some e -> Action.Assign (LVar id, e) :: acc)
+    []
+    vars
 
 let strans_of f = match f.f_desc with
   | state_defns, { ap_desc = s,es } -> 
      let senv = state_env state_defns in
      "idle",
      [mk_cond_guard @@ mk_bool_expr @@ EBinop ("=", mk_bool_expr @@ EVar "start", mk_bool_expr @@ EBool true)], 
-     state_assignations senv  s es @ [Action.Assign ("rdy", mk_bool_expr @@ EBool false)],
+       state_assignations senv s es
+     @ var_initialisations f.f_vars 
+     @ [Action.Assign (Syntax.LVar "rdy", mk_bool_expr @@ EBool false)],
      s
 
-let mk_trans senv src { t_desc=g,k } = match k with
+let mk_trans senv src { t_desc=g,acts,k } =
+  let explicit_actions =
+    List.map 
+      (fun { ac_desc=lhs,expr } -> Action.Assign (lhs, expr))
+      acts in
+  match k with
   | { ct_desc = Return e } -> 
-     src, g, [Action.Assign (cfg.res_id, e); Action.Assign ("rdy", mk_bool_expr @@ EBool true)], "idle"
-  | { ct_desc = Next { ap_desc = dst, es} } ->
-     src, g, state_assignations senv dst es, dst
+     src,
+     g,
+     explicit_actions @ [Action.Assign (Syntax.LVar cfg.res_id, e); Action.Assign (Syntax.LVar "rdy", mk_bool_expr @@ EBool true)],
+     "idle"
+  | { ct_desc = Next {ap_desc=dst,es} } ->
+     src,
+     g,
+     explicit_actions @ state_assignations senv dst es,
+     dst
      
 let rtrans_of f = match f.f_desc with
   | state_defns, _ -> 
@@ -87,20 +110,26 @@ let from_ast ?(rename_svars=false) f' =
          | [t] -> [cfg.res_id, t]
          | ts -> List.mapi (fun i t -> cfg.res_id ^ string_of_int (i+1), t) ts)
       @ ["rdy", Types.TyBool];
-    m_vars = vars_of f;
+    m_vars =
+        List.map (fun { v_desc=id,_,iv; v_typ=ty } -> (id,(ty,iv))) f.f_vars
+      @ vars_of_states f.f_desc;
     m_trans = strans_of f :: rtrans_of f;
     m_itrans = "idle", []
   }
   
-let string_of_typed_io (id, ty) = id ^ ":" ^ Types.string_of_type ty
+let string_of_typed_io ?(tab="") (id,ty) = tab ^ id ^ ":" ^ Types.string_of_type ty
+
+let string_of_typed_var ?(tab="") (id,(ty,iv)) = match iv with
+  | None -> tab ^ id ^ ":" ^ Types.string_of_type ty
+  | Some e -> tab ^ id ^ ":" ^ Types.string_of_type ty ^ "=" ^ string_of_expr e
 
 let dump f = 
   let open Printf in 
   printf "FSM %s:\n" f.m_name;
   printf "  states = %s\n" @@ Misc.string_of_list Fun.id "," f.m_states;
-  printf "  inps = %s\n" @@ Misc.string_of_list string_of_typed_io "," f.m_inps;
-  printf "  outps = %s\n" @@ Misc.string_of_list string_of_typed_io "," f.m_outps;
-  printf "  vars = %s\n" @@ Misc.string_of_list string_of_typed_io "," f.m_vars;
+  printf "  inps = %s\n" @@ Misc.string_of_list (string_of_typed_io ~tab:"") ", " f.m_inps;
+  printf "  outps = %s\n" @@ Misc.string_of_list (string_of_typed_io ~tab:"") ", " f.m_outps;
+  printf "  vars = %s\n" @@ Misc.string_of_list (string_of_typed_var ~tab:"") ", " f.m_vars;
   printf "  trans =\n";
   List.iter (fun t -> printf "    %s\n" @@ Transition.to_string t) f.m_trans;
   printf "  itrans = ->%s\n" @@ fst f.m_itrans

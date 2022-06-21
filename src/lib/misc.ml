@@ -20,6 +20,8 @@ let string_of_indexed_list ?(max_elems=max_int) f sep l =
        f i x ^ sep ^ rest in
   h 1 l
 
+let string_of_array ?(max_elems=max_int) f sep a = string_of_list ~max_elems f sep (Array.to_list a)
+
 let rec list_iter3 f l1 l2 l3 = 
   match (l1, l2, l3) with
     ([], [], []) -> ()

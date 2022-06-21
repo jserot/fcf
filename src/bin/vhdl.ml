@@ -89,7 +89,7 @@ type model = {
   v_states: string list;
   v_inps: (string * Types.t) list;
   v_outps: (string * Types.t) list;
-  v_vars: (string * Types.t) list;  (* "Regular" variables *)
+  v_vars: (string * (Types.t * Syntax.expr option)) list;  (* "Regular" variables, with optional init value *)
   v_bvars: (string * Types.t) list; (* Variables bound in the guards of state transitions *) 
   v_init: State.t * Action.t list;
   v_trans: (State.t * Transition.t list) list; (* Transitions, here indexed by source state *)
@@ -125,16 +125,16 @@ let add_heap_init_signals f =
     m_outps = f.m_outps
              @ ["h_heap", Types.TyAdhoc (name "heap_t"); "h_hptr", Types.TyAdhoc (name "hptr_t") ];
     m_vars = f.m_vars
-             @ ["heap", Types.TyAdhoc (name "heap_t");
-                "h_ptr", Types.TyAdhoc (name "hptr_t")];
+             @ ["heap", (Types.TyAdhoc (name "heap_t"), None);
+                "h_ptr", (Types.TyAdhoc (name "hptr_t"), None)];
     m_trans = f.m_trans (* TOFIX : also need to add L/C=0 conds to trans starting from istate *)
               @ [ istate, [mk_binop_guard "=" (EVar "h_init") (EBool true)],
-                          [Assign ("rdy", mk_bool_expr (EBool false));
-                           Assign ("h_ptr", mk_expr (EInt 0))], hstate;
+                          [Assign (LVar "rdy", mk_bool_expr (EBool false));
+                           Assign (LVar "h_ptr", mk_expr (EInt 0))], hstate;
                   hstate, [mk_binop_guard "<" (EVar "h_ptr") (EVar "h_icnt")],
-                          [Assign ("heap(h_ptr)", mk_expr (EVar "h_ival"));
-                           Assign ("h_ptr", mk_expr (EBinop ("+", mk_expr(EVar "h_ptr"), mk_expr (EInt 1))))], hstate;
-                  hstate, [mk_binop_guard "=" (EVar "h_ptr") (EVar "h_icnt")], [Assign ("rdy", mk_bool_expr (EBool true))], istate];
+                          [Assign (LVar "heap(h_ptr)", mk_expr (EVar "h_ival"));
+                           Assign (LVar "h_ptr", mk_expr (EBinop ("+", mk_expr(EVar "h_ptr"), mk_expr (EInt 1))))], hstate;
+                  hstate, [mk_binop_guard "=" (EVar "h_ptr") (EVar "h_icnt")], [Assign (LVar "rdy", mk_bool_expr (EBool true))], istate];
    }
 
 let build_model f = 
@@ -160,7 +160,8 @@ let build_model f =
     List.fold_left collect_guard acc guards in
   let bvars = List.fold_left collect_bvs [] f.m_trans in
   let has_heap =
-    List.exists (fun (_,t) -> Types.is_variant_type t) (f.m_inps @ f.m_outps @ f.m_vars @ bvars) in
+       List.exists (fun (_,t) -> Types.is_variant_type t) (f.m_inps @ f.m_outps @ bvars) 
+    || List.exists (fun (_,(t,_)) -> Types.is_variant_type t) f.m_vars in
     (* Currently, FSMs needing a heap are only those manipulating variant types. WARNING: this may change.. *)
   let f' = if has_heap then add_heap_init_signals f else f in
   let mk_trans has_heap istate s = 
@@ -230,7 +231,7 @@ let rec string_of_expr e =
        | "||", _ -> s1 ^ " or " ^ s2
        | _, _ -> paren level (s1 ^ string_of_op op ^ s2)
        end
-    | Syntax.EArray es, _ -> Printf.sprintf "(%s)" (Misc.string_of_list string_of_expr "," es)
+    | Syntax.EArray es, _ -> Printf.sprintf "(%s)" (Misc.string_of_array string_of_expr "," es)
     | Syntax.EArrRd (a,idx), _ -> Printf.sprintf "%s(%s)" a (string_of level idx)
     (* | Syntax.ECon0 c, Variant vd -> Printf.sprintf "%s_mk_%s(heap,h_ptr,false)" vd.vd_name c
      * | Syntax.ECon1 (c,e'), Variant vd -> Printf.sprintf "%s_mk_%s(heap,h_ptr,%s)" vd.vd_name c (string_of_expr e')  *)
@@ -245,23 +246,27 @@ let rec string_of_expr e =
   in
   string_of 0 e
 
+let string_of_lhs lhs = match lhs with
+| Syntax.LVar v -> v
+| Syntax.LArr (a,i) -> a ^ "(" ^ string_of_expr i ^ ")"
+
 let string_of_action m a =
-  let asn id = " <= " in
-  let string_of_act id expr = id ^ asn id ^ string_of_expr expr in
+  let asn lhs = " <= " in
+  let string_of_act lhs expr = string_of_lhs lhs ^ asn lhs ^ string_of_expr expr in
   match a with
-  | Action.Assign (id, expr) ->
-     begin match expr.e_desc, vhdl_type_of (expr.e_typ) with
-     | ETuple es, _ when id = Fsm.cfg.Fsm.res_id -> 
+  | Action.Assign (lhs, expr) ->
+     begin match lhs, expr.e_desc, vhdl_type_of (expr.e_typ) with
+     | LVar id, ETuple es, _ when id = Fsm.cfg.Fsm.res_id -> 
         Misc.string_of_list
           Fun.id
           "; " 
-          (List.mapi (fun i e -> string_of_act (id ^ string_of_int (i+1)) e) es)
-     | ECon0 c, Variant vd ->
+          (List.mapi (fun i e -> string_of_act (Syntax.LVar (id ^ string_of_int (i+1))) e) es)
+     | LVar id, ECon0 c, Variant vd ->
         Printf.sprintf "%s_mk_%s(heap,h_ptr,false,%s)" vd.vd_name c id
-     | ECon1 (c,e'), Variant vd -> 
+     | LVar id, ECon1 (c,e'), Variant vd -> 
         Printf.sprintf "%s_mk_%s(heap,h_ptr,heap_size,%s,%s)" vd.vd_name c (string_of_expr e') id
-     | _, _ ->
-        string_of_act id expr
+     | _, _, _ ->
+        string_of_act lhs expr
      end
 
 let string_of_binding (var,expr) = var ^ " := " ^ string_of_expr expr
@@ -385,13 +390,13 @@ let dump_module_arch oc m =
   fprintf oc "  signal %s: t_state;\n" cfg.state_var;
   if cfg.act_sem = Synchronous then 
     List.iter
-      (fun (id,ty) -> fprintf oc "  signal %s: %s;\n" id (string_of_type ~type_marks:TM_Full ty))
-      m.v_vars;
+      (fun (id,(ty,_)) -> fprintf oc "  signal %s: %s;\n" id (string_of_type ~type_marks:TM_Full ty))
+      m.v_vars;  (* Note: we do _not_ initialize signals here since this is not always supported by the synthetiser *)
   fprintf oc "begin\n";
   fprintf oc "  process(%s, %s)\n" cfg.reset_sig cfg.clock_sig;
   if cfg.act_sem = Sequential then 
     List.iter
-      (fun (id,ty) -> fprintf oc "    variable %s: %s;\n" id (string_of_type ty))
+      (fun (id,(ty,_)) -> fprintf oc "    variable %s: %s;\n" id (string_of_type ty))
       m.v_vars;
   List.iter
       (fun (id,ty) -> fprintf oc "    variable %s: %s;\n" id (string_of_type ty))
@@ -638,7 +643,7 @@ let dump_variant_package oc pkgs t =
     
 let write_globals ?(dir=".") ~fname tp p = 
   let used_packages = ref ([]: string list) in
-  let typed_consts, arr_types = 
+  let typed_consts, arr_types_c = 
     List.fold_left
       (fun (tcs,tys) (id,d) ->
         let open Syntax in
@@ -650,6 +655,14 @@ let write_globals ?(dir=".") ~fname tp p =
         tys')
     ([],[])
     p.Syntax.p_consts in
+  let arr_types =
+    let extract_array_types acc (id,ty) = match vhdl_type_of ty with
+      | Array _ as t -> t::acc
+      | _ -> acc in
+    List.fold_left 
+      (fun acc (_,f) -> List.fold_left extract_array_types acc f.Typing.tf_vars) 
+      arr_types_c
+      tp.tp_fsms in 
   let ud_types = List.fold_left (extract_ud_types tp) [] tp.tp_types in
   let p = dir ^ Filename.dir_sep ^ fname in
   let oc = open_out p in

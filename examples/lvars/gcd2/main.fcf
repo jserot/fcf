@@ -1,0 +1,13 @@
+let gcd (a:unsigned<16>, b:unsigned<16>) =
+  var m: unsigned<16> = a
+  var n: unsigned<16> = b
+  let compute () = 
+  | m>n -> do m<-m-n then compute ()
+  | m<n -> do n<-n-m then compute ()
+  | m=n -> return m in
+  compute ()
+;
+
+gcd(6,24);
+gcd(13,17);
+gcd(8,4);

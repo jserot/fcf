@@ -1,0 +1,13 @@
+let sum (n:int) =
+  var a: int array[8]
+  let fill (i) = 
+  | i<n -> do a[i]<-i then fill (i+1)
+  | i=n -> add (0,0)
+  and add (i,acc) = 
+  | i<n -> add (i+1,acc+a[i])
+  | i=n -> return acc in
+  fill (0)
+;
+
+sum(4);
+--sum(8);

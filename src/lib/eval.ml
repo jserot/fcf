@@ -22,18 +22,30 @@ let rec eval_expr env e =
    let args = List.map (eval_expr env) [e1; e2] in
    f args
 | EArray es ->
-   Value.Array (List.map (eval_expr env) es)
+   Value.Array (Array.map (eval_expr env) es)
 | EArrRd (a,e') -> 
    begin match
      lookup env e.e_loc a, eval_expr env e' with
      | Value.Array vs, Value.Int i -> 
-        if i >= 0 && i < List.length vs then Array.get (Array.of_list vs) i
+        if i >= 0 && i < Array.length vs then Array.get vs i
         else raise (IllegalArrayAccess e)
      | _, _ ->
         Misc.fatal_error "Illegal array expression" (* should not happen *)
    end
 | ECon0 c -> Con0 c
 | ECon1 (c,e) -> Con1 (c, eval_expr env e)
+
+let eval_action env { ac_desc = lhs, expr } =
+  let v = eval_expr env expr in
+  match lhs with
+  | LVar id ->
+     Env.update env (id,v)
+  | LArr (id,idx) -> 
+      begin match Env.lookup env id, eval_expr env idx with
+       | Array a, Int i -> a.(i) <- v  (* in-place update *)
+       | _ -> Misc.fatal_error "Eval.eval_action: illegal array access" (* should not happen *)
+      end;
+      env
 
 exception Matching_fail
 
@@ -70,7 +82,7 @@ let rec eval_state env state_defns (name,args) =
   let params, transitions = lookup_state name in
   let bindings = List.map2 (fun (id,_) arg -> id, eval_expr env arg) params args in
   let env' = List.fold_left Env.update env bindings in
-  let fireable ({ t_desc= guards, _ } as t) =
+  let fireable ({ t_desc= guards, _, _ } as t) =
     let check_single_guard g = 
       (* Returns [(true, bindings)] is guard [g] (for transition [t]) is fireable *)
       match g.g_desc with
@@ -98,20 +110,29 @@ let rec eval_state env state_defns (name,args) =
       false,
       (t,[]) in
   match Misc.list_find_opt2 fireable transitions with
-  | Some ({ t_desc= _, { ct_desc=Return e } }, bindings') ->
+  | Some ({ t_desc= _, _, { ct_desc=Return e } }, bindings') ->
      let env'' = List.fold_left Env.update env' bindings' in
      eval_expr env'' e
-  | Some ({ t_desc= _, { ct_desc=Next { ap_desc = s',exprs' } } }, bindings') ->
+  | Some ({ t_desc= _, acts, { ct_desc=Next { ap_desc = s',exprs' } } }, bindings') ->
      let env'' = List.fold_left Env.update env' bindings' in
-     eval_state env'' state_defns (s', exprs')
+     let env''' = List.fold_left eval_action env'' acts in
+     eval_state env''' state_defns (s', exprs')
   | None ->
      raise (BlockedInState name)
+
+let init_var env { v_desc=id,ty,iv } =
+  match ty.te_desc, iv with
+  | TeArray (sz,ty'), None -> id, Value.Array (Array.make sz Value.Unknown) (* special case *)
+  | _, Some e -> id, eval_expr env e
+  | _, None -> id, Value.Unknown
 
 let eval_fsm_inst genv fsms { ap_desc=name,args } =
   let f =
     try List.assoc name fsms
     with Not_found -> Misc.fatal_error "Eval.eval_fsm_inst" (* should not happen thx to TC *) in
-  let lenv = List.map2 (fun (id,_) arg -> id, eval_expr [] arg) f.f_params args in
+  let env_p = List.map2 (fun (id,_) arg -> id, eval_expr [] arg) f.f_params args in
+  let env_v = List.map (init_var (env_p @ genv)) f.f_vars in 
+  let lenv = env_p @ env_v in
   match f.f_desc with
   | state_defns, { ap_desc=name, args } ->
      eval_state (lenv @ genv) state_defns (name, args)

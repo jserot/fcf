@@ -36,7 +36,7 @@ and e_desc =
 | EFloat of float
 | ETuple of expr list
 | EBinop of string * expr * expr
-| EArray of expr list
+| EArray of expr array
 | EArrRd of string * expr (* arr[idx] *)
 | ECon0 of string
 | ECon1 of string * expr
@@ -65,6 +65,16 @@ and const_desc = {
     c_typ: type_expr;
   }
 
+type var_decl = {
+  v_desc: string * type_expr * expr option;
+  v_loc: Location.location;
+  mutable v_typ: Types.t
+  }
+    
+type lhs =
+  | LVar of string         (* v := ... *)
+  | LArr of string * expr  (* a[i] := ... *)
+
 type type_defn = 
 | Variant_decl of constr_decl list
 
@@ -89,6 +99,7 @@ type fsm_decl = {
 and fsm_desc = {
     f_name: string;
     f_params: param list;
+    f_vars: var_decl list; 
     f_desc: state_defn list * appl;  (* LET [state_defns] IN state(args) *)
     mutable f_typ: Types.typ_scheme;
   }
@@ -101,7 +112,7 @@ and state_defn = {
   }
 
 and transition = {
-  t_desc: guard list * continuation;
+  t_desc: guard list * action list * continuation;
   t_loc: Location.location;
   }
 
@@ -113,6 +124,13 @@ and guard = {
 and guard_desc = 
 | Cond of expr
 | Match of expr * pattern 
+
+and action = {
+  ac_desc: action_desc;
+  ac_loc: Location.location;
+  }
+
+and action_desc = lhs * expr 
 
 and continuation = {
   ct_desc: cont_desc;
@@ -141,7 +159,10 @@ type program = {
 
 let rec rename_trans_vars f t = { t with t_desc = rename_trans_desc_vars f t.t_desc }
 
-and rename_trans_desc_vars f (guards,cont) = List.map (rename_guard_vars f) guards, rename_cont_vars f cont
+and rename_trans_desc_vars f (guards,acts,cont) =
+  List.map (rename_guard_vars f) guards,
+  List.map (rename_action_vars f) acts,
+  rename_cont_vars f cont
 
 and rename_guard_vars f g = { g with g_desc = rename_guard_desc_vars f g.g_desc }
 
@@ -149,13 +170,17 @@ and rename_guard_desc_vars f g = match g with
 | Cond e -> Cond (rename_expr_vars f e)
 | Match (e,p) -> Match (rename_expr_vars f e, rename_pattern_vars f p)
 
+and rename_action_vars f a = { a with ac_desc = rename_action_desc_vars f a.ac_desc }
+
+and rename_action_desc_vars f (lhs,exp) = rename_lhs_vars f lhs, rename_expr_vars f exp
+
 and rename_expr_vars f e = { e with e_desc = rename_expr_desc_vars f e.e_desc }
 
 and rename_expr_desc_vars f e = match e with 
   | EVar v -> EVar (f v)
   | ETuple es -> ETuple (List.map (rename_expr_vars f) es)
   | EBinop (op, e1, e2) -> EBinop (op, rename_expr_vars f e1, rename_expr_vars f e2)
-  | EArray vs -> EArray (List.map (rename_expr_vars f) vs)
+  | EArray vs -> EArray (Array.map (rename_expr_vars f) vs)
   | EArrRd (a,i) -> EArrRd (a, rename_expr_vars f i)
   | ECon1 (c,e) -> ECon1 (c, rename_expr_vars f e)
   | e -> e
@@ -178,6 +203,10 @@ and rename_appl_vars f a = { a with ap_desc = rename_appl_desc_vars f a.ap_desc 
 
 and rename_appl_desc_vars f (a,exprs) = a, List.map (rename_expr_vars f) exprs
 
+and rename_lhs_vars f lhs = match lhs with
+  | LVar v -> LVar (f v)
+  | LArr (a,i) -> LArr (f a, rename_expr_vars f i)
+
 (* Helpers *)
 
 let mk_expr ?(ty=Types.no_type) e = { e_desc = e; e_loc = Location.no_location; e_typ = ty }
@@ -196,7 +225,7 @@ and string_of_edesc e = match e with
   | EFloat c -> string_of_float c
   | ETuple es -> "(" ^ Misc.string_of_list string_of_expr "," es ^ ")"
   | EBinop (op, e1, e2) -> string_of_expr e1 ^ op ^ string_of_expr e2 (*TODO : add parens *)
-  | EArray vs -> "{" ^ Misc.string_of_list ~max_elems:(!array_print_length) string_of_expr ","  vs ^ "}"
+  | EArray vs -> "{" ^ Misc.string_of_array ~max_elems:(!array_print_length) string_of_expr ","  vs ^ "}"
   | EArrRd (a,i) -> a ^ "[" ^ string_of_expr i ^ "]"
   | ECon0 c -> c 
   | ECon1 (c,e) -> c ^ " " ^ string_of_expr e
@@ -220,3 +249,7 @@ let string_of_guard g = match g.g_desc with
 let string_of_appl_desc (fsm_id,exprs)  = fsm_id ^ "(" ^ Misc.string_of_list string_of_expr "," exprs ^ ")"
                                         
 let string_of_appl a = string_of_appl_desc a.ap_desc
+
+let string_of_lhs lhs = match lhs with
+  | LVar v -> v
+  | LArr (a,i) -> a ^ "[" ^ string_of_expr i ^ "]"

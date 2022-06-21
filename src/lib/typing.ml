@@ -50,6 +50,7 @@ type typed_program = {
 
 and typed_fsm = {
     tf_sig: typ_scheme;
+    tf_vars: (string * Types.t) list;
     tf_states: (string * Types.t) list;
   }
 
@@ -151,14 +152,15 @@ let rec type_expression tenv venv expr =
      let ty_result = TyVar (Types.new_type_var ()) in
      try_unify "expression" ty_op (type_arrow (type_pair ty_e1 ty_e2) ty_result) expr.e_loc ;
      ty_result
-  | EArray [] ->
+  | EArray [||] ->
      Misc.fatal_error "empty array" (* syntactically forbidden *)
-  | EArray (e::es) ->
-     let ty_elem = type_expression tenv venv e in
-     List.iter 
-       (fun e' -> try_unify "array element" (type_expression tenv venv e') ty_elem e'.e_loc)
-       es;
-     type_sized_array (List.length es+1) ty_elem
+  | EArray es ->
+     let ty_elem = type_expression tenv venv es.(0) in
+     for i=1 to Array.length es-1 do
+       let e' = es.(i) in
+       try_unify "array element" (type_expression tenv venv e') ty_elem e'.e_loc
+     done;
+     type_sized_array (Array.length es) ty_elem
   | EArrRd (a,i) ->
      let ty_arr = type_instance (lookup_value venv expr.e_loc a) in
      let ty_idx = type_expression tenv venv i in
@@ -257,6 +259,21 @@ let type_param tenv (id,t) =
     | Some te -> type_of_type_expression tenv te in
   ty, (id, trivial_scheme ty)
 
+let type_var tenv venv ({ v_desc=id,t,iv; v_loc=loc } as v) = 
+  let ty = type_of_type_expression tenv t in
+  let ty' = match iv with 
+    | Some e -> 
+       let ty' = type_expression tenv venv e in
+       try_unify "local variable declaration" ty ty' loc;
+       ty'
+    | None -> 
+       ty in
+  v.v_typ <- ty';
+  id, trivial_scheme ty'
+
+let type_var_decl tenv (id,t) = 
+  id, type_of_type_expression tenv t 
+
 let type_state_pattern id = 
   let ty = TyVar (new_type_var ()) in
   ty, (id, trivial_scheme ty)
@@ -312,8 +329,25 @@ let type_state_guard tenv venv g =
      let venv' = type_match g.g_loc tenv venv expr pat in
      venv'
 
-let type_state_trans tenv venv { t_desc = guards, cont; t_loc = loc } = 
+let type_lhs tenv venv loc lhs = match lhs with
+  | LVar v ->
+     type_instance (lookup_value venv loc v)
+  | LArr (a,i) ->
+     let ty_arr = type_instance (lookup_value venv loc a) in
+     let ty_idx = type_expression tenv venv i in
+     try_unify "array index" ty_idx (type_int ()) loc;
+     let ty_result = TyVar (Types.new_type_var ()) in
+     try_unify "expression" ty_arr (type_array ty_result) loc;
+     ty_result
+
+let type_assignation tenv venv { ac_desc=lhs, exp; ac_loc=loc } =
+  let ty_l = type_lhs tenv venv loc lhs in
+  let ty_r = type_expression tenv venv exp in
+  try_unify "assignation" ty_l ty_r loc
+
+let type_state_trans tenv venv { t_desc = guards, acts, cont; t_loc = loc } = 
   let venv' = List.flatten @@ List.map (type_state_guard tenv venv) guards in
+  List.iter (type_assignation tenv venv) acts;
   type_state_continuation tenv (venv'@venv) cont, loc
 
 let type_state_defn tenv venv sd =
@@ -364,10 +398,11 @@ let type_fsm_decl tenv venv (name,d) =
      gives type (scheme) [t_1 * ... * t_m -> t]
      where t = Type (appl) *)
   let f = d.fd_desc in
-  let ty_params, venv' = List.map (type_param tenv) f.f_params |> List.split in
+  let ty_params, venv_p = List.map (type_param tenv) f.f_params |> List.split in
+  let venv_v = List.map (type_var tenv (venv_p@venv)) f.f_vars in
   let defns, expr = f.f_desc in
-  let venv'' = type_state_defns tenv (venv'@venv) defns in
-  let ty_result = snd @@ type_application tenv (venv''@venv'@venv) expr in
+  let venv_s = type_state_defns tenv (venv_p@venv_v@venv) defns in
+  let ty_result = snd @@ type_application tenv (venv_s@venv_p@venv_v@venv) expr in
   let ty = generalize venv @@ type_arrow (TyProduct ty_params) ty_result in
   f.f_typ <- ty;
   name, ty
@@ -396,9 +431,10 @@ let type_program (builtin_tenv,builtin_venv) p =
     tp_consts = ty_consts;
     tp_fsms =
       List.map
-        (fun (name, {fd_desc={f_typ=ty; f_desc=state_defns,_}}) ->
+        (fun (name, {fd_desc={f_typ=ty; f_vars=vars; f_desc=state_defns,_}}) ->
           name,
           { tf_sig = ty;
+            tf_vars = List.map (fun { v_desc=id,te,_ } -> id, type_of_type_expression tenv te) vars;
             tf_states =
               List.map
                 (fun sd -> let name,_,_ = sd.sd_desc in name, sd.sd_typ)
@@ -444,6 +480,7 @@ and dump_typed_inst (name, ti) =
 
 and dump_typed_fsm (name, f) =
   Printf.printf "fsm %s : %s\n" name (Types.string_of_type_scheme f.tf_sig);
+  List.iter (fun (id,ty) -> Printf.printf "  var %s: %s\n" id (Types.string_of_type ty)) f.tf_vars;
   List.iter (fun (id,ty) -> Printf.printf "  state %s: %s\n" id (Types.string_of_type ty)) f.tf_states;
   flush stdout
 

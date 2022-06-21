@@ -1,8 +1,11 @@
 %token LET
+%token DO
+%token THEN
 %token IN
 %token AND
 %token RETURN
 %token CONST
+%token VAR
 %token TYPE
 %token OF
 %token <int> INT
@@ -15,7 +18,8 @@
 %token BAR
 %token TILDE
 %token COMMA
-%token ARROW
+%token LARROW
+%token RARROW
 %token COLON
 %token QUOTE
 %token EQUAL NOTEQUAL
@@ -64,10 +68,12 @@ let mk_type_expr l desc = { te_desc = desc; te_loc = mk_location l; te_typ = Typ
 let mk_appl l desc = { ap_desc = desc; ap_loc = mk_location l }
 let mk_fsm_decl l desc = { fd_desc = desc; fd_loc = mk_location l }
 let mk_const_decl l desc = { cst_desc = desc; cst_loc = mk_location l }
+let mk_var_decl l desc = { v_desc = desc; v_loc = mk_location l; v_typ = Types.no_type }
 let mk_type_decl l desc = { td_desc = desc; td_loc = mk_location l }
 let mk_state_decl l desc = { sd_desc = desc; sd_loc = mk_location l; sd_typ = Types.no_type; sd_params = [] }
 let mk_transition l desc = { t_desc = desc; t_loc = mk_location l }
 let mk_continuation l desc = { ct_desc = desc; ct_loc = mk_location l; ct_typ = Types.no_type }
+let mk_action l desc = { ac_desc = desc; ac_loc = mk_location l }
 let mk_expr l desc = { e_desc = desc; e_loc = mk_location l; e_typ = Types.no_type }
 let mk_guard l desc = { g_desc = desc; g_loc = mk_location l }
 let mk_pat l desc = { p_desc = desc; p_loc = mk_location l; p_typ=Types.no_type }
@@ -112,9 +118,17 @@ const_decl:
   | CONST name=LID COLON t=type_expr EQUAL v=const_expr SEMICOLON
       { name, mk_const_decl $sloc { c_name=name; c_val=v; c_typ=t } }
 
+var_decl:
+  | VAR name=LID COLON t=type_expr iv=var_init
+      { mk_var_decl $sloc (name,t,iv) }
+
+var_init:
+  | (* Nothing *) { None }
+  | EQUAL e=expr { Some e }
+
 fsm_decl:
-  | LET name=LID ps=params EQUAL ss=states IN s=state_expr SEMICOLON
-      { name, mk_fsm_decl $sloc { f_name=name; f_params=ps; f_desc=ss,s; f_typ=Types.no_type_scheme }  }
+  | LET name=LID ps=params EQUAL vs=list(var_decl) ss=states IN s=state_expr SEMICOLON
+      { name, mk_fsm_decl $sloc { f_name=name; f_params=ps; f_vars=vs; f_desc=ss,s; f_typ=Types.no_type_scheme }  }
 
 fsm_inst:
   | f=LID es=args SEMICOLON { mk_appl $sloc (f,es) }
@@ -138,7 +152,7 @@ state:
      { mk_state_decl $sloc (name, ps, ts) } 
 
 transition:
-  | BAR gs=separated_nonempty_list(COMMA,guard) ARROW c=continuation { mk_transition $sloc (gs,c) }
+  | BAR gs=separated_nonempty_list(COMMA,guard) RARROW acts=actions c=continuation { mk_transition $sloc (gs,acts,c) }
 
 guard:
   | e=expr { mk_guard $sloc (Cond e) }
@@ -171,6 +185,17 @@ continuation:
 state_expr:
   | s=LID es=args { mk_appl $sloc (s,es) }
 
+actions:
+  | (* Nothing *) { [] }
+  | DO acts=separated_nonempty_list(COMMA,action) THEN { acts }
+
+action:
+  | l=lhs LARROW e=expr { mk_action $sloc (l,e) }
+
+lhs:
+  | v=LID { LVar v }
+  | a=LID LBRACKET i=expr RBRACKET { LArr (a,i) }
+
 args:
   | (* Nothing *) { [] }
   | LPAREN es=separated_list(COMMA,expr) RPAREN { es }
@@ -189,7 +214,7 @@ const_expr:
   | e = scalar_expr 
       { e }
   | LBRACE es=separated_list(COMMA,scalar_expr) RBRACE
-      { mk_expr $sloc (EArray es) } 
+      { mk_expr $sloc (EArray (Array.of_list es)) } 
 
 expr:
   | e = simple_expr
