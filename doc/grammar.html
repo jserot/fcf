@@ -125,11 +125,27 @@
       </tr>
       
       <tr class="rule">
+        <th><span class="nonterminal">var_decl</span></th>
+        <td>VAR
+        LID
+        COLON
+        <span class="nonterminal">type_expr</span>
+        <span class="nonterminal">var_init</span></td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">var_init</span></th>
+        <td><span class="option">EQUAL
+        <span class="nonterminal">expr</span></span></td>
+      </tr>
+      
+      <tr class="rule">
         <th><span class="nonterminal">fsm_decl</span></th>
         <td>LET
         LID
         <span class="nonterminal">params</span>
         EQUAL
+        <span class="list"><span class="nonterminal">var_decl</span></span>
         <span class="nonterminal">states</span>
         IN
         <span class="nonterminal">state_expr</span>
@@ -180,7 +196,8 @@
         <th><span class="nonterminal">transition</span></th>
         <td>BAR
         <span class="nonterminal">guard</span><sup>+</sup><sub>COMMA</sub>
-        ARROW
+        RARROW
+        <span class="nonterminal">actions</span>
         <span class="nonterminal">continuation</span></td>
       </tr>
       
@@ -252,6 +269,32 @@
         <th><span class="nonterminal">state_expr</span></th>
         <td>LID
         <span class="nonterminal">args</span></td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">actions</span></th>
+        <td><span class="option">DO
+        <span class="nonterminal">action</span><sup>+</sup><sub>COMMA</sub>
+        THEN</span></td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">action</span></th>
+        <td><span class="nonterminal">lhs</span>
+        LARROW
+        <span class="nonterminal">expr</span></td>
+      </tr>
+      
+      <tr class="rule">
+        <th><span class="nonterminal">lhs</span></th>
+        <td>LID</td>
+      </tr>
+      <tr>
+        <th class="bar"></th>
+        <td>LID
+        LBRACKET
+        <span class="nonterminal">expr</span>
+        RBRACKET</td>
       </tr>
       
       <tr class="rule">
