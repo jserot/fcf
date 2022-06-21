@@ -1,3 +1,7 @@
+# v0.4 - Jun 21, 2022
+
+- (experimental) support for FSM local variables (see `examples/lvars`)
+
 # v0.3 - Mar 19, 2022
 
 - support for algebraic data types down to the VHDL backend (see for ex. `examples/{option,option2,list}`)
