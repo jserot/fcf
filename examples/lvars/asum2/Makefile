@@ -37,6 +37,10 @@ vhdl.run: globals.vhd sum.vhd tb.vhd
 vhdl.view: tb.vcd
 	$(GTKWAVE) -f tb.vcd -a tb.sav> /tmp/gtkwave.log 2>&1
 
+vhdl.qsys: 
+	$(FCFC) -vhdl -vhdl_sopc $(SOPC_DIR) $(VHDL_OPTS) main.fcf
+	cp $(FCF_LIB) $(SOPC_DIR)/ip
+
 clean: 
 	\rm -f *~
 	\rm -f *.o *.dot *.vhd *.cf

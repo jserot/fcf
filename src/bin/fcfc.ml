@@ -26,7 +26,7 @@ let options = [
   "-vhdl", Arg.Unit (fun _ -> mode := Vhdl), "generate VHDL code";
   "-vhdl_quartus", Arg.String Vhdl.set_quartus_target, "generate Quartus project ready for synthesis in the specified dir (default: don't)";
   "-vhdl_top", Arg.String (fun s -> Vhdl.cfg.top <- s), "set VHDL toplevel name (for Quartus projects) (default: first FSM name)";
-  "-vhdl_sopc", Arg.String Vhdl.set_sopc_target, "generate SOPC files to be used by QSys and Quartus in the specified dir (default: don't)";
+  "-vhdl_qsys", Arg.String Vhdl.set_sopc_target, "generate SOPC files to be used by QSys and Quartus in the specified dir (default: don't)";
   "-vhdl_testbench", Arg.Unit (fun _ -> Vhdl.cfg.with_testbench <- true), "generate VHDL testbench (default: false)";
   "-vhdl_heap_size", Arg.Int (fun s -> Vhdl.cfg.heap_size <- s), "set size of local VHDL heaps (default: 16)";
   "-vhdl_print_heap_size", Arg.Unit (fun _ -> Vhdl.cfg.print_heap_size <- true), "print final heap size after each computation (default: false)";
