@@ -2,6 +2,7 @@ FCFC=../../../_build/default/src/bin/fcfc.bc
 GHDL=ghdl
 GHDLOPTS=-P../../../etc/lib/vhdl -fno-color-diagnostics
 GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
+QSYS_DIR=./qsys
 
 run: 
 	$(FCFC) -run -trace main.fcf
@@ -38,8 +39,8 @@ vhdl.view: tb.vcd
 	$(GTKWAVE) -f tb.vcd -a tb.sav> /tmp/gtkwave.log 2>&1
 
 vhdl.qsys: 
-	$(FCFC) -vhdl -vhdl_sopc $(SOPC_DIR) $(VHDL_OPTS) main.fcf
-	cp $(FCF_LIB) $(SOPC_DIR)/ip
+	$(FCFC) -vhdl -vhdl_qsys $(QSYS_DIR) $(VHDL_OPTS) main.fcf
+#	cp $(FCF_LIB) $(SOPC_DIR)/ip
 
 clean: 
 	\rm -f *~
