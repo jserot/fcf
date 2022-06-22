@@ -1,6 +1,9 @@
-# v0.4 - Jun 21, 2022
+# v0.4 - Jun 22, 2022
 
 - (experimental) support for FSM local variables (see `examples/lvars`)
+- added ranged int type (ex: `int<0:20>`)
+- added type coercion operator (ex: `i:>unsigned<8>`); currently only works for int types 
+- (*the two latter additions are mainly useful for generating efficient and synthetisable VHDL code*)
 
 # v0.3 - Mar 19, 2022
 
