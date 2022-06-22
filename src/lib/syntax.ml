@@ -40,6 +40,7 @@ and e_desc =
 | EArrRd of string * expr (* arr[idx] *)
 | ECon0 of string
 | ECon1 of string * expr
+| ECast of expr * type_expr (* e:>ty *)
 
 type pattern =
   { p_desc: pattern_desc;
@@ -183,6 +184,7 @@ and rename_expr_desc_vars f e = match e with
   | EArray vs -> EArray (Array.map (rename_expr_vars f) vs)
   | EArrRd (a,i) -> EArrRd (a, rename_expr_vars f i)
   | ECon1 (c,e) -> ECon1 (c, rename_expr_vars f e)
+  | ECast (e,t) -> ECast (rename_expr_vars f e, t)
   | e -> e
 
 and rename_pattern_vars f p = { p with p_desc = rename_pattern_desc_vars f p.p_desc }
@@ -216,6 +218,29 @@ let mk_binop_guard op e1 e2 = mk_cond_guard @@ mk_bool_expr @@ EBinop(op, mk_exp
 
 (* Printing *)
 
+let rec string_of_type_expr te = string_of_tedesc te.te_desc
+
+and string_of_tedesc te = match te with
+  | TeInt (sg, sz) -> string_of_sign sg ^ string_of_size sz
+  | TeBool -> "bool" 
+  | TeFloat -> "float"
+  | TeArray (sz, t') -> string_of_type_expr t' ^ " array" ^ string_of_int sz
+  | TeConstr (c,[]) -> c
+  | TeConstr (c,ts) ->  Misc.string_of_list string_of_type_expr "_" ts ^ "_" ^ c
+  | TeVar v -> v
+
+and string_of_sign sg = match sg with
+  | Some TeUnsigned -> "unsigned"
+  | Some TeSigned -> "signed"
+  | None -> "int"
+
+and string_of_size sz =
+  let string_of_sz s = match s with
+    | TeWidth s -> string_of_int s
+    | TeRange (lo,hi) -> string_of_int lo ^ ":" ^ string_of_int hi in
+  match sz with
+  | Some s -> "<" ^ string_of_sz s ^ ">"
+  | None -> ""
 let rec string_of_expr e = string_of_edesc e.e_desc
 
 and string_of_edesc e = match e with
@@ -229,6 +254,7 @@ and string_of_edesc e = match e with
   | EArrRd (a,i) -> a ^ "[" ^ string_of_expr i ^ "]"
   | ECon0 c -> c 
   | ECon1 (c,e) -> c ^ " " ^ string_of_expr e
+  | ECast (e,t) -> string_of_expr e ^ ":>" ^ string_of_type_expr t
 
 let rec string_of_pattern p = string_of_pdesc p.p_desc 
 

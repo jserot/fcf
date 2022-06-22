@@ -53,6 +53,7 @@ rule main = parse
   | "|" { BAR }
   | "~" { TILDE }
   | ":" { COLON }
+  | ":>" { COLONGT }
   | "'" { QUOTE }
   | "=" { EQUAL }
   | "!="    { NOTEQUAL }

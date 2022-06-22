@@ -53,7 +53,7 @@ let rec vhdl_type_of t =
   | TyInt (Const Unsigned, Const (Width sz)) -> Unsigned sz
   | TyInt (Const Signed, Const (Width sz)) -> Signed sz
   | TyInt (_, Const (Width sz)) -> Signed sz  (* [int<n>] is interpreted as [signed<n>] *)
-  | TyInt (_, Const (Range (lo,hi))) -> Integer (Some (lo,hi))
+  | TyInt (_, Const (Range (lo,hi))) -> Integer (Some (lo,hi)) 
   | TyInt (_, _) -> Integer None
   | TyProduct [] -> NoType                   
   | TyProduct ts -> Tuple (List.map vhdl_type_of ts)

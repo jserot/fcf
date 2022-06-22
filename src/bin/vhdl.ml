@@ -236,6 +236,26 @@ let rec string_of_expr e =
     (* | Syntax.ECon0 c, Variant vd -> Printf.sprintf "%s_mk_%s(heap,h_ptr,false)" vd.vd_name c
      * | Syntax.ECon1 (c,e'), Variant vd -> Printf.sprintf "%s_mk_%s(heap,h_ptr,%s)" vd.vd_name c (string_of_expr e')  *)
     | Syntax.ETuple es, _ -> Misc.string_of_list string_of_expr "," es
+    | Syntax.ECast (e,t), _ -> 
+       begin match vhdl_type_of e.e_typ, vhdl_type_of t.te_typ with
+       | Unsigned sz1, Unsigned sz2 -> "resize(" ^ string_of_expr e ^ "," ^ string_of_int sz2 ^ ")" 
+       | Unsigned sz1, Signed sz2 -> "resize(signed" ^ string_of_expr e ^ ")," ^ string_of_int sz2 ^ ")" 
+       | Unsigned sz1, Integer None -> "to_integer(" ^ string_of_expr e ^ ")"
+       | Unsigned sz1, Integer (Some (lo2,hi2)) -> "to_integer(" ^ string_of_expr e ^ ")"
+       | Signed sz1, Unsigned sz2 -> "resize(unsigned(" ^ string_of_expr e ^ ")," ^ string_of_int sz2 ^ ")" 
+       | Signed sz1, Signed sz2 -> "resize(" ^ string_of_expr e ^ "," ^ string_of_int sz2 ^ ")"
+       | Signed sz1, Integer None -> "to_integer(" ^ string_of_expr e ^ ")"
+       | Signed sz1, Integer (Some (lo2,hi2)) -> "to_integer(" ^ string_of_expr e ^ ")"
+       | Integer None, Unsigned sz2 -> "to_unsigned(" ^ string_of_expr e ^  "," ^ string_of_int sz2 ^ ")"
+       | Integer None, Signed sz2 -> "to_signed(" ^ string_of_expr e ^  "," ^ string_of_int sz2 ^ ")"
+       | Integer None, Integer None -> string_of_expr e
+       | Integer None, Integer Some ((lo2,hi2)) -> string_of_expr e
+       | Integer (Some (lo1,hi1)), Unsigned sz2 -> "to_unsigned(" ^ string_of_expr e ^  "," ^ string_of_int sz2 ^ ")" (* TOFIX: check width *)
+       | Integer (Some (lo1,hi1)), Signed sz2 -> "to_signed(" ^ string_of_expr e ^  "," ^ string_of_int sz2 ^ ")" (* TOFIX: check width *)
+       | Integer (Some (lo1,hi1)), Integer None -> string_of_expr e
+       | Integer (Some (lo1,hi1)), Integer Some (lo2,hi2) -> string_of_expr e (* TOFIX: check range *)
+       | _, _ -> Misc.fatal_error "Vhdl.string_of_expr: illegal cast"
+       end
     | _ -> Misc.fatal_error "Vhdl.string_of_expr"
   and string_of_shift level op e1 e2 =
     op ^ "(" ^ string_of (level+1) e1 ^ "," ^ string_of_int_expr (level+1) e2 ^ ")"

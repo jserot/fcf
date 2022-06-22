@@ -21,6 +21,7 @@
 %token LARROW
 %token RARROW
 %token COLON
+%token COLONGT
 %token QUOTE
 %token EQUAL NOTEQUAL
 %token FEQUAL FNOTEQUAL
@@ -51,6 +52,7 @@
 %left PLUS MINUS FPLUS FMINUS
 %left TIMES DIV FTIMES FDIV
 %left SHR SHL
+%nonassoc COLONGT
 (* %nonassoc prec_unary_minus         (\* Highest precedence *\) *)
 
 %start <Syntax.program> program
@@ -269,6 +271,8 @@ expr:
       { mk_expr $sloc (EBinop (">=.", e1, e2)) }
   | e1 = expr FLTE e2 = expr
       { mk_expr $sloc (EBinop ("<=.", e1, e2)) }
+  | e = expr COLONGT t = type_expr
+      { mk_expr $sloc (ECast (e, t)) }
 
 simple_expr:
   | v=LID

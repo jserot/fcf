@@ -68,6 +68,14 @@ let try_unify site ty1 ty2 loc =
     TypeConflict(t1, t2) -> raise (Wrong_type (site,t1,t2,loc))
   | TypeCircularity(t1, t2) -> raise (Circular_type (site,t1,t2,loc))
 
+(* Type coercion *)
+
+exception Illegal_type_coercion of Types.t * Types.t * Location.location
+
+let try_cast ty1 ty2 loc = match real_type ty1, real_type ty2 with
+  | TyInt (_,_), TyInt(_,_) -> () (* All ints are coercable. To be refined *)
+  | _, _ -> raise (Illegal_type_coercion (ty1,ty2,loc)) (* ... and nothing else *)
+
 (* Keeping track of polymorphic type constructor instanciations *)
                              
 let specialize_cdesc tvbs c =
@@ -184,6 +192,11 @@ let rec type_expression tenv venv expr =
        let ty_res = type_inst venv cd.cs_res in
        try_unify "expression" ty_arg (type_expression tenv venv e) expr.e_loc;
        ty_res
+  | ECast (e,t) ->
+     let t1 = type_expression tenv venv e in
+     let t2 = type_of_type_expression tenv t in
+     try_cast t1 t2 expr.e_loc;
+     t2
   in
   expr.e_typ <- Types.real_type ty;
   update_tc_insts tenv expr.e_loc ty;

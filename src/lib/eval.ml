@@ -34,6 +34,7 @@ let rec eval_expr env e =
    end
 | ECon0 c -> Con0 c
 | ECon1 (c,e) -> Con1 (c, eval_expr env e)
+| ECast (e,t) -> eval_expr env e (* Check for coercability has been carried out by the type checker *)
 
 let eval_action env { ac_desc = lhs, expr } =
   let v = eval_expr env expr in
