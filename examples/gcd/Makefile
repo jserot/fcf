@@ -33,7 +33,7 @@ vhdl.view: tb.vcd
 
 vhdl.qsys: 
 	$(FCFC) -vhdl -vhdl_qsys $(QSYS_DIR) $(VHDL_OPTS) main.fcf
-	cp $(FCF_LIB) $(QSYS_DIR)/ip
+#	cp $(FCF_LIB) $(QSYS_DIR)/ip
 
 clean: 
 	\rm -f *~
