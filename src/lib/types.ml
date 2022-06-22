@@ -23,7 +23,9 @@ and 'a value =
   | Known of 'a
 
 and sign = Signed | Unsigned
-and size = int 
+and size = 
+  | Width of int (* bits *)
+  | Range of int * int (* lo, hi *)
           
 type typ_scheme =
   { ts_params: typ_params;
@@ -69,7 +71,7 @@ let type_int () = TyInt (Var (make_var ()), Var (make_var ()))
 let type_arrow t1 t2 = TyArrow (t1, t2)
 let type_pair t1 t2 = TyProduct [t1;t2]
 let type_array t = TyArr (Var (make_var ()), t)
-let type_sized_array sz t = TyArr (Const sz, t)
+let type_sized_array sz t = TyArr (Const (Width sz), t)
 let type_constr c ts = TyCon (c, ts)
 let type_unit = TyUnit
 let type_product ts = TyProduct ts
@@ -367,8 +369,12 @@ let string_of_sign sg = match real_attr sg with
   | Const Signed -> "signed"
   | _ -> "int"
 
-let string_of_size sz = match real_attr sz with
-  | Const s -> "<" ^ string_of_int s ^ ">"
+let string_of_size sz =
+  let string_of_sz s = match s with
+    | Width s -> string_of_int s
+    | Range (lo,hi) -> string_of_int lo ^ ":" ^ string_of_int hi in
+  match real_attr sz with
+  | Const s -> "<" ^ string_of_sz s ^ ">"
   | _ -> ""
 
 let rec string_of_type t = match real_type t with

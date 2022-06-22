@@ -21,7 +21,7 @@ and type_expr_desc =
   | TeVar of string 
 
 and int_sign = TeSigned | TeUnsigned 
-and int_size = int
+and int_size = TeWidth of int | TeRange of int * int
 
 type expr = {
   e_desc: e_desc;

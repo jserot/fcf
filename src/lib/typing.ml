@@ -113,7 +113,8 @@ let rec type_of_type_expression tenv te =
     | Some TeUnsigned -> Const Unsigned in
   let size_attr sz = match sz with
     | None -> Var (make_var ())
-    | Some sz -> Const sz in
+    | Some (TeWidth w) -> Const (Width w) 
+    | Some (TeRange (lo,hi)) -> Const (Range (lo,hi)) in
   let ty = match te.te_desc with
     | TeInt (sg, sz) -> TyInt (sign_attr sg, size_attr sz)
     | TeBool -> TyBool

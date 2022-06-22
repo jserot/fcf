@@ -315,5 +315,6 @@ type_expr:
 
 int_size:
   | (* Nothing *) { None }
-  | LT sz=INT GT { Some sz }
+  | LT sz=INT GT { Some (TeWidth sz) }
+  | LT lo=INT COLON hi=INT GT { Some (TeRange (lo,hi)) }
 

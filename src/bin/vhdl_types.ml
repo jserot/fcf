@@ -50,13 +50,14 @@ let rec vhdl_type_of t =
   match real_type t with 
   | TyBool -> Std_logic
   | TyFloat -> Real
-  | TyInt (Const Unsigned, Const sz) -> Unsigned sz
-  | TyInt (Const Signed, Const sz) -> Signed sz
-  | TyInt (_, Const sz) -> Signed sz  (* [int<n>] is interpreted as [signed<n>] *)
+  | TyInt (Const Unsigned, Const (Width sz)) -> Unsigned sz
+  | TyInt (Const Signed, Const (Width sz)) -> Signed sz
+  | TyInt (_, Const (Width sz)) -> Signed sz  (* [int<n>] is interpreted as [signed<n>] *)
+  | TyInt (_, Const (Range (lo,hi))) -> Integer (Some (lo,hi))
   | TyInt (_, _) -> Integer None
   | TyProduct [] -> NoType                   
   | TyProduct ts -> Tuple (List.map vhdl_type_of ts)
-  | TyArr (Const sz, t') when is_scalar_type t' -> Array (sz, vhdl_type_of t') 
+  | TyArr (Const (Width sz), t') when is_scalar_type t' -> Array (sz, vhdl_type_of t') 
   | TyCon (name, ts) as t' -> Variant { vd_name=type_name t'; vd_ctors=[] }
   | TyAdhoc s -> Litteral s
   | t -> failwith ("VHDL backend: illegal type: " ^ Types.string_of_type t)

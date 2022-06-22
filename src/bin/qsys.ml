@@ -46,7 +46,8 @@ let size_of_type where t =
   let open Types in
   let err () = raise (Illegal_type (where, string_of_type t)) in
   let int_size sz = match real_attr sz with
-    | Const s -> s
+    | Const (Width s) -> s
+    | Const (Range (lo,hi)) -> Misc.bits_from_card (hi-lo+1)
     | _ -> cfg.default_int_size in
   match real_type t with
   | TyBool -> 1

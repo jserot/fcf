@@ -1,9 +1,9 @@
 let sum (n:int) =
   var a: unsigned<8> array[128]
-  let fill (i) = 
+  let fill (i:int<0:128>) = 
   | i<n -> do a[i]<-1 then fill (i+1)
   | i=n -> add (0,0)
-  and add (i,acc:unsigned<8>) = 
+  and add (i:int<0:128>,acc:unsigned<8>) = 
   | i<n -> add (i+1,acc+a[i])
   | i=n -> return acc in
   fill (0)

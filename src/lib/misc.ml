@@ -54,7 +54,9 @@ let list_find_opt2 (f:'a->bool*'b) (l:'a list) =
     | x::xs -> (match f x with true, r -> Some r | false, _ -> find xs) in
   find l
 
-let bits_from_card n = int_of_float (ceil (log (float_of_int n)))
+let log2 x = log x /. log 2.
+
+let bits_from_card n = int_of_float (ceil (log2 (float_of_int n)))
 
 let quote q s = q ^ s ^ q
 
