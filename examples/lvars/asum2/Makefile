@@ -20,12 +20,12 @@ vhdl.code:
 	$(FCFC) -vhdl -vhdl_testbench $(VHDL_OPTS) main.fcf
 
 vhdl.quartus: 
-	$(FCFC) -vhdl -vhdl_quartus /Users/jserot/Desktop/SF2/vhdl/fcf/asum main.fcf
+	$(FCFC) -vhdl -vhdl_quartus /Users/jserot/Desktop/SF2/vhdl/fcf/asum2 main.fcf
 
 vhdl.check:
-	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics globals.vhd
-	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics foo.vhd
-	$(GHDL) -a -P../../etc/lib/vhdl -fno-color-diagnostics tb.vhd
+	$(GHDL) -a -P../../../etc/lib/vhdl -fno-color-diagnostics globals.vhd
+	$(GHDL) -a -P../../../etc/lib/vhdl -fno-color-diagnostics sum.vhd
+	$(GHDL) -a -P../../../etc/lib/vhdl -fno-color-diagnostics tb.vhd
 
 vhdl.run: globals.vhd sum.vhd tb.vhd
 	$(GHDL) -a $(GHDLOPTS) globals.vhd 
