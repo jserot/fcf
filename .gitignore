@@ -18,5 +18,6 @@ examples/**/*.ghw
 examples/**/qsys/hw/db
 examples/**/qsys/hw/incremental_db
 examples/**/qsys/hw/output_files
+examples/**/qsys/qsys/*.tcl
 examples/*/*/tb
 *.merlin
