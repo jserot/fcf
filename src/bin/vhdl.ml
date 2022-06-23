@@ -13,7 +13,8 @@ type config = {
   mutable act_sem: act_semantics;
   mutable dump_cc_intf: bool;
   mutable support_library: string;
-  mutable support_packages: string list;
+  mutable default_support_pkgs: package list;
+  mutable heap_support_pkg: package;
   mutable types_pkg_name: string;
   mutable consts_pkg_name: string;
   mutable with_testbench: bool;
@@ -37,7 +38,9 @@ and act_semantics =  (** Interpretation of actions associated to transitions *)
   | Sequential        (** sequential (ex: [x:=x+1,y:=x] with [x=1] gives [x=2,y=2]) *)
   | Synchronous       (** synchronous (ex: [x:=x+1,y=x] with [x=1] gives [x=2,y=1]) *)
 
-  
+and package = 
+  | SysP of string    (* System package - normally in support library (default: "fcf") *)
+  | AppP of string    (* Application specific package - always is work lib *)
   
 exception Error of string * string  (* where, msg *)
 exception Duplicate_pattern of string * Fsm.t  (* when a pattern variable is used several times with different types across guards *)
@@ -56,7 +59,8 @@ let cfg = {
   act_sem = Synchronous;  (* Default *)
   dump_cc_intf = false;
   support_library = "fcf";
-  support_packages = ["fcf.utils"; "fcf.values"];
+  default_support_pkgs = [SysP "utils"]; 
+  heap_support_pkg = SysP "values"; (* only required for code using heap allocation *)
   types_pkg_name = "types";
   consts_pkg_name = "consts";
   with_testbench = false;
@@ -73,12 +77,15 @@ let cfg = {
 
 let set_quartus_target d =
   cfg.target <- Quartus d;
-  cfg.support_library <- "work";
-  cfg.support_packages <- ["work.utils"; "work.values"]
+  cfg.support_library <- "work"
 
 let set_sopc_target d =
-  cfg.target <- Sopc d
-  (* TO FIX ? directories and package names *)
+  cfg.target <- Sopc d;
+  cfg.support_library <- "work"
+
+let string_of_pkg = function
+| SysP p -> Printf.sprintf "%s.%s.all" cfg.support_library p 
+| AppP p -> Printf.sprintf "work.%s.all" p 
 
 open Vhdl_types
 
@@ -451,7 +458,7 @@ let dump_module_types_package oc m =
   fprintf oc "  subtype %s_heap_t is heap_t (0 to %s_heap_size-1);\n" m.v_name m.v_name;
   fprintf oc "  subtype %s_hptr_t is integer range 0 to %s_heap_size-1;\n" m.v_name m.v_name;
   fprintf oc "end package;\n\n";
-  cfg.support_packages <- cfg.support_packages @ ["work." ^ pack_name]
+  cfg.default_support_pkgs <- cfg.default_support_pkgs @ [AppP pack_name]
 
 let dump_module_intf kind oc m = 
   let modname = m.v_name in
@@ -469,21 +476,22 @@ let dump_libraries ?(extra_pkgs=[]) oc =
   fprintf oc "library ieee;\n";
   fprintf oc "use ieee.std_logic_1164.all;\n";
   fprintf oc "use ieee.numeric_std.all;\n";
-  fprintf oc "library %s;\n" cfg.support_library;
+  if cfg.support_library <> "work" then 
+    fprintf oc "library %s;\n" cfg.support_library;
   List.iter
-    (fun p -> fprintf oc "use %s.all;\n" p)
-    (cfg.support_packages @ List.map (fun p -> "work." ^ p) extra_pkgs);
+    (fun p -> fprintf oc "use %s;\n" (string_of_pkg p))
+    (cfg.default_support_pkgs @ extra_pkgs);
   fprintf oc "\n"
 
 let dump_model ~pkgs fname m =
   let oc = open_out fname in
-  dump_libraries oc;
-  List.iter (fprintf oc "use work.%s.all;\n") pkgs;
+  dump_libraries ~extra_pkgs:(if m.v_has_heap then [cfg.heap_support_pkg] else []) oc;
+  List.iter (fun p -> fprintf oc "use %s;\n" (string_of_pkg p)) pkgs;
   fprintf oc "\n";
   if m.v_has_heap then begin
     dump_module_types_package oc m;
-    dump_libraries oc;
-    List.iter (fprintf oc "use work.%s.all;\n") pkgs;
+    dump_libraries ~extra_pkgs:[cfg.heap_support_pkg] oc;
+    List.iter (fun p -> fprintf oc "use %s;\n" (string_of_pkg p)) pkgs;
     end;
   dump_module_intf "entity" oc m;
   fprintf oc "\n";
@@ -514,7 +522,7 @@ let write_fsm ?(dir="") ~pkgs ~prefix f =
   dump_model ~pkgs (p ^ ".vhd") m;
   m.v_name, m
 
-let dump_variant_package oc pkgs t =
+let dump_variant_package oc ?(extra_pkgs=[]) pkgs t =
   match t with 
   | Variant vd -> 
       let name = vd.vd_name in
@@ -567,7 +575,7 @@ let dump_variant_package oc pkgs t =
                 vc.vc_name )
           ctors in
       let printer = sprintf "function %s_to_string(signal heap: heap_t; v: value) return string" name in
-      dump_libraries ~extra_pkgs:pkgs oc;
+      dump_libraries ~extra_pkgs:(extra_pkgs @ pkgs) oc;
         (* TOFIX: this makes each user-defined type depend on _every_ type previously type.
            A clever approach would associate to each type a list of types on which it depends ! *)
       fprintf oc "package %s is\n" name;
@@ -577,7 +585,7 @@ let dump_variant_package oc pkgs t =
       List.iter (fun (vc,s) -> fprintf oc "  %s;\n" s) inspectors;
       if cfg.target = Flat then fprintf oc "  %s;\n" printer;
       fprintf oc "end package;\n\n";
-      dump_libraries ~extra_pkgs:pkgs oc;
+      dump_libraries ~extra_pkgs:(extra_pkgs @ pkgs) oc;
         (* TOFIX: this makes each user-defined type depend on _every_ type previously type.
            A clever approach would associate to each type a list of types on which it depends ! *)
       fprintf oc "\n";
@@ -657,12 +665,12 @@ let dump_variant_package oc pkgs t =
         end;
       fprintf oc "end package body;\n";
       fprintf oc "\n";
-      name::pkgs
+      AppP name::pkgs
   | _ -> 
      pkgs
     
 let write_globals ?(dir=".") ~fname tp p = 
-  let used_packages = ref ([]: string list) in
+  let used_packages = ref ([]: package list) in
   let typed_consts, arr_types_c = 
     List.fold_left
       (fun (tcs,tys) (id,d) ->
@@ -686,15 +694,18 @@ let write_globals ?(dir=".") ~fname tp p =
   let ud_types = List.fold_left (extract_ud_types tp) [] tp.tp_types in
   let p = dir ^ Filename.dir_sep ^ fname in
   let oc = open_out p in
+  let extra_pkgs = match ud_types with (* crude approximation. TO FIX *)
+    | [] -> []
+    | _ -> [SysP "values"] in
   if arr_types <> [] then begin
-      dump_libraries oc;
+      dump_libraries ~extra_pkgs:extra_pkgs oc;
       fprintf oc "package %s is\n" cfg.types_pkg_name;
       List.iter (dump_type_decl oc) arr_types;
       fprintf oc "end package;\n\n";
-      used_packages := cfg.types_pkg_name :: !used_packages;
+      used_packages := AppP cfg.types_pkg_name :: !used_packages;
       end ;
   if typed_consts <> [] then begin
-      dump_libraries oc;
+      dump_libraries ~extra_pkgs:extra_pkgs oc;
       if arr_types <> [] then fprintf oc "use work.%s.all;\n" cfg.types_pkg_name;
       fprintf oc "package %s is\n" cfg.consts_pkg_name;
       List.iter (dump_const_decl oc ~with_val:false) typed_consts;
@@ -703,9 +714,9 @@ let write_globals ?(dir=".") ~fname tp p =
       fprintf oc "package body %s is\n" cfg.consts_pkg_name;
       List.iter (dump_const_decl oc ~with_val:true) typed_consts;
       fprintf oc "end package body;\n";
-      used_packages := cfg.consts_pkg_name :: !used_packages;
+      used_packages := AppP cfg.consts_pkg_name :: !used_packages;
       end ;
-  let other_packages = List.fold_left (dump_variant_package oc) [] ud_types in
+  let other_packages = List.fold_left (dump_variant_package oc ~extra_pkgs) [] ud_types in
   used_packages := !used_packages @ other_packages;
   printf "Wrote file %s\n" p;
   close_out oc;
@@ -873,8 +884,8 @@ let sort_fsm_insts insts =
 let write_testbench ~dir ~fname ~pkgs ~variants named_fsms insts = 
   let oc = open_out fname in
   let fsms = List.map snd named_fsms in
-  dump_libraries oc;
-  List.iter (fprintf oc "use work.%s.all;\n") pkgs;
+  dump_libraries ~extra_pkgs:(if variants <> [] then [cfg.heap_support_pkg] else []) oc;
+  List.iter (fun p -> fprintf oc "use %s;\n" (string_of_pkg p)) pkgs;
   fprintf oc "\n";
   fprintf oc "entity %s is\n" cfg.tb_name;
   fprintf oc "end entity;\n";
