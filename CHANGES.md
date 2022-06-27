@@ -1,4 +1,4 @@
-# v0.4 - Jun 22, 2022
+# v0.4 - Jun 27, 2022
 
 - (experimental) support for FSM local variables (see `examples/lvars`)
 - added ranged int type (ex: `int<0:20>`)
