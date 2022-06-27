@@ -10,6 +10,9 @@ type cfg = {
   mutable ip_rel_dir: string;
   mutable default_int_size: int;
   compiler: string;
+  mutable base_support_unit: string;
+  mutable globals_unit: string;
+  mutable heap_support_unit: string;
   }
 
 let cfg = {
@@ -20,7 +23,10 @@ let cfg = {
   ip_group = "my_ips";
   ip_rel_dir = "../ip";
   default_int_size = 32;
-  compiler = "fcfc"
+  compiler = "fcfc";
+  base_support_unit = "utils.vhd";
+  globals_unit = "globals.vhd";
+  heap_support_unit = "values.vhd"
   }
     
 exception Too_many_ios of int * int
@@ -54,6 +60,24 @@ let size_of_type where t =
   | TyInt (_, sz) -> int_size sz
   | _ -> err ()
 
+let from_std_logic_vector src dst_ty = match Vhdl_types.vhdl_type_of dst_ty with
+  | Vhdl_types.Unsigned sz -> Printf.sprintf "resize(unsigned(%s),%d)" src sz
+  | Vhdl_types.Signed sz -> Printf.sprintf "resize(signed(%s),%d)" src sz
+  | Vhdl_types.Integer _ -> Printf.sprintf "to_integer(unsigned(%s))" src
+  | Vhdl_types.Std_logic -> Printf.sprintf "(%s).(0)" src
+  | Vhdl_types.Variant vd -> src (* Values are already encoded as 32-bit std_logic_vectors - cf values.vhd *)
+  | Vhdl_types.Litteral "block_t" -> src (* This is a hack *) 
+  | ty -> failwith ("QSys backend: cannot convert type std_logic_vector to type " ^ (Vhdl_types.string_of_vhdl_type ty))
+
+let to_std_logic_vector src src_ty sz = match Vhdl_types.vhdl_type_of src_ty with
+  | Vhdl_types.Unsigned _ -> Printf.sprintf "std_logic_vector(resize(%s,%d))" src sz
+  | Vhdl_types.Signed _ -> Printf.sprintf "std_logic_vector(resize(%s,%d))" src sz
+  | Vhdl_types.Integer _ -> Printf.sprintf "std_logic_vector(to_unsigned(%s,%d))" src sz
+  | Vhdl_types.Variant vd -> src (* Values are already encoded as 32-bit std_logic_vectors - cf values.vhd *)
+  | Vhdl_types.Std_logic -> String.make (sz-1) '0' ^ src 
+  | Vhdl_types.Litteral "block_t" -> src (* This is a hack *) 
+  | ty -> failwith ("QSys backend: cannot convert type " ^ Vhdl_types.string_of_vhdl_type ty ^ " to type std_logic_vector")
+    
 (* Custom Component Avalon wrapper *)
 
 let dump_cc_intf oc m = 
@@ -124,8 +148,9 @@ let dump_cc_arch oc m =
   fprintf oc "                write_state <= StartAsserted;\n";
   List.iteri
     (fun i (n,ty) ->
+      let src = Printf.sprintf "avs_%s_writedata" cfg.avs_slave_id in 
       fprintf oc "              when \"%s\" =>\n" (inp_addr i); 
-      fprintf oc "                %s <= resize(unsigned(avs_%s_writedata),%d);\n" n cfg.avs_slave_id (size_of_type n ty))
+      fprintf oc "                %s <= %s;\n" n (from_std_logic_vector src ty))
     inps;
   fprintf oc "              when others =>\n";
   fprintf oc "                null; \n";
@@ -145,20 +170,20 @@ let dump_cc_arch oc m =
     cfg.avs_slave_id
     (String.make (cfg.avs_data_width-1) '0');
   List.iteri
-    (fun i (n,_) ->
-      fprintf oc "          when \"%s\" => avs_%s_readdata <= std_logic_vector(resize(%s,%d));\n"
+    (fun i (n,ty) ->
+      let src = to_std_logic_vector n ty cfg.avs_data_width in
+      fprintf oc "          when \"%s\" => avs_%s_readdata <= %s;\n"
         (inp_addr i)
         cfg.avs_slave_id
-        n
-        cfg.avs_data_width)
+        src)
     inps;
   List.iteri
-    (fun i (n,_) ->
-      fprintf oc "          when \"%s\" => avs_%s_readdata <= std_logic_vector(resize(%s,%d));\n"
+    (fun i (n,ty) ->
+      let src = to_std_logic_vector n ty cfg.avs_data_width in
+      fprintf oc "          when \"%s\" => avs_%s_readdata <= %s;\n"
         (outp_addr i)
         cfg.avs_slave_id
-        n
-        cfg.avs_data_width)
+        src)
     outps;
   fprintf oc "          when others => null; \n";
   fprintf oc "        end case;\n";
@@ -220,6 +245,8 @@ let dump_hw_tcl name fname source =
   fprintf oc "set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false\n";
   fprintf oc "add_fileset_file %s.vhd VHDL PATH %s/%s.vhd TOP_LEVEL_FILE\n" name_cc cfg.ip_rel_dir name_cc;
   fprintf oc "add_fileset_file %s.vhd VHDL PATH %s/%s.vhd\n" name cfg.ip_rel_dir name;
+  fprintf oc "add_fileset_file %s VHDL PATH %s/%s\n" cfg.base_support_unit cfg.ip_rel_dir cfg.base_support_unit; 
+  fprintf oc "add_fileset_file %s VHDL PATH %s/%s\n" cfg.globals_unit cfg.ip_rel_dir cfg.globals_unit; 
   fprintf oc "#\n";
   fprintf oc "# parameters\n";
   fprintf oc "#\n";

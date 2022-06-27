@@ -8,4 +8,4 @@ check:
 
 clean:
 	\rm -f *.o *.cf *~
-	\rm *.vhd
+	\rm -f globals.vhd sum.vhd sum_cc.vhd

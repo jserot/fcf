@@ -4,6 +4,7 @@ GHDL=ghdl
 GHDLOPTS=-P../../etc/lib/vhdl -fno-color-diagnostics
 GTKWAVE=PATH=/Applications/gtkwave.app/Contents/MacOS:$(PATH) gtkwave-bin
 VHDL_OPTS=
+QSYS_DIR=./qsys
 
 run: 
 	$(FCFC) -run -trace main.fcf
@@ -30,6 +31,9 @@ vhdl.run: globals.vhd silly.vhd tb.vhd
 
 vhdl.view: tb.ghw
 	$(GTKWAVE) -f tb.ghw -a tb.sav> /tmp/gtkwave.log 2>&1
+
+vhdl.qsys: 
+	@echo "** Sorry, Qsys backend not implemented for components using heap allocation"
 
 clean: 
 	\rm -f *~

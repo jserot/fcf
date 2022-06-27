@@ -39,3 +39,4 @@ clean:
 	\rm -f *~
 	\rm -f *.o *.dot *.vhd *.cf
 	\rm -f tb tb.vcd
+	(cd qsys; make clean)

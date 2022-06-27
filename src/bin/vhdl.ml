@@ -127,7 +127,9 @@ let add_heap_init_signals f =
   { f with
     m_states = f.m_states @ [hstate]; 
     m_inps = f.m_inps
-             @ ["h_init", Types.TyBool; "h_icnt", Types.TyAdhoc ("integer range 0 to " ^ string_of_int (heap_size-1));
+             (* @ ["h_init", Types.TyBool; "h_icnt", Types.TyAdhoc ("integer range 0 to " ^ string_of_int (heap_size-1)); *)
+             @ ["h_init", Types.TyBool;
+                "h_icnt", Types.TyInt (Const Unsigned, Const (Range (0, heap_size-1)));
                 "h_ival", Types.TyAdhoc "block_t"];
     m_outps = f.m_outps
              @ ["h_heap", Types.TyAdhoc (name "heap_t"); "h_hptr", Types.TyAdhoc (name "hptr_t") ];

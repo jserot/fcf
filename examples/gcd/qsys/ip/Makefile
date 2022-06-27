@@ -8,4 +8,4 @@ check:
 
 clean:
 	\rm -f *.o *.cf *~
-	\rm *.vhd
+	\rm -f globals.vhd gcd.cc gcd_cc.vhd

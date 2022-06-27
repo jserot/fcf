@@ -38,4 +38,6 @@ term:
 	nios2-terminal
 
 clean:
+	(cd ip; make clean)
 	(cd bsp; make clean)
+	(cd sw; make clean)

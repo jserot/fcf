@@ -1,9 +1,6 @@
 ## VHDL backend
 
-- fix bug in `.tcl` file generation in `examples/lvars/asum2` (add `globals.vhd`, remove `fcf` lib
-  and packages)
-- fix bug in VHDL code in `examples/lvars/asum2/qsys/ip/sum_cc.vhd` (some types and related conversion fns
-  are wrong; see `.../SF2/vhdl/fcf/asum2/qsys` for the right code)
+- support for Qsys generation for FSMs using heap allocation (ex: `examples/option`)
 
 ## Typing
 

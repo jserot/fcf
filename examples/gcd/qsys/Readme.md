@@ -21,36 +21,28 @@ Instructions
    - `gcd_cc_hw.tcl` (the custom component description to be used by QSys)
    and copy them in the corresponding subdirs of this demo dir.
 
-2. Remove the lines
-```
-library fcf
-use fcf.utils.all
-use fcf.values.all
-```
-in file `gcd.vhd`. The `fcf` support library is not used.
-   
-3. From the `qsys` directory, run the `nios2_command_shell` script (located
+2. From the `qsys` directory, run the `nios2_command_shell` script (located
    in `<altera>/nios2eds` directory, where `<altera>` is the root of the Intel/Altera software
    installation)
 
-4. Launch the `QSys` tool : `make qsys`
+3. Launch the `QSys` tool : `make qsys`
    This will open the `QSys` SOPC editor. Check that the `gcd_cc` custom component is here and
    properly connected (it is named `gcd_cc_0`).
    Generate the HDL code : `QSys > Generate > Generate HDL`
 
-5. Quit QSys, and from the Nios2 command shell invoke `make bitstream`
+4. Quit QSys, and from the Nios2 command shell invoke `make bitstream`
    This will compile the hardware descrition and build the bitstream to be loaded on the target FPGA 
    (this may take a few minutes)
    
-6. Connect the target board and upload the hardware configuration :
+5. Connect the target board and upload the hardware configuration :
 
    - `make hw` 
 
-7. Build the software part (to be run on the Nios2 soft-core and invoking the GCD custom
+6. Build the software part (to be run on the Nios2 soft-core and invoking the GCD custom
    component) : `make bsp; make makef; make build`
    The source code is located in directory `./sw`.
    
-8. Upload the compiled binary executable to the Nios2 and run it : `make run`
+7. Upload the compiled binary executable to the Nios2 and run it : `make run`
    Results will be displayed in the terminal.
 
 
