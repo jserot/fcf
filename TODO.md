@@ -1,6 +1,8 @@
 ## VHDL backend
 
 - support for Qsys generation for FSMs using heap allocation (ex: `examples/option`)
+- added ROM inference for `examples/cordic/vfx` (see:
+  https://www.intel.com/content/www/us/en/docs/programmable/683082/21-3/inferring-rom-functions-from-hdl-code.html)
 
 ## Typing
 
