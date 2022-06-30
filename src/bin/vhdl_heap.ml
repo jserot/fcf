@@ -36,13 +36,13 @@ let rec alloc ?(depth=2) variants heap h_ptr (e:Syntax.expr) =
   match e.e_desc,vhdl_type_of (e.e_typ) with
   | EInt i, Unsigned _
   | EInt i, Signed _
-  | EInt i, Integer _ -> Imm (Int i), h_ptr (* no alloc *)
-  | EBool b, Std_logic -> Imm (Bool b), h_ptr (* no alloc *)
-  | EFloat f, Real -> Imm (Float f), h_ptr (* no alloc *)
+  | EInt i, Integer _ -> h_ptr, Imm (Int i) (* no alloc *)
+  | EBool b, Std_logic -> h_ptr, Imm (Bool b) (* no alloc *)
+  | EFloat f, Real -> h_ptr, Imm (Float f) (* no alloc *)
   | ECon0 c, Variant vd -> 
      let vd' = lookup_variant_desc vd.vd_name variants in
      let vc = lookup_variant_ctor c vd'.vd_ctors in 
-     Imm (Int vc.vc_tag), h_ptr  (* no alloc: nullary ctors are represented by their tag *)
+     h_ptr, Imm (Int vc.vc_tag)  (* no alloc: nullary ctors are represented by their tag *)
   | ECon1 (c,args), Variant vd -> 
      (try
        (* Printf.printf "%s Vhdl_heap.alloc(%s, h_ptr=%d)\n" (tab depth) (Syntax.string_of_expr e) h_ptr; *)
@@ -50,11 +50,11 @@ let rec alloc ?(depth=2) variants heap h_ptr (e:Syntax.expr) =
        let vc = lookup_variant_ctor c vd'.vd_ctors in 
        let args' = begin match args.Syntax.e_desc with Syntax.ETuple es -> es | _ -> [args] end in
        (* Allocate arguments first ... *)
-       let v_args, h_ptr' = 
-         Misc.list_map_fold  
+       let h_ptr', v_args = 
+         List.fold_left_map  
            (fun h_ptr arg ->
-             let v, h_ptr' = alloc ~depth:(depth+2) variants heap h_ptr arg in 
-             v, h_ptr')
+             let h_ptr', v = alloc ~depth:(depth+2) variants heap h_ptr arg in 
+             h_ptr', v)
            h_ptr
            args' in
        (* Printf.printf "%s values=[%s] h_ptr'=%d\n" (tab depth) (Misc.string_of_list string_of_value "," v_args) h_ptr'; *)
@@ -67,7 +67,7 @@ let rec alloc ?(depth=2) variants heap h_ptr (e:Syntax.expr) =
            (* Printf.printf "%s heap[%d]=%s\n" (tab depth) (h_ptr'+i+1) (string_of_value v) *)
            )
          v_args;
-       Ptr h_ptr', h_ptr'+vc.vc_arity+1
+       h_ptr'+vc.vc_arity+1, Ptr h_ptr'
      with
        Invalid_argument _ -> raise Heap_full)
   | _, _ -> failwith ("Heap.alloc: illegal value: " ^ Syntax.string_of_expr e ^ ": " ^ Types.string_of_type e.e_typ)

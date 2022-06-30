@@ -12,7 +12,7 @@ let check_dir ~strict name =
       else
         begin
           Printf.printf "Creating directory %s\n" name;
-          Unix.mkdir name 0o777
+          Sys.mkdir name 0o777
         end
     end
 

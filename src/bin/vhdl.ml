@@ -127,7 +127,6 @@ let add_heap_init_signals f =
   { f with
     m_states = f.m_states @ [hstate]; 
     m_inps = f.m_inps
-             (* @ ["h_init", Types.TyBool; "h_icnt", Types.TyAdhoc ("integer range 0 to " ^ string_of_int (heap_size-1)); *)
              @ ["h_init", Types.TyBool;
                 "h_icnt", Types.TyInt (Const Unsigned, Const (Range (0, heap_size-1)));
                 "h_ival", Types.TyAdhoc "block_t"];
@@ -838,8 +837,8 @@ let dump_sim_process oc variants fsms (fsm,insts) =
     List.mapi
       (fun i ({Syntax.ap_desc=f,args} as appl) ->
         let heap = Vhdl_heap.make cfg.heap_size in
-        let arg_vals, heap_size = 
-          try Misc.list_map_fold (Vhdl_heap.alloc variants heap) 0 args
+        let heap_size, arg_vals = 
+          try List.fold_left_map (Vhdl_heap.alloc variants heap) 0 args
           with Vhdl_heap.Heap_full -> raise (Heap_full (Syntax.string_of_appl appl)) in
         i+1, Syntax.string_of_appl appl, arg_vals, Array.sub heap 0 heap_size)
       insts in

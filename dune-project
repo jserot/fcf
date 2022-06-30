@@ -9,7 +9,7 @@
   (depends
     (dune (>= 2.0))
     (menhir (>= 2.0))
-    (ocaml (>= 4.08))))
+    (ocaml (>= 4.14))))
 
 (generate_opam_files true)
 (wrapped_executables false) 
