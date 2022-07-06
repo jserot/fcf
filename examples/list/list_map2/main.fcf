@@ -1,6 +1,6 @@
 type 'a list = Nil | Cons of 'a * 'a list; 
 
-let inc_list (l:int list) = 
+fsm inc_list (l:int list) = 
   let mapf (l,acc) =
   | l~Nil -> revf(acc,Nil)
   | l~Cons(v,ll) -> mapf (ll, Cons (v+1,acc))
@@ -10,7 +10,7 @@ let inc_list (l:int list) =
   mapf (l,Nil)
 ;
 
-inc_list(Nil);
-inc_list(Cons(1,Nil));
-inc_list(Cons(1,Cons(2,Nil)));
-inc_list(Cons(1,Cons(2,Cons(3,Nil))));
+let _ = inc_list(Nil);
+let _ = inc_list(Cons(1,Nil));
+let _ = inc_list(Cons(1,Cons(2,Nil)));
+let _ = inc_list(Cons(1,Cons(2,Cons(3,Nil))));

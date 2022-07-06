@@ -127,23 +127,34 @@ let init_var env { v_desc=id,ty,iv } =
   | _, Some e -> id, eval_expr env e
   | _, None -> id, Value.Unknown
 
-let eval_fsm_inst genv fsms { ap_desc=name,args } =
+let eval_fsm_inst genv fsms env (lhs, { ap_desc=name,args }) =
   let f =
     try List.assoc name fsms
     with Not_found -> Misc.fatal_error "Eval.eval_fsm_inst" (* should not happen thx to TC *) in
-  let env_p = List.map2 (fun (id,_) arg -> id, eval_expr [] arg) f.f_params args in
+  let env_p = List.map2 (fun (id,_) arg -> id, eval_expr env arg) f.f_params args in
   let env_v = List.map (init_var (env_p @ genv)) f.f_vars in 
   let lenv = env_p @ env_v in
+  let extract_values lhs v = match lhs, v with
+    | [l], _ -> [l.top_id, v]
+    |  ls, Value.Tuple vs when List.length ls = List.length vs -> List.map2 (fun l v -> l.top_id, v) ls vs 
+    | _, _ -> failwith "Eval.eval_fsm_inst" (* should not happen *) in
   match f.f_desc with
   | state_defns, { ap_desc=name, args } ->
-     eval_state (lenv @ genv) state_defns (name, args)
+     let v = eval_state (lenv @ genv @ env) state_defns (name, args) in
+     let env' = extract_values lhs v in
+     env' @ env,
+     (lhs, v)
 
-let fsm_env = List.map (function n, fd -> n, fd.fd_desc)
-            
 let eval_const_decl env (name,d) = 
   (name, eval_expr env d.cst_desc.c_val)
 
 let eval_program p = 
   let global_env = List.map (eval_const_decl []) p.p_consts in
-  List.map (eval_fsm_inst global_env (fsm_env p.p_fsms)) p.p_insts
+  let fsm_env = List.map (function n, fd -> n, fd.fd_desc) p.p_fsms in
+  let _, res = 
+    List.fold_left_map
+      (eval_fsm_inst global_env fsm_env)
+      []
+      p.p_insts in
+  res
 

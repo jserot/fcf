@@ -1,3 +1,4 @@
+%token FSM
 %token LET
 %token DO
 %token THEN
@@ -22,6 +23,7 @@
 %token RARROW
 %token COLON
 %token COLONGT
+%token UNDER
 %token QUOTE
 %token EQUAL NOTEQUAL
 %token FEQUAL FNOTEQUAL
@@ -79,6 +81,7 @@ let mk_action l desc = { ac_desc = desc; ac_loc = mk_location l }
 let mk_expr l desc = { e_desc = desc; e_loc = mk_location l; e_typ = Types.no_type }
 let mk_guard l desc = { g_desc = desc; g_loc = mk_location l }
 let mk_pat l desc = { p_desc = desc; p_loc = mk_location l; p_typ=Types.no_type }
+let mk_top_ident id = { top_id = id; top_typ=Types.no_type }
 %}
 
 %%
@@ -87,7 +90,7 @@ program:
   | ts=list(type_decl)
     cs=list(const_decl)
     fs=nonempty_list(fsm_decl)
-    es=list(fsm_inst) EOF
+    es=list(top_decl) EOF
       { { p_types=ts; p_consts=cs; p_fsms=fs; p_insts=es } }
         
 type_decl:
@@ -129,11 +132,18 @@ var_init:
   | EQUAL e=expr { Some e }
 
 fsm_decl:
-  | LET name=LID ps=params EQUAL vs=list(var_decl) ss=states IN s=state_expr SEMICOLON
+  | FSM name=LID ps=params EQUAL vs=list(var_decl) ss=states IN s=state_expr SEMICOLON
       { name, mk_fsm_decl $sloc { f_name=name; f_params=ps; f_vars=vs; f_desc=ss,s; f_typ=Types.no_type_scheme }  }
 
+top_decl:
+  | LET lhs=separated_nonempty_list(COMMA,top_ident) EQUAL f=fsm_inst SEMICOLON { (lhs,f) }
+
 fsm_inst:
-  | f=LID es=args SEMICOLON { mk_appl $sloc (f,es) }
+  | f=LID es=args { mk_appl $sloc (f,es) }
+
+top_ident: 
+  | id=LID { mk_top_ident id }
+  | UNDER { mk_top_ident "_" }
 
 params:
   | (* Nothing *) { [] }

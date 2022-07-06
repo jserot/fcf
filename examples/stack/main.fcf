@@ -1,6 +1,6 @@
 type 'a stack = Empty | Cons of 'a * 'a stack; 
 
-let sum (n:int) = 
+fsm sum (n:int) = 
   let push (st:int stack, n) =
   | n=0 -> pop (st,0)
   | n>0 -> push (Cons(n,st), n-1)
@@ -10,4 +10,4 @@ let sum (n:int) =
   push (Empty,n)
 ;
 
-sum(5);
+let _ = sum(5);

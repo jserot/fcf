@@ -152,10 +152,14 @@ type program = {
     p_types: (string * type_decl) list;
     p_consts: (string * const_decl) list;
     p_fsms: (string * fsm_decl) list;
-    p_insts: appl list;
+    p_insts: (top_symbol list * appl) list; (* lhs[s] = fsm(args) *)
   }
 
+and top_symbol = {
+  top_id: string;
+  mutable top_typ: Types.t;
 
+  }
 (* Renaming *)
 
 let rec rename_trans_vars f t = { t with t_desc = rename_trans_desc_vars f t.t_desc }
@@ -279,3 +283,11 @@ let string_of_appl a = string_of_appl_desc a.ap_desc
 let string_of_lhs lhs = match lhs with
   | LVar v -> v
   | LArr (a,i) -> a ^ "[" ^ string_of_expr i ^ "]"
+
+let string_of_top_lhs ?(with_type=false) lhs = match lhs, with_type with
+  | [l], false -> l.top_id
+  | [l], true -> Printf.sprintf "%s : %s" l.top_id (Types.string_of_type l.top_typ)
+  | ls, false -> Misc.string_of_list (fun l -> l.top_id) "," ls
+  | ls, true -> Printf.sprintf "%s : %s"
+                  (Misc.string_of_list (fun l -> l.top_id) "," ls)
+                  (Misc.string_of_list (fun l -> Types.string_of_type l.top_typ) "*" ls)

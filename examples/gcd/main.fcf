@@ -1,4 +1,4 @@
-let gcd (a:unsigned<16>, b:unsigned<16>) =
+fsm gcd (a:unsigned<16>, b:unsigned<16>) =
   let compute (m: unsigned<16>,n: unsigned<16>) = 
   | m>n -> compute (m-n,n)
   | m<n -> compute (m,n-m)
@@ -6,6 +6,7 @@ let gcd (a:unsigned<16>, b:unsigned<16>) =
   compute (a,b)
 ;
 
-gcd(6,24);
-gcd(13,17);
-gcd(8,4);
+let _ = gcd(6,24);
+let _ = gcd(13,17);
+let r = gcd(8,4);
+--let _ = gcd(8,r);

@@ -1,4 +1,4 @@
-let sum (n:int) =
+fsm sum (n:int) =
   var a: unsigned<8> array[8192]
   let fill (i:int<0:8192>) = 
   | i<n -> do a[i]<-(i:>unsigned<8>) then fill (i+1)
@@ -9,5 +9,5 @@ let sum (n:int) =
   fill (0)
 ;
 
---sum(4);
-sum(8192);
+-- let _ = sum(4);
+let _ = sum(8192);

@@ -5,6 +5,7 @@ exception Illegal_character of int * string
 
 let keyword_table = [
   "let", LET;
+  "fsm", FSM;
   "in", IN;
   "and", AND;
   "return", RETURN;
@@ -52,6 +53,7 @@ rule main = parse
   | "<-" { LARROW }
   | "|" { BAR }
   | "~" { TILDE }
+  | "_" { UNDER }
   | ":" { COLON }
   | ":>" { COLONGT }
   | "'" { QUOTE }

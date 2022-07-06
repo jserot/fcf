@@ -45,7 +45,7 @@ type typed_program = {
   tp_ctors: (string * constr_desc) list; 
   tp_consts: (string * Types.t) list;
   tp_fsms: (string * typed_fsm) list;
-  tp_insts: (string * typed_inst) list;
+  tp_insts: (top_symbol list * string * typed_inst) list;
   }
 
 and typed_fsm = {
@@ -423,9 +423,20 @@ let type_fsm_decl tenv venv (name,d) =
 
 (* Typing FSM instances *)
 
-let type_fsm_inst tenv venv ({ap_desc = f, args} as appl) = 
+let type_fsm_inst tenv venv (lhs, ({ap_desc = f, args} as appl)) = 
   let ty_args, ty_res = type_application tenv venv appl in 
-  f, { ti_args = Types.list_of_types ty_args; ti_results = Types.list_of_types ty_res }
+  begin match lhs, Types.real_type ty_res with
+    | [l], ty ->
+       l.top_typ <- ty
+    | ls, TyProduct ts when List.length ls = List.length ts ->
+       List.iter2 (fun l ty -> l.top_typ <- ty) ls ts
+    | _, ty_rhs ->
+       let ty_lhs = TyVar (Types.new_type_var ()) in
+       raise (Wrong_type ("toplevel binding",ty_lhs,ty_rhs,appl.ap_loc))
+  end;
+  let venv' = List.map (fun l -> l.top_id, Types.trivial_scheme l.top_typ) lhs in
+  let typed_inst = lhs, f, { ti_args = Types.list_of_types ty_args; ti_results = Types.list_of_types ty_res } in
+  venv @ venv', typed_inst
   
 (* Typing programs *)
   
@@ -455,9 +466,12 @@ let type_program (builtin_tenv,builtin_venv) p =
                 state_defns })
         p.p_fsms;
     tp_insts =
-      List.map
-        (type_fsm_inst tenv (venv_c @ venv_f @ venv))
-        p.p_insts }
+      let genv = venv_c @ venv_f @ venv in
+      let _, res = List.fold_left_map
+        (type_fsm_inst tenv)
+        genv
+        p.p_insts in
+      res }
 
 (* Printing *)
 
@@ -487,9 +501,12 @@ and dump_typed_const (name,ty) =
   Printf.printf "%s : %s\n" name (Types.string_of_type ty);
   flush stdout
 
-and dump_typed_inst (name, ti) =
+and dump_typed_inst (lhs, fsm, ti) =
   let string_of_types tys = Misc.string_of_list Types.string_of_type "*" tys in
-  Printf.printf "- : %s -> %s\n" (string_of_types ti.ti_args) (string_of_types ti.ti_results);
+  Printf.printf "%s : %s\n"
+    (Misc.string_of_list (fun s -> s.top_id) ", " lhs)
+    (* (string_of_types ti.ti_args) *)
+    (string_of_types ti.ti_results);
   flush stdout
 
 and dump_typed_fsm (name, f) =

@@ -1,11 +1,11 @@
-let fib (n:int) = 
+fsm fib (n:int) = 
   let f (a, b, n) = 
   | n>1 -> f (a+b, a, n-1)
   | n<=1 -> return a in
   f (1,1,n)
 ;
 
-fib(1);
-fib(2);
-fib(5);
-fib(10);
+let _ = fib(1);
+let _ = fib(2);
+let _ = fib(5);
+let _ = fib(10);

@@ -1,0 +1,18 @@
+fsm mul (m:int, n:int) =
+  -- This FSM computes m*n by adding m to itsef n times
+  let compute (acc: unsigned<16>, n: unsigned<16>) = 
+  | n>0 -> compute (acc+m,n-1)
+  | n=0 -> return acc in
+  compute (0,n)
+;
+
+fsm div (m:unsigned<16>, n:unsigned<16>) =
+  -- This FSM computes m/n by counting the number of times n can be substracted from m
+  let compute (acc: unsigned<16>, m: unsigned<16>) = 
+  | m>=n -> compute (acc+1,m-n)
+  | m<n -> return acc in
+  compute (0,m)
+;
+
+let p = mul(4,3);
+let m = div(p,3); -- should give (4*3)/3=4 

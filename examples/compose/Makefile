@@ -22,8 +22,9 @@ vhdl: vhdl.code vhdl.run
 vhdl.code: 
 	$(FCFC) -vhdl -vhdl_testbench $(VHDL_OPTS) main.fcf
 
-vhdl.run: gcd.vhd tb.vhd
-	$(GHDL) -a $(GHDLOPTS) gcd.vhd 
+vhdl.run: mul.vhd div.vhd tb.vhd
+	$(GHDL) -a $(GHDLOPTS) mul.vhd 
+	$(GHDL) -a $(GHDLOPTS) div.vhd 
 	$(GHDL) -a $(GHDLOPTS) tb.vhd
 	$(GHDL) -e $(GHDLOPTS) tb
 	$(GHDL) -r $(GHDLOPTS) tb --vcd=tb.vcd --stop-time=600ns

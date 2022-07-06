@@ -66,7 +66,7 @@ const x0: float array[32] = {
   0.6072529350088814,
   0.6072529350088814 };
 
-let cordic (niter:int, phi:float) =
+fsm cordic (niter:int, phi:float) =
   let compute (i,a,x,y,d) = 
   | i >= niter -> return (x,y)
   | a <. phi  -> compute (i+1, a+.arctan[i], x-.y*.d, y+.x*.d, d/.2.)
@@ -74,4 +74,4 @@ let cordic (niter:int, phi:float) =
   compute (0, 0., x0[niter-1], 0., 1.)
 ;
 
-cordic(31,60.0);
+let sin,cos = cordic(31,60.0);

@@ -1,4 +1,4 @@
-let is_even(n) =
+fsm is_even(n) =
   let even(n,cnt) = 
   | n>0 -> odd(n-1,cnt+1)
   | n<=0 -> return (true,cnt)
@@ -8,5 +8,5 @@ let is_even(n) =
   even(n,0)  
 ;
 
-is_even(3);
-is_even(2);
+let r,nb_its = is_even(3);
+let r,nb_its = is_even(2);

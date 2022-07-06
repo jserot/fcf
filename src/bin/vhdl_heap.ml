@@ -39,6 +39,7 @@ let rec alloc ?(depth=2) variants heap h_ptr (e:Syntax.expr) =
   | EInt i, Integer _ -> h_ptr, Imm (Int i) (* no alloc *)
   | EBool b, Std_logic -> h_ptr, Imm (Bool b) (* no alloc *)
   | EFloat f, Real -> h_ptr, Imm (Float f) (* no alloc *)
+  | EVar v, ty -> h_ptr, Imm (Int 0) (* TOFIX ! *) 
   | ECon0 c, Variant vd -> 
      let vd' = lookup_variant_desc vd.vd_name variants in
      let vc = lookup_variant_ctor c vd'.vd_ctors in 

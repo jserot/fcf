@@ -66,7 +66,7 @@ const x0: signed<32> array[32] = {
     1214505870, 
     1214505870 } ; 
 
-let cordic (niter:int, phi:signed<32>) =
+fsm cordic (niter:int, phi:signed<32>) =
   let compute (i, a, x:signed<32>, y:signed<32>) = 
   | i >= niter -> return (x,y)
   | a < phi  -> compute (i+1, a+arctan[i], x-y>>i, y+x>>i)
@@ -74,4 +74,4 @@ let cordic (niter:int, phi:signed<32>) =
   compute (0, 0, x0[niter-1], 0)
 ;
 
-cordic(16,1200000000); -- sin(60*20000000)=1000025237/20000000=0.5, cos(...)=1732036236/20000000=0.86
+let sin,cos = cordic(16,1200000000); -- sin(60*20000000)=1000025237/20000000=0.5, cos(...)=1732036236/20000000=0.86

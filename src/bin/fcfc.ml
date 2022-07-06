@@ -72,7 +72,12 @@ let compile () =
   match !mode with
   | Run ->
      let results = Eval.eval_program p in
-     List.iter (fun r -> printf "-: ? = %s\n" (Value.to_string r)) results
+     List.iter
+       (fun (lhs,v) ->
+         printf "%s = %s\n"
+           (Syntax.string_of_top_lhs ~with_type:true lhs)
+           (Value.to_string v))
+       results
   | Dot ->
      List.iter
        (fun (n,f) -> f.fd_desc |> Fsm.from_ast |> Dot.write (n ^ ".dot"))

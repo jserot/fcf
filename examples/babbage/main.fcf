@@ -1,4 +1,4 @@
-let eval (a:int, b:int, c:int, n:int) = 
+fsm eval (a:int, b:int, c:int, n:int) = 
   let f (n, acc) = 
   | n>0 -> g (n, n, acc)
   | n=0 -> return acc+c
@@ -8,5 +8,5 @@ let eval (a:int, b:int, c:int, n:int) =
   f (n,0)
 ;
 
-eval(2,3,5,3); -- 2x^2+3x+3 (3) -> 32
-eval(1,1,1,5); -- x^2+x+1 (5) -> 31
+let _ = eval(2,3,5,3); -- 2x^2+3x+3 (3) -> 32
+let _ = eval(1,1,1,5); -- x^2+x+1 (5) -> 31

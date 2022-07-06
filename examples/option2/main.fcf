@@ -4,7 +4,7 @@ type ('a,'b) option =
   | Pair of 'a * 'b
 ;
 
-let silly (a:(int,int) option) = 
+fsm silly (a:(int,int) option) = 
   let f (x) =
   | x~None -> return 0 
   | x~Single 0 -> f (None)
@@ -14,4 +14,4 @@ let silly (a:(int,int) option) =
   f (a)
 ;
 
-silly(Pair (2,3));
+let _ = silly(Pair (2,3));

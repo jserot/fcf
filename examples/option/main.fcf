@@ -3,7 +3,7 @@ type 'a option =
   | Some of 'a
 ;
 
-let silly (a:int option) = 
+fsm silly (a:int option) = 
   let f (x) =
   | x~None -> return 0 
   | x~Some 0 -> f (None)
@@ -11,4 +11,4 @@ let silly (a:int option) =
   f (a)
 ;
 
-silly(Some 2);
+let _ = silly(Some 2);

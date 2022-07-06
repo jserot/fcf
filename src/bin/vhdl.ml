@@ -875,7 +875,7 @@ let dump_sim_process oc variants fsms (fsm,insts) =
 let sort_fsm_insts insts = 
   let r = (ref [] : (string * (Syntax.appl list ref)) list ref) in
   List.iter
-    (fun ({ Syntax.ap_desc=f,args } as inst) ->
+    (fun (_, ({ Syntax.ap_desc=f,args } as inst)) ->
       match List.assoc_opt f !r with
       | Some l -> l := inst::!l
       | None -> r := (f,ref [inst]) :: !r)

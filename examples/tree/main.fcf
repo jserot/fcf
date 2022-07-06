@@ -1,7 +1,7 @@
 type 'a tree = Nil | Node of 'a * 'a tree * 'a tree; 
 type 'a stack = Empty | Cons of 'a * 'a stack; 
 
-let sum_tree (a:int tree) = 
+fsm sum_tree (a:int tree) = 
   let f (t, st:int tree stack, acc) =
   | t~Nil, st~Empty -> return acc
   | t~Nil, st~Cons(r,rs) -> f (r, rs, acc)
@@ -9,8 +9,8 @@ let sum_tree (a:int tree) =
   f (a,Empty,0)
 ;
 
--- sum_tree(Nil);
--- sum_tree(Node(1,Nil,Nil));
--- sum_tree(Node(1,Node(2,Nil,Nil),Nil));
--- sum_tree(Node(1,Node(2,Nil,Nil),Node(3,Nil,Nil)));
-sum_tree(Node(1,Node(2,Nil,Nil),Node(3,Node(4,Nil,Nil),Node(5,Nil,Nil))));
+-- let _ = sum_tree(Nil);
+-- let _ = sum_tree(Node(1,Nil,Nil));
+-- let _ = sum_tree(Node(1,Node(2,Nil,Nil),Nil));
+-- let _ = sum_tree(Node(1,Node(2,Nil,Nil),Node(3,Nil,Nil)));
+let _ = sum_tree(Node(1,Node(2,Nil,Nil),Node(3,Node(4,Nil,Nil),Node(5,Nil,Nil))));
