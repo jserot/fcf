@@ -291,3 +291,5 @@ let string_of_top_lhs ?(with_type=false) lhs = match lhs, with_type with
   | ls, true -> Printf.sprintf "%s : %s"
                   (Misc.string_of_list (fun l -> l.top_id) "," ls)
                   (Misc.string_of_list (fun l -> Types.string_of_type l.top_typ) "*" ls)
+
+let string_of_inst (lhs,appl) = string_of_top_lhs lhs ^ "=" ^ string_of_appl appl

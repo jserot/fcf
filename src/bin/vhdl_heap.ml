@@ -11,7 +11,7 @@ type imm_value =
 | Bool of bool
 | Float of float
         
-type value = Imm of imm_value | Ptr of heap_ptr
+type value = Imm of imm_value | Ptr of heap_ptr | Var of string
 
 type word =
   | Header of int * int (* tag, block_size *)
@@ -29,6 +29,7 @@ let string_of_value = function   (* for debug only *)
 | Imm (Bool v) -> "Imm<" ^ string_of_bool v ^ ">"
 | Imm (Float v) -> "Imm<" ^ string_of_float v ^ ">"
 | Ptr p -> "Ptr<" ^ string_of_int p ^ ">"
+| Var v -> "Var<" ^ v ^ ">"         
 
 let rec alloc ?(depth=2) variants heap h_ptr (e:Syntax.expr) =
   (* let tab sz = String.make sz '*' in (\* for debug only *\) *)
@@ -39,7 +40,7 @@ let rec alloc ?(depth=2) variants heap h_ptr (e:Syntax.expr) =
   | EInt i, Integer _ -> h_ptr, Imm (Int i) (* no alloc *)
   | EBool b, Std_logic -> h_ptr, Imm (Bool b) (* no alloc *)
   | EFloat f, Real -> h_ptr, Imm (Float f) (* no alloc *)
-  | EVar v, ty -> h_ptr, Imm (Int 0) (* TOFIX ! *) 
+  | EVar v, ty -> h_ptr, Var v  (* no alloc *)
   | ECon0 c, Variant vd -> 
      let vd' = lookup_variant_desc vd.vd_name variants in
      let vc = lookup_variant_ctor c vd'.vd_ctors in 
@@ -78,6 +79,7 @@ let string_of_value v = match v with
   | Imm (Bool x) -> Printf.sprintf "val_bool(%b)" x
   | Imm (Float x) -> Printf.sprintf "val_float(%f)" x
   | Ptr p -> Printf.sprintf "val_ptr(%d)" p
+  | Var v -> v (* TO FIX ? *)
 
 let string_of_word w = match w with
   | Header (tag,sz) -> Printf.sprintf "mk_header(%d,%d)" tag sz
