@@ -1,0 +1,35 @@
+[*]
+[*] GTKWave Analyzer v3.3.54 (w)1999-2014 BSI
+[*] Mon Mar 14 09:22:33 2022
+[*]
+[dumpfile] "/Users/jserot/Dev/ml/fcf/examples/option/tb.ghw"
+[dumpfile_mtime] "Mon Mar 14 09:22:16 2022"
+[dumpfile_size] 3291
+[savefile] "/Users/jserot/Dev/ml/fcf/examples/option/tb.sav"
+[timestart] 0
+[size] 1000 600
+[pos] 224 24
+*-25.201746 46700000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.tb.
+[treeopen] top.tb.silly_a.
+[treeopen] top.tb.u1.
+[treeopen] top.tb.u1.x.
+[sst_width] 193
+[signals_width] 159
+[sst_expanded] 1
+[sst_vpaned_height] 168
+@28
+top.tb.u1.clk
+top.tb.u1.rst
+top.tb.u1.h_init
+top.tb.u1.rdy
+top.tb.u1.start
+@22
+#{top.tb.u1.a[31:0]} top.tb.u1.a[31] top.tb.u1.a[30] top.tb.u1.a[29] top.tb.u1.a[28] top.tb.u1.a[27] top.tb.u1.a[26] top.tb.u1.a[25] top.tb.u1.a[24] top.tb.u1.a[23] top.tb.u1.a[22] top.tb.u1.a[21] top.tb.u1.a[20] top.tb.u1.a[19] top.tb.u1.a[18] top.tb.u1.a[17] top.tb.u1.a[16] top.tb.u1.a[15] top.tb.u1.a[14] top.tb.u1.a[13] top.tb.u1.a[12] top.tb.u1.a[11] top.tb.u1.a[10] top.tb.u1.a[9] top.tb.u1.a[8] top.tb.u1.a[7] top.tb.u1.a[6] top.tb.u1.a[5] top.tb.u1.a[4] top.tb.u1.a[3] top.tb.u1.a[2] top.tb.u1.a[1] top.tb.u1.a[0]
+@23
+#{top.tb.u1.x[31:0]} top.tb.u1.x[31] top.tb.u1.x[30] top.tb.u1.x[29] top.tb.u1.x[28] top.tb.u1.x[27] top.tb.u1.x[26] top.tb.u1.x[25] top.tb.u1.x[24] top.tb.u1.x[23] top.tb.u1.x[22] top.tb.u1.x[21] top.tb.u1.x[20] top.tb.u1.x[19] top.tb.u1.x[18] top.tb.u1.x[17] top.tb.u1.x[16] top.tb.u1.x[15] top.tb.u1.x[14] top.tb.u1.x[13] top.tb.u1.x[12] top.tb.u1.x[11] top.tb.u1.x[10] top.tb.u1.x[9] top.tb.u1.x[8] top.tb.u1.x[7] top.tb.u1.x[6] top.tb.u1.x[5] top.tb.u1.x[4] top.tb.u1.x[3] top.tb.u1.x[2] top.tb.u1.x[1] top.tb.u1.x[0]
+@28
+top.tb.u1.res
+[pattern_trace] 1
+[pattern_trace] 0

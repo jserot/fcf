@@ -15,6 +15,5 @@
 
 ## Apps
 
-- sieve
-- eval_exp
 - list_rev with local array
+- sieve (also with local array)

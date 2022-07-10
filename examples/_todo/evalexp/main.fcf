@@ -1,0 +1,33 @@
+type op = Add | Mul;
+
+type exp =
+    Int of int
+  | Binop of op * exp * exp
+  | Nil
+;
+
+type 'a stack =
+    Empty
+  | Cons of 'a * 'a stack; 
+
+type token = 
+    Op of op
+  | Val of int
+;
+
+fsm eval (e: exp) = 
+  let f (e, st:token stack, rs:exp stack, e: exp) =
+  | st~Cons(Val n1,Cons (Val n2,Cons (Op Add,st'))) -> f (Cons (Val (n1+n2),st'), rs, e) -- Reduce +
+  | st~Cons(Val n1,Cons (Val n2,Cons (Op Mul,st'))) -> f (Cons (Val (n1*n2)::st'), rs, e) -- Reduce *
+  | e~Binop(op,l,r) -> f (Cons (Op op,st), Cons (r,rs), l) -- Shift op 1
+  | rs~Cons(Binop(op,l,r),rs'), e~Nil -> f (Cons (Op op,st), Cons (r,rs'), l) -- Shift op 2
+  | e~Int n -> f (Cons (Val n,st), rs, Nil)  -- Shift value 1
+  | rs~Cons (Int n,rs'), e~Nil -> f (Cons (Val n,st'à, rs', Nil)  -- Shift value 2
+  | st~Cons (v,_), rs~Empty, Nil -> return v -- Done
+;
+
+let _ = eval (Int 1);
+let _ = eval (Binop (Add,Int 1,Int 2));
+let _ = eval (Binop (Add, Binop (Add,Int 1,Int 2), Int 3));
+let _ = eval (Binop (Add, Int 1, Binop (Add,Int 2,Int 3)));
+let _ = eval (Binop (Add, Binop (Add,Int 1,Int 2), Binop (Add,Int 3, Int 4)));
