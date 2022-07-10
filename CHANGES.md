@@ -2,9 +2,8 @@
 
 - **changed syntax** for toplevel declarations :
   - FSMs are now introduced using the `fsm` keyword (instead of `let`)
-  - instances are introduced using the `let` keyword and their result(s) are explicitely bound
-- naming the result(s) of instances allows them to be used as argument(s) to subsequent instances;
-  see `examples/compose` for ex.
+  - instances are introduced using the `let` keyword and their result(s) can be named and used as
+  argument in subsequent `let` instances (ex: `let r = f1 (x1); let r2 = f2(r1)`). See `examples/compose` for ex.
   
 # v0.4 - Jun 27, 2022
 

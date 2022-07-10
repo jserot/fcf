@@ -107,6 +107,15 @@ module StateSet = Set.Make (struct type t = string let compare = compare end)
 
 let state_id = String.capitalize_ascii
 
+type inst = {
+  i_lhs: (string * Vhdl_types.vhdl_type) list; 
+  i_f: string;
+  i_fsm: model;
+  i_args: Vhdl_heap.value list;
+  i_heap: Vhdl_heap.word array;
+  i_lbl: string;
+  }
+
 let lookup_type tp id = 
   let open Typing in
   try List.assoc id tp.tp_types 
@@ -368,6 +377,18 @@ let rec scan_guards gs = match gs with
       let conds, bindings' = scan_guards rest in
       cond::conds, bindings @ bindings'
 
+let mk_inst variants fsms ((lhs,{Syntax.ap_desc=f,args; Syntax.ap_loc=loc}) as inst) =
+  let heap = Vhdl_heap.make cfg.heap_size in
+  let heap_size, arg_vals = 
+    try List.fold_left_map (Vhdl_heap.alloc variants heap) 0 args
+    with Vhdl_heap.Heap_full -> raise (Heap_full (Syntax.string_of_inst inst)) in
+  { i_lhs = List.map (fun s -> s.Syntax.top_id, vhdl_type_of s.Syntax.top_typ) lhs;
+    i_f = f;
+    i_fsm = List.assoc f fsms;
+    i_args = arg_vals;
+    i_heap = Array.sub heap 0 heap_size;
+    i_lbl = Syntax.string_of_inst inst; }
+  
 let dump_action oc tab m a =
   fprintf oc "%s%s;\n" tab (string_of_action m a);
   match m.v_has_heap, cfg.trace_heap, a with
@@ -759,7 +780,8 @@ let dump_inst_outp oc m (o,ty) =
        (Vhdl_types.string_of_vhdl_type ~type_marks:TM_None ty')
        name
 
-let dump_inst_sim oc m lhs vs = 
+let dump_inst_sim oc inst = 
+  let m = inst.i_fsm in
   fprintf oc "  -- -- start computation\n";
   let open Vhdl_heap in
   let inject_value t v = match v, vhdl_type_of t with
@@ -776,7 +798,7 @@ let dump_inst_sim oc m lhs vs =
   List.iter2
     (fun (name,ty) v -> fprintf oc "  %s <= %s;\n" (sig_name m name) (inject_value ty v))
     m.v_inps
-    vs;
+    inst.i_args;
   with Invalid_argument _ -> ();
   fprintf oc "  %s <= '1';\n" (sig_name m "start");
   fprintf oc "  wait for %d %s;\n" cfg.start_duration cfg.time_unit;
@@ -791,8 +813,8 @@ let dump_inst_sim oc m lhs vs =
   if cfg.trace_heap then
     fprintf oc "  dump_heap(%s_h_heap, %s_h_hptr);\n" m.v_name m.v_name;
   List.iter2 
-    (fun {Syntax.top_id=i} (o,_) -> if i <> "_" then fprintf oc "  %s := %s;\n" i (sig_name m o))
-    lhs
+    (fun (l,_) (o,_) -> if l <> "_" then fprintf oc "  %s := %s;\n" l (sig_name m o))
+    inst.i_lhs
     results;
   fprintf oc "  wait for %d %s;\n" cfg.sim_interval cfg.time_unit
 
@@ -815,46 +837,39 @@ let dump_clock_process oc =
   fprintf oc "  wait for %d %s;\n" (cfg.clock_period/2) cfg.time_unit;
   fprintf oc "end process;\n"
 
-let dump_heap_init_data oc i heap =
-  fprintf oc "  constant heap_init_%d: heap_init_t := (\n" i;
+let dump_heap_init_data oc i inst =
+  let heap = inst.i_heap in
   let size = Array.length heap in
-  for i=0 to size-1 do
-    fprintf oc "    %s%s -- %d\n" (Vhdl_heap.string_of_word heap.(i)) (if i<size-1 then "," else "") i 
-  done;
-  fprintf oc "  );\n"
+  if size > 0 then  begin
+      fprintf oc "  constant heap_init_%d: heap_init_t := (\n" i;
+      for i=0 to size-1 do
+        fprintf oc "    %s%s -- %d\n" (Vhdl_heap.string_of_word heap.(i)) (if i<size-1 then "," else "") i 
+      done;
+      fprintf oc "  );\n"
+    end
 
-let dump_heap_init_seq oc i m =
+let dump_heap_init_seq oc i inst =
+  let name_of = sig_name inst.i_fsm in
   fprintf oc "  -- -- heap init sequence\n";
   fprintf oc "  wait for %d %s;\n" (cfg.clock_period/2) cfg.time_unit;
-  fprintf oc "  %s <= '1';\n" (sig_name m "h_init");
-  fprintf oc "  %s <= heap_init_%d'length;\n" (sig_name m "h_icnt") i;
+  fprintf oc "  %s <= '1';\n" (name_of "h_init");
+  fprintf oc "  %s <= heap_init_%d'length;\n" (name_of "h_icnt") i;
   fprintf oc "  wait for %d %s;\n" cfg.clock_period cfg.time_unit;
-  fprintf oc "  %s <= '0';\n" (sig_name m "h_init");
+  fprintf oc "  %s <= '0';\n" (name_of "h_init");
   fprintf oc "  for i in heap_init_%d'range loop\n" i;
-  fprintf oc "    %s <= heap_init_%d(i);\n" (sig_name m "h_ival") i;
+  fprintf oc "    %s <= heap_init_%d(i);\n" (name_of "h_ival") i;
   fprintf oc "    wait for %d %s;\n" cfg.clock_period cfg.time_unit;
   fprintf oc "  end loop;\n";
-  fprintf oc "  wait until %s = '1';\n" (sig_name m "rdy")
+  fprintf oc "  wait until %s = '1';\n" (name_of "rdy")
 
-let dump_sim_sequence oc variants fsms ((lhs,{Syntax.ap_desc=f,args; Syntax.ap_loc=loc}) as inst) =
-  let m = List.assoc f fsms in
-  let heap = Vhdl_heap.make cfg.heap_size in
-  let heap_size, arg_vals = 
-    try List.fold_left_map (Vhdl_heap.alloc variants heap) 0 args
-    with Vhdl_heap.Heap_full -> raise (Heap_full (Syntax.string_of_inst inst)) in
-  (* Syntax.string_of_appl appl, arg_vals, Array.sub heap 0 heap_size) *)
-  (* if List.exists (fun (i,lbl,arg_vals,init_heap) -> Array.length init_heap > 0) appls then
-   *   fprintf oc "  type heap_init_t is array (natural range <>) of std_logic_vector(31 downto 0);\n"; *)
-  (* List.iter
-   *   (fun (i,lbl,arg_vals,init_heap) -> 
-   *     if Array.length init_heap > 0 then dump_heap_init_data oc i init_heap)
-   *   appls;
-   * fprintf oc "begin\n"; *)
-  fprintf oc "  -- %s\n" (Syntax.string_of_inst inst);
-  if heap_size > 0 then begin
-      dump_heap_init_seq oc 0 m;
+let dump_sim_sequence oc i inst = 
+  let m = inst.i_fsm in
+  let name_of = sig_name m in
+  fprintf oc "  -- %s\n" inst.i_lbl;
+  if Array.length inst.i_heap > 0 then begin
+      dump_heap_init_seq oc i inst;
       fprintf oc "  wait for %d %s;\n" (cfg.clock_period*3/2) cfg.time_unit;
-      fprintf oc "  %s <= '0';\n" (sig_name m "h_init");
+      fprintf oc "  %s <= '0';\n" (name_of "h_init");
       if cfg.print_heap_size then
         fprintf oc "  assert false report \"%s_init_heap_size=\" & integer'image(%s_h_hptr) severity note;\n"
           m.v_name 
@@ -864,14 +879,13 @@ let dump_sim_sequence oc variants fsms ((lhs,{Syntax.ap_desc=f,args; Syntax.ap_l
     end
   else
     fprintf oc "  wait for %d %s;\n" cfg.clock_period cfg.time_unit;
-  dump_inst_sim oc m lhs arg_vals
+  dump_inst_sim oc inst
 
-let dump_res_variables oc (lhs,appl) = 
-  let open Syntax in
+let dump_res_variables oc inst =
   List.iter 
-    (fun l -> 
-      if l.top_id <> "_" then fprintf oc "  variable %s: %s;\n" l.top_id (string_of_vhdl_type (vhdl_type_of l.top_typ)))
-  lhs
+    (fun (id,ty) -> 
+      if id <> "_" then fprintf oc "  variable %s: %s;\n" id (string_of_vhdl_type ty))
+  inst.i_lhs
     
 (* let sort_fsm_insts insts = 
  *   let r = (ref [] : (string * (Syntax.appl list ref)) list ref) in
@@ -907,12 +921,16 @@ let write_testbench ~dir ~fname ~pkgs ~variants named_fsms insts =
   List.iteri (fun i f -> dump_fsm_inst oc ("U" ^ string_of_int (i+1)) f) fsms;
   fprintf oc "\n";
   (* let sorted_insts = sort_fsm_insts insts in *)
+  let insts' = List.map (mk_inst variants named_fsms) insts in (* Attach model and heap init data to each inst. *)
   fprintf oc "process\n"; (* now single, sequential process *)
-  List.iter (dump_res_variables oc) insts;
+  if List.exists (fun inst -> Array.length inst.i_heap > 0) insts' then
+    fprintf oc "  type heap_init_t is array (natural range <>) of std_logic_vector(31 downto 0);\n";
+  List.iteri (dump_heap_init_data oc) insts';
+  List.iter (dump_res_variables oc) insts';
   fprintf oc "begin\n";
   List.iter (dump_init_signals oc) named_fsms;
   fprintf oc "\n";
-  List.iter (dump_sim_sequence oc variants named_fsms) insts;
+  List.iteri (dump_sim_sequence oc) insts';
   fprintf oc "  assert false report \"end of simulation\" severity note;\n";
   fprintf oc "  wait;\n";
   fprintf oc "end process;\n\n";

@@ -8,5 +8,5 @@ fsm is_even(n) =
   even(n,0)  
 ;
 
-let r,nb_its = is_even(3);
-let r,nb_its = is_even(2);
+let r1,nb_it1 = is_even(3);
+let r2,nb_it2 = is_even(2);
