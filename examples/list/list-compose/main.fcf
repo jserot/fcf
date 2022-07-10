@@ -1,0 +1,18 @@
+type 'a list = Nil | Cons of 'a * 'a list; 
+
+fsm inc_list (l:int list) = 
+  let f (l,acc) =
+  | l~Nil -> return acc 
+  | l~Cons(v,ll) -> f (ll, Cons (v+1,acc)) in
+  f (l,Nil)
+;
+
+fsm mul_list (l:int list) = 
+  let f (l,acc) =
+  | l~Nil -> return acc 
+  | l~Cons(v,ll) -> f (ll, Cons (v*2,acc)) in
+  f (l,Nil)
+;
+
+let l1 = inc_list(Cons(1,Cons(2,Nil)));
+let l2 = mul_list(l1);

@@ -44,3 +44,7 @@ let circular_type site ty1 ty2 loc =
 let vhdl_heap_full loc =
   eprintf "Cannot allocate all data for VHDL instance of FSM %s; use option [-vhdl_heap_size] to increase heap size\n" loc;
   flush stderr
+
+exception Not_implemented of string
+
+let not_implemented what = raise (Not_implemented what)

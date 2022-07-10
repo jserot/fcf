@@ -136,6 +136,10 @@ with
   | Sys_error msg ->
      eprintf "Input/output error: %s.\n" msg;
      flush stderr; exit 6
+  | Error.Not_implemented what ->
+     eprintf "** Not implemented: %s.\n" what;
+     flush stderr;
+     exit 8
   | e ->
      eprintf "Internal error: %s.\n" (Printexc.to_string e);
      flush stderr; exit 7

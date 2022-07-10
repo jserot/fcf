@@ -884,19 +884,16 @@ let dump_sim_sequence oc i inst =
 let dump_res_variables oc inst =
   List.iter 
     (fun (id,ty) -> 
-      if id <> "_" then fprintf oc "  variable %s: %s;\n" id (string_of_vhdl_type ty))
+      match id, ty with
+      | "_", _ -> ()
+      | _, Unsigned _ 
+      | _, Signed _
+      | _, Integer _
+      | _, Std_logic
+      | _, Real -> fprintf oc "  variable %s: %s;\n" id (string_of_vhdl_type ty)
+      | _, _ -> Error.not_implemented "VHDL translation of heap-allocated let-bound values")
   inst.i_lhs
     
-(* let sort_fsm_insts insts = 
- *   let r = (ref [] : (string * (Syntax.appl list ref)) list ref) in
- *   List.iter
- *     (fun (_, ({ Syntax.ap_desc=f,args } as inst)) ->
- *       match List.assoc_opt f !r with
- *       | Some l -> l := inst::!l
- *       | None -> r := (f,ref [inst]) :: !r)
- *     insts;
- *   List.map (fun (f,appls) -> f, List.rev !appls) !r *)
-             
 let write_testbench ~dir ~fname ~pkgs ~variants named_fsms insts = 
   let oc = open_out fname in
   let fsms = List.map snd named_fsms in
@@ -920,7 +917,6 @@ let write_testbench ~dir ~fname ~pkgs ~variants named_fsms insts =
   fprintf oc "\n";
   List.iteri (fun i f -> dump_fsm_inst oc ("U" ^ string_of_int (i+1)) f) fsms;
   fprintf oc "\n";
-  (* let sorted_insts = sort_fsm_insts insts in *)
   let insts' = List.map (mk_inst variants named_fsms) insts in (* Attach model and heap init data to each inst. *)
   fprintf oc "process\n"; (* now single, sequential process *)
   if List.exists (fun inst -> Array.length inst.i_heap > 0) insts' then
