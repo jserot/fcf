@@ -1,4 +1,4 @@
-# v0.5 - Jul XX, 2022
+# v0.5 - Jul 28, 2022
 
 - **changed syntax** for toplevel declarations :
   - FSMs are now introduced using the `fsm` keyword (instead of `let`)
